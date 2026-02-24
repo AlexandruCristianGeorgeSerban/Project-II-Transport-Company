@@ -1,7 +1,7 @@
 # Transport Company Management System
 ## 1. Introduction
 ## 1.1. Purpose of the document
-Defines requirements for a system managing routes, vehicles, tickets, and passengers
+Defines requirements for a system managing routes, vehicles, tickets, and passengers.
 ## 1.2. Aim of the project
 The system will be implemented as a client–server application in order to support the operations of a transport company. It will include three major components:
 - an administrative module for managing the vehicle fleet and employed drivers
@@ -16,7 +16,7 @@ Customers will interact with the system through a dedicated interface where they
 
 The company will use a specialized allocation module to process incoming requests. For each request, staff will select an appropriate vehicle and an available driver based on capacity, route, and scheduling constraints. The system will then generate a price offer, which will be communicated to the customer. Once the customer accepts the offer, the transport job will be scheduled and tracked.
 
-The information system will allow graphical visualization of the fleet, driver availability, and active transport requests through intuitive interfaces
+The information system will allow graphical visualization of the fleet, driver availability, and active transport requests through intuitive interfaces.
 ## 3. System requirements
 CF_1 The list of vehicle types will be chosen from a predefined set. It will also be possible to add new vehicle types that can be saved.
 
@@ -48,4 +48,4 @@ CF_14 Each transport request and resource assignment will have a “fingerprint�
 
 CF_15 Both the client and the server will have a simple and intuitive graphical interface.
 
-CF_16 A database server will be configured for storing and managing all information
+CF_16 A database server will be configured for storing and managing all information.
