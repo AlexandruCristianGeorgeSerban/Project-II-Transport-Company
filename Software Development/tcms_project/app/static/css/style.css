@@ -1,0 +1,112 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #ffffff 40%, #0078d4 40%);
+    background-attachment: fixed;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-wrapper {
+    display: flex;
+    width: 80%;
+    max-width: 1000px;
+    background-color: transparent;
+}
+
+.auth-image-side {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-image-side img {
+    max-width: 80%;
+    height: auto;
+}
+
+.auth-form-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-card {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 350px;
+    overflow: hidden;
+}
+
+.auth-card-header {
+    background-color: #5d6b79;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    font-size: 1.2rem;
+}
+
+.auth-card-body {
+    padding: 30px;
+}
+
+.system-title {
+    color: white;
+    font-size: 2.5rem;
+    font-weight: 600;
+    text-align: right;
+    margin-left: 30px;
+    line-height: 1.2;
+}
+
+.btn-custom-blue {
+    background-color: #5d88b3;
+    color: white;
+    width: 100%;
+}
+
+.btn-custom-blue:hover {
+    background-color: #4a7096;
+    color: white;
+}
+/* --- DASHBOARD STYLES (Matches Prototype) --- */
+.dashboard-wrapper { display: flex; height: 100vh; overflow: hidden; background-color: #f4f6f9; }
+
+/* Sidebar */
+.sidebar { width: 220px; background-color: #f8f9fa; border-right: 2px solid #dee2e6; display: flex; flex-direction: column; align-items: center; padding-top: 20px;}
+.sidebar img { width: 120px; margin-bottom: 20px; }
+.nav-btn { width: 85%; background-color: #5d758b; color: white; border: none; padding: 8px; margin-bottom: 8px; border-radius: 5px; text-align: center; text-decoration: none; font-weight: 500;}
+.nav-btn:hover { background-color: #4a6276; color: white; }
+.nav-btn.active { background-color: #2b4b6b; font-weight: bold; }
+
+/* Main Content Area */
+.main-content { flex: 1; display: flex; flex-direction: column; }
+.top-navbar { background-color: #0078d4; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 1.4rem;}
+.user-info { font-size: 0.95rem; display: flex; align-items: center; gap: 8px;}
+
+/* Dashboard Body */
+.content-body { padding: 15px 25px; overflow-y: auto; }
+.section-header { background-color: #5d6b79; color: white; padding: 5px 15px; margin-bottom: 10px; border-radius: 4px; font-weight: 500; font-size: 1.1rem;}
+
+/* Summary Cards */
+.card-row { display: flex; gap: 15px; margin-bottom: 20px;}
+.summary-card { flex: 1; background: white; border: 1px solid #ced4da; border-radius: 4px; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; font-size: 1.1rem; color: #495057;}
+.badge-count { font-size: 1.4rem; padding: 3px 15px; border-radius: 4px; font-weight: bold;}
+.bg-pink { background-color: #f8d7da; color: #721c24; }
+.bg-teal { background-color: #d1ecf1; color: #0c5460; }
+.bg-grey { background-color: #e2e3e5; color: #383d41; }
+
+/* Table */
+.table-container { background: white; border: 1px solid #ced4da; border-radius: 4px; }
+.custom-table th { background-color: #e9ecef; color: #495057; font-weight: 600; font-size: 0.95rem;}
+.custom-table td { font-size: 0.9rem; vertical-align: middle; }
+.btn-action { background-color: #5d88b3; color: white; border: none; padding: 4px 15px; border-radius: 4px; font-size: 0.85rem;}
+.btn-action:hover { background-color: #4a7096; color: white;}
