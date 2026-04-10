@@ -1,0 +1,9 @@
+# Ignora mediul virtual
+venv/
+
+# Ignora cache-ul Python
+__pycache__/
+*.pyc
+
+# Ignora setarile de la VS Code
+.vscode/
