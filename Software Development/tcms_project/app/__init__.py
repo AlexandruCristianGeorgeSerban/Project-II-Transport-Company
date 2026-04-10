@@ -3,6 +3,7 @@ from flask import Flask
 from app.routes.auth_routes import auth_bp
 from app.routes.dashboard_routes import dashboard_bp  # <-- LINIE NOUA
 from app.models.user_model import UserModel
+from app.routes.driver_routes import driver_bp
 
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
@@ -13,7 +14,8 @@ def create_app() -> Flask:
     
     # Register the authentication blueprint
     app.register_blueprint(auth_bp)
-    app.register_blueprint(dashboard_bp) # <-- LINIE NOUA
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(driver_bp)
     
     # Initialize the database table for users
     user_db = UserModel()

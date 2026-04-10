@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Management - Transport Company</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+    <div class="sidebar">
+        <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 120px; margin-bottom: 20px;">
+        <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn">Dashboard</a>
+        <a href="{{ url_for('fleet.fleet_management') }}" class="nav-btn">Fleet Management</a>
+        <a href="{{ url_for('driver.driver_management') }}" class="nav-btn active">Driver Management</a>
+        <a href="#" class="nav-btn">Requests</a>
+        <a href="#" class="nav-btn">Allocation</a>
+        <a href="#" class="nav-btn">Reports</a>
+    </div>
+
+    <div class="main-content">
+        <div class="top-navbar">
+            <div>Driver Management</div>
+            <div class="user-info">
+                <span>🔔</span><span class="ms-2">👤 {{ role }} Login</span>
+            </div>
+        </div>
+
+        <div class="content-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="section-header">Summary</div>
+            <div class="card-row">
+                <div class="summary-card">
+                    <span>📄 Total Drivers:</span>
+                    <span class="badge-count bg-pink">{{ data.summary.total }}</span>
+                </div>
+                <div class="summary-card">
+                    <span>🚗 Active Profiles:</span>
+                    <span class="badge-count bg-teal">{{ data.summary.active }}</span>
+                </div>
+                <div class="summary-card">
+                    <span>👤 On Leave:</span>
+                    <span class="badge-count bg-grey">{{ data.summary.on_leave }}</span>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target="#addDriverModal">
+                + Add New Driver
+            </button>
+
+            <div class="table-container">
+                <div class="section-header" style="margin-bottom: 0; border-radius: 4px 4px 0 0;">Registered Drivers</div>
+                <table class="table table-striped table-hover custom-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID / Doc ID</th>
+                            <th>Driver Name</th>
+                            <th>Licenses</th>
+                            <th>Availability</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if data.drivers|length == 0 %}
+                        <tr><td colspan="6" class="text-center">No drivers found.</td></tr>
+                        {% else %}
+                            {% for driver in data.drivers %}
+                            <tr>
+                                <td>{{ driver.id }}</td>
+                                <td>{{ driver.name }}</td>
+                                <td>{{ driver.licenses }}</td>
+                                <td><span class="badge bg-{{ 'secondary' if driver.availability == 'On Leave' else ('primary' if driver.availability == 'In Transit' else 'success') }}">{{ driver.availability }}</span></td>
+                                <td><span class="badge bg-{{ 'success' if driver.status == 'Active' else 'danger' }}">{{ driver.status }}</span></td>
+                                <td>
+                                    <button type="button" class="btn btn-info btn-sm text-white" data-bs-toggle="modal" data-bs-target="#viewModal{{ driver.id }}">View</button>
+                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ driver.id }}">Edit</button>
+                                    <form method="POST" action="{{ url_for('driver.delete_driver', driver_id=driver.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this driver?');">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addDriverModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('driver.add_driver') }}">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">Add / Edit Driver Profile</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body bg-light">
+              <div class="row g-3">
+                  <div class="col-md-6">
+                      <div class="card h-100 shadow-sm">
+                          <div class="card-header bg-secondary text-white">Driver Profiles & Licenses</div>
+                          <div class="card-body">
+                              <div class="mb-2">
+                                  <label class="form-label">System ID</label>
+                                  <input type="text" class="form-control form-control-sm" name="driver_id" required>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">Driver Name</label>
+                                  <input type="text" class="form-control form-control-sm" name="name" required>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">Status</label>
+                                  <select class="form-select form-select-sm" name="status" required>
+                                      <option value="Active">Active</option>
+                                      <option value="Inactive">Inactive</option>
+                                  </select>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">License Categories</label><br>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="A"> <label class="form-check-label">A</label>
+                                  </div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="B"> <label class="form-check-label">B</label>
+                                  </div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="C1"> <label class="form-check-label">C1</label>
+                                  </div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="C"> <label class="form-check-label">C</label>
+                                  </div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="CE"> <label class="form-check-label">CE</label>
+                                  </div>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">Experience</label>
+                                  <textarea class="form-control form-control-sm" name="experience" rows="2" placeholder="Detailed history..."></textarea>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="card shadow-sm mb-3">
+                          <div class="card-header bg-secondary text-white">Personal Data & Verification</div>
+                          <div class="card-body">
+                              <div class="row">
+                                  <div class="col-6 mb-2">
+                                      <label class="form-label">DOB</label>
+                                      <input type="date" class="form-control form-control-sm" name="dob" required>
+                                  </div>
+                                  <div class="col-6 mb-2">
+                                      <label class="form-label">Document ID</label>
+                                      <input type="text" class="form-control form-control-sm" name="document_id" required>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="card shadow-sm">
+                          <div class="card-header bg-secondary text-white">Address & Availability</div>
+                          <div class="card-body">
+                              <div class="mb-2">
+                                  <label class="form-label">Full Address</label>
+                                  <input type="text" class="form-control form-control-sm" name="address" required>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">Current Availability</label>
+                                  <select class="form-select form-select-sm" name="availability" required>
+                                      <option value="Available">Available</option>
+                                      <option value="In Transit">In Transit</option>
+                                      <option value="On Leave">On Leave</option>
+                                      <option value="Not Available">Not Available</option>
+                                  </select>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success">Save Driver Profile</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for driver in data.drivers %}
+<div class="modal fade" id="editModal{{ driver.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('driver.edit_driver') }}">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">Edit Driver: {{ driver.name }}</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body bg-light">
+              <div class="row g-3">
+                  <div class="col-md-6">
+                      <div class="card h-100 shadow-sm">
+                          <div class="card-header bg-secondary text-white">Driver Profiles & Licenses</div>
+                          <div class="card-body">
+                              <div class="mb-2">
+                                  <label class="form-label">System ID</label>
+                                  <input type="text" class="form-control form-control-sm bg-light" name="edit_driver_id" value="{{ driver.id }}" readonly>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">Driver Name</label>
+                                  <input type="text" class="form-control form-control-sm" name="edit_name" value="{{ driver.name }}" required>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">Status</label>
+                                  <select class="form-select form-select-sm" name="edit_status" required>
+                                      <option value="Active" {% if driver.status == 'Active' %}selected{% endif %}>Active</option>
+                                      <option value="Inactive" {% if driver.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                                  </select>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">License Categories</label><br>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="A" {% if 'A' in driver.licenses %}checked{% endif %}> <label class="form-check-label">A</label>
+                                  </div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="B" {% if 'B' in driver.licenses %}checked{% endif %}> <label class="form-check-label">B</label>
+                                  </div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="C1" {% if 'C1' in driver.licenses %}checked{% endif %}> <label class="form-check-label">C1</label>
+                                  </div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="C" {% if 'C' in driver.licenses and 'C1' not in driver.licenses %}checked{% endif %}> <label class="form-check-label">C</label>
+                                  </div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="CE" {% if 'CE' in driver.licenses %}checked{% endif %}> <label class="form-check-label">CE</label>
+                                  </div>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">Experience</label>
+                                  <textarea class="form-control form-control-sm" name="edit_experience" rows="2">{{ driver.experience }}</textarea>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div class="card shadow-sm mb-3">
+                          <div class="card-header bg-secondary text-white">Personal Data & Verification</div>
+                          <div class="card-body">
+                              <div class="row">
+                                  <div class="col-6 mb-2">
+                                      <label class="form-label">DOB</label>
+                                      <input type="date" class="form-control form-control-sm" name="edit_dob" value="{{ driver.dob }}" required>
+                                  </div>
+                                  <div class="col-6 mb-2">
+                                      <label class="form-label">Document ID</label>
+                                      <input type="text" class="form-control form-control-sm" name="edit_document_id" value="{{ driver.document_id }}" required>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="card shadow-sm">
+                          <div class="card-header bg-secondary text-white">Address & Availability</div>
+                          <div class="card-body">
+                              <div class="mb-2">
+                                  <label class="form-label">Full Address</label>
+                                  <input type="text" class="form-control form-control-sm" name="edit_address" value="{{ driver.address }}" required>
+                              </div>
+                              <div class="mb-2">
+                                  <label class="form-label">Current Availability</label>
+                                  <select class="form-select form-select-sm" name="edit_availability" required>
+                                      <option value="Available" {% if driver.availability == 'Available' %}selected{% endif %}>Available</option>
+                                      <option value="In Transit" {% if driver.availability == 'In Transit' %}selected{% endif %}>In Transit</option>
+                                      <option value="On Leave" {% if driver.availability == 'On Leave' %}selected{% endif %}>On Leave</option>
+                                      <option value="Not Available" {% if driver.availability == 'Not Available' %}selected{% endif %}>Not Available</option>
+                                  </select>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update Profile</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="viewModal{{ driver.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">View Driver: {{ driver.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Licenses:</strong> {{ driver.licenses }}</p>
+        <p><strong>Experience:</strong> {{ driver.experience }}</p>
+        <p><strong>DOB:</strong> {{ driver.dob }}</p>
+        <p><strong>Address:</strong> {{ driver.address }}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
