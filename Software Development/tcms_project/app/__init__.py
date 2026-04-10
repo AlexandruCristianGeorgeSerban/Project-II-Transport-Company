@@ -1,19 +1,18 @@
-# app/__init__.py
 from flask import Flask
 from app.routes.auth_routes import auth_bp
-from app.routes.dashboard_routes import dashboard_bp  # <-- LINIE NOUA
+from app.routes.dashboard_routes import dashboard_bp
+from app.routes.fleet_routes import fleet_bp  # <-- AICI importam flota
 from app.models.user_model import UserModel
 
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
     app = Flask(__name__)
-    
-    # Secret key is required for sessions and flash messages
     app.secret_key = "transport_company_super_secret_key"
     
-    # Register the authentication blueprint
+    # Register blueprints
     app.register_blueprint(auth_bp)
-    app.register_blueprint(dashboard_bp) # <-- LINIE NOUA
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(fleet_bp)
     
     # Initialize the database table for users
     user_db = UserModel()
