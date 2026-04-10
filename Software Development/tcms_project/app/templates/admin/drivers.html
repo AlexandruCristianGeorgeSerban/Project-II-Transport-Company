@@ -128,21 +128,27 @@
                                   </select>
                               </div>
                               <div class="mb-2">
-                                  <label class="form-label">License Categories</label><br>
+                                  <label class="form-label fw-bold">License Categories</label><br>
+                                  <div class="mb-1 text-muted small">Road Vehicles:</div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="licenses" value="A"> <label class="form-check-label">A</label>
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="B"> <label class="form-check-label">B (Van)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="licenses" value="B"> <label class="form-check-label">B</label>
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="C"> <label class="form-check-label">C (Truck)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="licenses" value="C1"> <label class="form-check-label">C1</label>
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="CE"> <label class="form-check-label">CE (Lorrie)</label>
+                                  </div>
+                                  <br>
+                                  <div class="mb-1 mt-2 text-muted small">Specialized Transport:</div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="Pilot (ATPL)"> <label class="form-check-label">Pilot (Airplane)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="licenses" value="C"> <label class="form-check-label">C</label>
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="Maritime"> <label class="form-check-label">Maritime (Ship)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="licenses" value="CE"> <label class="form-check-label">CE</label>
+                                      <input class="form-check-input" type="checkbox" name="licenses" value="Train Operator"> <label class="form-check-label">Train Operator</label>
                                   </div>
                               </div>
                               <div class="mb-2">
@@ -229,21 +235,27 @@
                                   </select>
                               </div>
                               <div class="mb-2">
-                                  <label class="form-label">License Categories</label><br>
+                                  <label class="form-label fw-bold">License Categories</label><br>
+                                  <div class="mb-1 text-muted small">Road Vehicles:</div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="A" {% if 'A' in driver.licenses %}checked{% endif %}> <label class="form-check-label">A</label>
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="B" {% if 'B' in driver.licenses %}checked{% endif %}> <label class="form-check-label">B (Van)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="B" {% if 'B' in driver.licenses %}checked{% endif %}> <label class="form-check-label">B</label>
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="C" {% if 'C' in driver.licenses and 'CE' not in driver.licenses %}checked{% endif %}> <label class="form-check-label">C (Truck)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="C1" {% if 'C1' in driver.licenses %}checked{% endif %}> <label class="form-check-label">C1</label>
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="CE" {% if 'CE' in driver.licenses %}checked{% endif %}> <label class="form-check-label">CE (Lorrie)</label>
+                                  </div>
+                                  <br>
+                                  <div class="mb-1 mt-2 text-muted small">Specialized Transport:</div>
+                                  <div class="form-check form-check-inline">
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="Pilot (ATPL)" {% if 'Pilot' in driver.licenses %}checked{% endif %}> <label class="form-check-label">Pilot (Airplane)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="C" {% if 'C' in driver.licenses and 'C1' not in driver.licenses %}checked{% endif %}> <label class="form-check-label">C</label>
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="Maritime" {% if 'Maritime' in driver.licenses %}checked{% endif %}> <label class="form-check-label">Maritime (Ship)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="CE" {% if 'CE' in driver.licenses %}checked{% endif %}> <label class="form-check-label">CE</label>
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="Train Operator" {% if 'Train' in driver.licenses %}checked{% endif %}> <label class="form-check-label">Train Operator</label>
                                   </div>
                               </div>
                               <div class="mb-2">
