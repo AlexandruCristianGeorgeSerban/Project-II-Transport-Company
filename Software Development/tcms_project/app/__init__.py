@@ -5,6 +5,7 @@ from app.models.user_model import UserModel
 from app.routes.fleet_routes import fleet_bp
 from app.routes.driver_routes import driver_bp
 from app.routes.allocation_routes import allocation_bp
+from app.routes.request_routes import request_bp
 
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
@@ -19,6 +20,7 @@ def create_app() -> Flask:
     app.register_blueprint(fleet_bp)
     app.register_blueprint(driver_bp)
     app.register_blueprint(allocation_bp)
+    app.register_blueprint(request_bp)
     
     # Initialize the database table for users
     user_db = UserModel()
