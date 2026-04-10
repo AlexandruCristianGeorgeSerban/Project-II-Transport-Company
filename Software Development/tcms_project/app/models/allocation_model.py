@@ -12,7 +12,7 @@ class AllocationModel:
         self._ensure_requests_table()
 
     def _ensure_requests_table(self) -> None:
-        """Creates the requests table if it's missing (fallback)."""
+        """Creates the requests table if it's missing (with all 10 columns)."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
@@ -20,8 +20,13 @@ class AllocationModel:
                     CREATE TABLE IF NOT EXISTS transport_requests (
                         id TEXT PRIMARY KEY,
                         client TEXT NOT NULL,
+                        cargo_type TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        weight REAL NOT NULL,
+                        volume REAL NOT NULL,
                         pickup TEXT NOT NULL,
                         delivery TEXT NOT NULL,
+                        preferred_date TEXT NOT NULL,
                         status TEXT NOT NULL
                     )
                 """)
