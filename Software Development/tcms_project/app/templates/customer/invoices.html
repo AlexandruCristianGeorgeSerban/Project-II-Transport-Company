@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoices - Transport Company</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-light">
+<div class="dashboard-wrapper">
+    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #e9ecef;">
+        <div class="text-center mt-3 mb-4"><img src="{{ url_for('static', filename='img/truck.png') }}" style="width: 100px;"></div>
+        <a href="{{ url_for('customer.portal') }}" class="nav-btn text-secondary">📦 My Transports</a>
+        <a href="{{ url_for('customer.invoices') }}" class="nav-btn active text-dark fw-bold">💳 Invoices & Billing</a>
+        <a href="{{ url_for('customer.support') }}" class="nav-btn text-secondary">🎧 Help & Support</a>
+        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+    </div>
+    <div class="main-content p-5 text-center">
+        <h1 class="display-1">💳</h1>
+        <h2 class="fw-bold mt-3">Invoices & Billing</h2>
+        <p class="text-muted">You currently have no pending invoices. When a transport is completed, your receipt will appear here.</p>
+        <a href="{{ url_for('customer.portal') }}" class="btn btn-primary mt-3">Back to Dashboard</a>
+    </div>
+</div>
+</body>
+</html>
