@@ -7,17 +7,24 @@ dashboard_logic = DashboardController()
 
 @dashboard_bp.route('/dashboard')
 def main_dashboard() -> str:
-    """Renders the main dashboard page with READ data."""
+    """Renders the main dashboard page with READ data or redirects based on user role."""
     if 'user_id' not in session:
         flash("Please log in to access the dashboard.", "danger")
         return redirect(url_for('auth.login'))
     
+    user_role = session.get('role', 'Staff')
+    
+    # Customer:
+    if user_role == 'Customer':
+        return redirect(url_for('customer.portal'))
+    
+    # Daca e Admin sau Staff:
     try:
         view_data = dashboard_logic.load_dashboard_data()
         return render_template(
             'admin/dashboard.html', 
             data=view_data, 
-            role=session.get('role', 'Staff'), 
+            role=user_role, 
             username=session.get('username', 'User')
         )
     except Exception as routing_error:
@@ -53,6 +60,7 @@ def delete_request(request_id: int) -> str:
         flash(response.get("message"), "danger")
         
     return redirect(url_for('dashboard.main_dashboard'))
+
 @dashboard_bp.route('/dashboard/edit/<int:request_id>', methods=['POST'])
 def edit_request(request_id: int) -> str:
     """Endpoint to UPDATE an existing request."""
