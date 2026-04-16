@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Support - Transport Company</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-light">
+<div class="dashboard-wrapper">
+    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #e9ecef;">
+        <div class="text-center mt-3 mb-4"><img src="{{ url_for('static', filename='img/truck.png') }}" style="width: 100px;"></div>
+        <a href="{{ url_for('customer.portal') }}" class="nav-btn text-secondary">📦 My Transports</a>
+        <a href="{{ url_for('customer.invoices') }}" class="nav-btn text-secondary">💳 Invoices & Billing</a>
+        <a href="{{ url_for('customer.support') }}" class="nav-btn active text-dark fw-bold">🎧 Help & Support</a>
+        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+    </div>
+    <div class="main-content p-5">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} shadow-sm custom-rounded">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm border-0 mb-5" style="border-radius: 12px;">
+        <div class="card-body p-4 text-center">
+            <h2 class="fw-bold">🎧 Support Center</h2>
+            <form method="POST" action="{{ url_for('customer.submit_support') }}">
+                <textarea class="form-control mt-3" name="support_message" rows="3" placeholder="Cum te putem ajuta?" required></textarea>
+                <button type="submit" class="btn btn-primary mt-3 w-100 fw-bold">Trimite Mesaj</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+        <div class="card-header bg-white fw-bold">Istoricul solicitărilor tale</div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data</th>
+                        <th>Mesajul tău</th>
+                        <th>Răspuns Admin</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tickets %}
+                    <tr>
+                        <td class="small text-muted">{{ t.timestamp[:16] }}</td>
+                        <td><small>{{ t.message }}</small></td>
+                        <td>
+                            {% if t.admin_response %}
+                                <div class="p-2 bg-light border-start border-3 border-success small">
+                                    <strong>Admin:</strong> {{ t.admin_response }}
+                                </div>
+                            {% else %}
+                                <span class="text-muted small"><i>În așteptare...</i></span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill bg-{{ 'warning' if t.status == 'New' else 'success' }}">
+                                {{ t.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center py-4 text-muted">Nu ai trimis nicio solicitare încă.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
