@@ -7,6 +7,9 @@ from app.routes.driver_routes import driver_bp
 from app.routes.allocation_routes import allocation_bp
 from app.routes.request_routes import request_bp
 from app.routes.report_routes import report_bp
+from app.routes.customer_routes import customer_bp
+from app.routes.admin_support_routes import admin_support_bp
+
 
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
@@ -23,6 +26,9 @@ def create_app() -> Flask:
     app.register_blueprint(allocation_bp)
     app.register_blueprint(request_bp)
     app.register_blueprint(report_bp)
+    app.register_blueprint(customer_bp)
+    app.register_blueprint(admin_support_bp)
+
     
     # Initialize the database table for users
     user_db = UserModel()
