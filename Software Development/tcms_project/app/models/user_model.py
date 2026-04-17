@@ -18,7 +18,8 @@ class UserModel:
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         username TEXT UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL,
-                        role TEXT NOT NULL
+                        role TEXT NOT NULL,
+                        date_of_birth TEXT
                     )
                 """)
                 connection.commit()
@@ -26,7 +27,7 @@ class UserModel:
         except sqlite3.Error as error:
             logging.error(f"Database error during users table creation: {error}")
             return False
-
+        
     def register_user(self, username: str, password: str, role: str = "Client") -> bool:
         """Registers a new user with a hashed password. Default role is Client."""
         try:
