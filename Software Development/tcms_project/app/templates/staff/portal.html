@@ -16,8 +16,8 @@
         <a href="#" class="nav-btn">Support Tickets</a>
         <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn">Allocation</a>
         <a href="#" class="nav-btn">Route Optimization</a>
-        <a href="#" class="nav-btn">Active Drivers</a>
-        <a href="#" class="nav-btn">Issue Invoices</a>
+        <a href="{{ url_for('driver.driver_management') }}" class="nav-btn active">Drivers</a>
+        <a href="#" class="nav-btn">Invoices</a>
         <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
     </div>
 
