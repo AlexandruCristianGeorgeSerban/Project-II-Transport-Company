@@ -14,9 +14,9 @@
         <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 120px; margin-bottom: 20px;">
         
         {% if role == 'Staff' %}
-        <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn active">Dashboard</a>
+        <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn">Dashboard</a>
         <a href="#" class="nav-btn">Support Tickets</a>
-        <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn">Allocation</a>
+        <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn active">Allocation</a>
         <a href="#" class="nav-btn">Route Optimization</a>
         <a href="{{ url_for('driver.driver_management') }}" class="nav-btn">Drivers</a>
         <a href="#" class="nav-btn">Invoices</a>
