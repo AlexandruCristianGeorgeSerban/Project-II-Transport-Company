@@ -21,3 +21,17 @@ class DashboardController:
             dashboard_data["counts"] = {"pending_requests": 0, "available_vehicles": 0, "available_drivers": 0}
             dashboard_data["recent_requests"] = []
             return dashboard_data
+        
+    def load_staff_dashboard_data(self) -> Dict[str, Any]:
+        """Loads and structures data specifically for the Staff UI."""
+        staff_data: Dict[str, Any] = {}
+        try:
+            # Folosim modelul pentru a trage datele specifice dispecerului
+            staff_data["counts"] = self.model.get_staff_summary_counts()
+            staff_data["schedule"] = self.model.get_todays_schedule()
+            return staff_data
+        except Exception as logic_error:
+            logging.error(f"Error processing staff dashboard data: {logic_error}")
+            staff_data["counts"] = {"pending_allocations": 0, "unread_tickets": 0, "pending_invoices": 0}
+            staff_data["schedule"] = []
+            return staff_data

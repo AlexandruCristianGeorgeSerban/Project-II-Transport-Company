@@ -60,3 +60,39 @@ class DashboardModel:
             logging.error(f"Dashboard Recent Requests Error: {e}")
             
         return requests
+    
+    def get_staff_summary_counts(self) -> Dict[str, int]:
+        """Retrieves exact counts for the Staff Portal summary."""
+        summary: Dict[str, int] = {
+            "pending_allocations": 0, 
+            "unread_tickets": 0, 
+            "pending_invoices": 0
+        }
+        try:
+            with sqlite3.connect(self.db_path) as connection:
+                db_cursor = connection.cursor()
+                
+                # Numar real de cereri care asteapta alocare
+                db_cursor.execute("SELECT COUNT(id) FROM transport_requests WHERE status = 'Pending'")
+                pending_reqs = db_cursor.fetchone()
+                summary["pending_allocations"] = pending_reqs[0] if pending_reqs else 0
+                
+                # Mock-uri pentru tabelele ce urmeaza sa fie dezvoltate
+                summary["unread_tickets"] = 3
+                summary["pending_invoices"] = 1
+                
+                return summary
+        except sqlite3.Error as database_error:
+            logging.error(f"Error retrieving staff summary: {database_error}")
+            return summary
+
+    def get_todays_schedule(self) -> List[Dict[str, Any]]:
+        """Retrieves today's schedule for the staff member."""
+        # Aici vom extrage in viitor alocarile facute pe ziua de azi. 
+        # Momentan cream o lista de baza exact ca in design-ul cerut.
+        return [
+            {"time": "10:00 AM", "task": "Allocate Driver to TRK-001", "status": "Pending"},
+            {"time": "11:30 AM", "task": "Review Support Ticket #ST-402", "status": "In Progress"},
+            {"time": "02:00 PM", "task": "Issue Invoice for SC Logistica SRL", "status": "Pending"},
+            {"time": "04:00 PM", "task": "Check Fleet Maintenance Logs", "status": "Completed"}
+        ]
