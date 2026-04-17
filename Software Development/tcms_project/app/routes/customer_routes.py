@@ -8,7 +8,6 @@ customer_bp = Blueprint('customer', __name__)
 cust_logic = CustomerController()
 support_db = SupportModel()
 
-# Asiguram crearea tabelului pentru suport cand se incarca rutele
 support_db.create_table()
 
 @customer_bp.route('/portal', methods=['GET'])
@@ -35,7 +34,6 @@ def submit_request() -> str:
     v_type = request.form.get('vehicle_type')
     desc = request.form.get('description')
     
-    # Prelucrare greutate si unitate de masura
     raw_weight = float(request.form.get('weight', 0.0))
     weight_unit = request.form.get('weight_unit', 'kg')
     final_weight = raw_weight * 1000 if weight_unit == 'tons' else raw_weight
@@ -45,7 +43,6 @@ def submit_request() -> str:
     delivery = request.form.get('delivery')
     date = request.form.get('preferred_date')
     
-    # Auto-generam un pret estimativ
     base_price = 50.0
     weight_cost = final_weight * 0.15
     estimated_price = round(base_price + weight_cost, 2)
@@ -76,22 +73,14 @@ def handle_response(req_id: str, action: str) -> str:
         
     return redirect(url_for('customer.portal'))
 
-# --- RUTE PENTRU PAGINILE ADIACENTE ---
-
-@customer_bp.route('/portal/invoices', methods=['GET'])
-def invoices() -> str:
-    """Renders the invoices page."""
-    if 'user_id' not in session: 
-        return redirect(url_for('auth.login'))
-    return render_template('customer/invoices.html', username=session.get('username'))
-
 @customer_bp.route('/portal/support', methods=['GET'])
 def support() -> str:
     """Afișează pagina de suport cu istoricul mesajelor."""
-    if 'user_id' not in session: return redirect(url_for('auth.login'))
+    if 'user_id' not in session: 
+        return redirect(url_for('auth.login'))
     
     username = session.get('username')
-    # Aici e cheia: aducem mesajele clientului din baza de date
+    # Aducem mesajele clientului din baza de date
     my_tickets = support_db.get_tickets_by_client(username)
     
     return render_template('customer/support.html', username=username, tickets=my_tickets)
@@ -136,3 +125,24 @@ def reply_support(ticket_id: int):
             flash("Eroare la trimiterea mesajului.", "danger")
             
     return redirect(url_for('customer.support'))
+@customer_bp.route('/portal/invoices', methods=['GET'])
+def invoices():
+    """Renders the Customer Invoices page."""
+    if 'user_id' not in session or session.get('role') != 'Customer':
+        return redirect(url_for('auth.login'))
+    
+    username = session.get('username')
+    view_data = cust_logic.load_customer_invoices(username)
+    
+    return render_template('customer/invoices.html', data=view_data)
+
+@customer_bp.route('/portal/invoices/pay/<invoice_id>', methods=['POST'])
+def pay_invoice(invoice_id: str):
+    """Processes a payment for an invoice."""
+    if 'user_id' not in session or session.get('role') != 'Customer':
+        return redirect(url_for('auth.login'))
+        
+    resp = cust_logic.process_invoice_payment(invoice_id)
+    flash(resp.get("message"), "success" if resp.get("success") else "danger")
+    
+    return redirect(url_for('customer.invoices'))
