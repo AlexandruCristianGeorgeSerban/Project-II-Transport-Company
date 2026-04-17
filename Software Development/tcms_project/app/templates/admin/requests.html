@@ -25,7 +25,38 @@
         <div class="top-navbar">
             <div>Transport Requests</div>
             <div class="user-info">
-                <span>🔔</span><span class="ms-2">👤 {{ role }} Login</span>
+                <div class="user-info d-flex align-items-center">
+    <div class="dropdown me-3">
+        <button class="btn btn-light position-relative p-1 border-0 bg-transparent dropdown-toggle" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.2rem;">
+            🔔
+            {% if unread_count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                    {{ unread_count }}
+                </span>
+            {% endif %}
+        </button>
+        
+        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notificationDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
+            <li class="dropdown-header text-primary fw-bold">Notificări Recente</li>
+            
+            {% if unread_count == 0 %}
+                <li><span class="dropdown-item text-muted small">Nu ai notificări noi.</span></li>
+            {% else %}
+                {% for n in notifications %}
+                <li>
+                    <div class="dropdown-item" style="white-space: normal;">
+                        <small class="text-dark d-block">{{ n.message }}</small>
+                        <small class="text-muted" style="font-size: 0.7rem;">{{ n.timestamp }}</small>
+                    </div>
+                </li>
+                {% if not loop.last %}<li><hr class="dropdown-divider"></li>{% endif %}
+                {% endfor %}
+            {% endif %}
+        </ul>
+    </div>
+    
+    <span class="ms-2">👤 {{ role }} Login</span>
+</div>
             </div>
         </div>
 
