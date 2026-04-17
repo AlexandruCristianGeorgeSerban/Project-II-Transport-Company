@@ -9,6 +9,7 @@ class SupportModel:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
+                # Tabelul principal (Tichete)
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS support_tickets (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,6 +18,16 @@ class SupportModel:
                         admin_response TEXT DEFAULT NULL,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                         status TEXT DEFAULT 'New'
+                    )
+                """)
+                # Tabelul secundar (Conversatia)
+                db_cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS ticket_replies (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ticket_id INTEGER NOT NULL,
+                        sender TEXT NOT NULL,
+                        message TEXT NOT NULL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
                 connection.commit()
@@ -42,43 +53,56 @@ class SupportModel:
                 connection.row_factory = sqlite3.Row
                 cursor = connection.execute("SELECT * FROM support_tickets ORDER BY id DESC")
                 for row in cursor.fetchall():
-                    tickets.append(dict(row))
+                    ticket = dict(row)
+                    # Aducem tot istoricul conversatiei pentru acest tichet
+                    replies_cursor = connection.execute("SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY timestamp ASC", (ticket['id'],))
+                    ticket['replies'] = [dict(r) for r in replies_cursor.fetchall()]
+                    tickets.append(ticket)
                 return tickets
         except sqlite3.Error as e:
             logging.error(f"Fetch all error: {e}")
             return tickets
 
     def get_tickets_by_client(self, client_name: str) -> List[Dict[str, Any]]:
-        """Aduce tichetele doar pentru un anumit client."""
         tickets = []
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 cursor = connection.execute("SELECT * FROM support_tickets WHERE client = ? ORDER BY id DESC", (client_name,))
                 for row in cursor.fetchall():
-                    tickets.append(dict(row))
+                    ticket = dict(row)
+                    # Aducem tot istoricul si pentru client
+                    replies_cursor = connection.execute("SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY timestamp ASC", (ticket['id'],))
+                    ticket['replies'] = [dict(r) for r in replies_cursor.fetchall()]
+                    tickets.append(ticket)
                 return tickets
         except sqlite3.Error as e:
             logging.error(f"Fetch client tickets error: {e}")
             return tickets
 
-    def update_response(self, ticket_id: int, response_text: str) -> bool:
+    def add_reply(self, ticket_id: int, sender: str, message: str) -> bool:
+        """Adauga un mesaj nou in conversatie si schimba statusul tichetului."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
+                # 1. Adaugam mesajul
                 connection.execute(
-                    "UPDATE support_tickets SET admin_response = ?, status = 'Answered' WHERE id = ?",
-                    (response_text, ticket_id)
+                    "INSERT INTO ticket_replies (ticket_id, sender, message) VALUES (?, ?, ?)",
+                    (ticket_id, sender, message)
                 )
+                # 2. Modificam statusul ca sa stim a cui e "mingea"
+                new_status = 'Answered' if sender in ['Staff', 'Administrator'] else 'Client Replied'
+                connection.execute("UPDATE support_tickets SET status = ? WHERE id = ?", (new_status, ticket_id))
                 connection.commit()
                 return True
         except sqlite3.Error as e:
-            logging.error(f"Update response error: {e}")
+            logging.error(f"Add reply error: {e}")
             return False
 
     def delete_ticket(self, ticket_id: int) -> bool:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.execute("DELETE FROM support_tickets WHERE id = ?", (ticket_id,))
+                connection.execute("DELETE FROM ticket_replies WHERE ticket_id = ?", (ticket_id,)) # Stergem si conversatia!
                 connection.commit()
                 return True
         except sqlite3.Error as e:

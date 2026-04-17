@@ -15,18 +15,19 @@ def view_tickets() -> str:
 
 @admin_support_bp.route('/admin/support/respond/<int:ticket_id>', methods=['POST'])
 def respond_to_ticket(ticket_id: int) -> str:
-    if session.get('role') not in ['Administrator', 'Staff']:
+    role = session.get('role')
+    if role not in ['Administrator', 'Staff']:
         return redirect(url_for('auth.login'))
     
     response_text = request.form.get('admin_reply')
     if response_text:
-        if support_db.update_response(ticket_id, response_text):
-            flash(f"Răspuns trimis cu succes pentru tichetul #{ticket_id}!", "success")
+        # Folosim noua functie add_reply! Trece cine a dat reply-ul (Staff sau Admin)
+        if support_db.add_reply(ticket_id, role, response_text):
+            flash(f"Mesaj trimis cu succes în conversația #{ticket_id}!", "success")
         else:
-            flash("Eroare la salvarea răspunsului.", "danger")
+            flash("Eroare la trimiterea mesajului.", "danger")
     
     return redirect(url_for('admin_support.view_tickets'))
-
 @admin_support_bp.route('/admin/support/delete/<int:ticket_id>', methods=['POST'])
 def delete_ticket(ticket_id: int) -> str:
     if session.get('role') not in ['Administrator', 'Staff']:
