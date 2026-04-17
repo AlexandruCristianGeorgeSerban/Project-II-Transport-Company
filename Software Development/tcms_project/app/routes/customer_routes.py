@@ -95,6 +95,7 @@ def support() -> str:
     my_tickets = support_db.get_tickets_by_client(username)
     
     return render_template('customer/support.html', username=username, tickets=my_tickets)
+
 @customer_bp.route('/portal/support/submit', methods=['POST'])
 def submit_support() -> str:
     """Handles the support form submission."""
@@ -113,4 +114,25 @@ def submit_support() -> str:
     else:
         flash("Please type a message before submitting.", "warning")
         
+    return redirect(url_for('customer.support'))
+
+@customer_bp.route('/customer/support/reply/<int:ticket_id>', methods=['POST'])
+def reply_support(ticket_id: int):
+    """Permite clientului sa raspunda la un tichet existent (conversatie)."""
+    if session.get('role') != 'Customer':
+        return redirect(url_for('auth.login'))
+    
+    reply_message = request.form.get('client_reply')
+    username = session.get('username')
+    
+    if reply_message and username:
+        # Folosim aceeasi functie add_reply din suport_model
+        from app.models.support_model import SupportModel
+        db = SupportModel()
+        
+        if db.add_reply(ticket_id, username, reply_message):
+            flash("Mesajul tău a fost trimis echipei de suport!", "success")
+        else:
+            flash("Eroare la trimiterea mesajului.", "danger")
+            
     return redirect(url_for('customer.support'))

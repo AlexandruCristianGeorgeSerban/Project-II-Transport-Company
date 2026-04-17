@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Support Management - Admin</title>
+    <title>Support Management - Admin / Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -12,7 +12,7 @@
         <img src="{{ url_for('static', filename='img/truck.png') }}" style="width: 100px; margin-bottom: 20px;">
         <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn">Dashboard</a>
         <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn active">Support Tickets</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-warning">Logout</a>
+        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>        
     </div>
 
     <div class="main-content p-4">
@@ -32,8 +32,8 @@
                     <tr>
                         <th>ID</th>
                         <th>Client</th>
-                        <th>Mesaj Client</th>
-                        <th>Răspuns Admin</th>
+                        <th>Subiect / Mesaj Inițial</th>
+                        <th>Conversație</th>
                         <th>Status</th>
                         <th class="text-center">Acțiuni</th>
                     </tr>
@@ -43,43 +43,66 @@
                     <tr>
                         <td class="fw-bold text-muted">#{{ t.id }}</td>
                         <td><span class="badge bg-secondary">{{ t.client }}</span></td>
-                        <td><small>{{ t.message }}</small></td>
+                        <td><small>{{ t.message[:40] }}...</small></td>
                         <td>
-                            {% if t.admin_response %}
-                                <span class="text-success small">✔ {{ t.admin_response[:30] }}...</span>
-                            {% else %}
-                                <span class="text-muted small"><i>Niciun răspuns încă</i></span>
-                            {% endif %}
+                            <span class="text-muted small"><i>{{ t.replies|length }} mesaje adăugate</i></span>
                         </td>
                         <td>
-                            <span class="badge rounded-pill bg-{{ 'info' if t.status == 'New' else 'success' }}">
+                            <span class="badge rounded-pill bg-{{ 'info' if t.status == 'New' else ('warning' if t.status == 'Client Replied' else 'success') }}">
                                 {{ t.status }}
                             </span>
                         </td>
                         <td class="text-center">
-                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#respondModal{{ t.id }}">Reply</button>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#respondModal{{ t.id }}">View / Reply</button>
                             
-                            <form action="{{ url_for('admin_support.delete_ticket', ticket_id=t.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Sigur ștergi acest mesaj?');">
+                            <form action="{{ url_for('admin_support.delete_ticket', ticket_id=t.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Sigur ștergi acest tichet și toată conversația?');">
                                 <button type="submit" class="btn btn-sm btn-outline-danger ms-1">Delete</button>
                             </form>
                         </td>
                     </tr>
 
                     <div class="modal fade" id="respondModal{{ t.id }}" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
                             <div class="modal-content">
                                 <form action="{{ url_for('admin_support.respond_to_ticket', ticket_id=t.id) }}" method="POST">
                                     <div class="modal-header bg-primary text-white">
-                                        <h5 class="modal-title">Răspunde lui {{ t.client }}</h5>
+                                        <h5 class="modal-title">Conversație cu {{ t.client }} (Tichet #{{ t.id }})</h5>
                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                     </div>
-                                    <div class="modal-body">
-                                        <p class="small text-muted"><strong>Mesaj client:</strong> {{ t.message }}</p>
-                                        <label class="form-label fw-bold">Răspunsul tău:</label>
-                                        <textarea class="form-control" name="admin_reply" rows="4" required>{{ t.admin_response if t.admin_response else '' }}</textarea>
+                                    <div class="modal-body bg-light">
+                                        
+                                        <div class="chat-box bg-white p-3 rounded mb-3 shadow-sm" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6;">
+                                            
+                                            <div class="mb-3 text-start">
+                                                <span class="badge bg-secondary">{{ t.client }} (Cerere Inițială)</span>
+                                                <div class="p-2 mt-1 bg-light border rounded d-inline-block" style="max-width: 85%;">
+                                                    {{ t.message }}
+                                                </div>
+                                                <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ t.timestamp }}</div>
+                                            </div>
+
+                                            {% for reply in t.replies %}
+                                                <div class="mb-3 {{ 'text-end' if reply.sender in ['Staff', 'Administrator'] else 'text-start' }}">
+                                                    <span class="badge {{ 'bg-primary' if reply.sender in ['Staff', 'Administrator'] else 'bg-secondary' }}">
+                                                        {{ reply.sender }}
+                                                    </span>
+                                                    <div class="p-2 mt-1 {{ 'bg-primary text-white' if reply.sender in ['Staff', 'Administrator'] else 'bg-light border text-dark' }} rounded shadow-sm d-inline-block text-start" style="max-width: 85%;">
+                                                        {{ reply.message }}
+                                                    </div>
+                                                    <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ reply.timestamp }}</div>
+                                                </div>
+                                            {% endfor %}
+                                            
+                                        </div>
+
+                                        <div class="mb-1">
+                                            <label class="form-label fw-bold text-primary">Scrie un mesaj nou:</label>
+                                            <textarea class="form-control" name="admin_reply" rows="3" placeholder="Tastează răspunsul tău aici..." required></textarea>
+                                        </div>
+
                                     </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Închide</button>
+                                    <div class="modal-footer bg-light">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Închide</button>
                                         <button type="submit" class="btn btn-primary">Trimite Răspuns</button>
                                     </div>
                                 </form>
