@@ -12,17 +12,28 @@
 <div class="dashboard-wrapper">
     <div class="sidebar">
         <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 120px; margin-bottom: 20px;">
+        
+        {% if role == 'Staff' %}
         <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn">Dashboard</a>
-        <a href="{{ url_for('fleet.fleet_management') }}" class="nav-btn">Fleet Management</a>
-        <a href="{{ url_for('driver.driver_management') }}" class="nav-btn">Driver Management</a>
-        <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn">Requests</a>
+        <a href="#" class="nav-btn">Support Tickets</a>
         <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn active">Allocation</a>
-        <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn active">Reports</a>
+        <a href="#" class="nav-btn">Route Optimization</a>
+        <a href="{{ url_for('driver.driver_management') }}" class="nav-btn">Drivers</a>
+        <a href="#" class="nav-btn">Invoices</a>
+        <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
+        {% else %}
+            <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn">Dashboard</a>
+            <a href="{{ url_for('fleet.fleet_management') }}" class="nav-btn">Fleet Management</a>
+            <a href="{{ url_for('driver.driver_management') }}" class="nav-btn">Driver Management</a>
+            <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn">Requests</a>
+            <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn active">Allocation</a>
+            <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
+        {% endif %}
     </div>
 
     <div class="main-content">
         <div class="top-navbar">
-            <div>Allocation Module</div>
+            <div>Job Allocation</div>
             <div class="user-info">
                 <span>🔔</span><span class="ms-2">👤 {{ role }} Login</span>
             </div>
@@ -40,7 +51,7 @@
             <form method="POST" action="{{ url_for('allocation.confirm_allocation') }}">
                 
                 <div class="card shadow-sm mb-4 border-0">
-                    <div class="card-header bg-secondary text-white fw-bold">
+                    <div class="card-header text-white fw-bold" style="background-color: #5d758b;">
                         1. Select Pending Request
                     </div>
                     <div class="card-body bg-light">
@@ -56,8 +67,8 @@
                 <div class="row g-4">
                     
                     <div class="col-md-6">
-                        <div class="table-container shadow-sm border-0 h-100">
-                            <div class="section-header" style="margin-bottom: 0; border-radius: 4px 4px 0 0; background-color: #5d758b;">
+                        <div class="table-container shadow-sm border-0 h-100 mt-0">
+                            <div class="section-header" style="margin-bottom: 0; border-radius: 4px 4px 0 0; background-color: #216a94;">
                                 2. Select Available Vehicle
                             </div>
                             <div style="max-height: 400px; overflow-y: auto;">
@@ -90,8 +101,8 @@
                     </div>
 
                     <div class="col-md-6">
-                        <div class="table-container shadow-sm border-0 h-100">
-                            <div class="section-header" style="margin-bottom: 0; border-radius: 4px 4px 0 0; background-color: #5d758b;">
+                        <div class="table-container shadow-sm border-0 h-100 mt-0">
+                            <div class="section-header" style="margin-bottom: 0; border-radius: 4px 4px 0 0; background-color: #216a94;">
                                 3. Select Available Driver
                             </div>
                             <div style="max-height: 400px; overflow-y: auto;">
