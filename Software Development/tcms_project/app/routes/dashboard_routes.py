@@ -7,27 +7,43 @@ dashboard_logic = DashboardController()
 
 @dashboard_bp.route('/dashboard')
 def main_dashboard() -> str:
-    """Renders the main dashboard page with READ data or redirects based on user role."""
+    """Renders the main dashboard page or redirects based on user role."""
     if 'user_id' not in session:
         flash("Please log in to access the dashboard.", "danger")
         return redirect(url_for('auth.login'))
     
     user_role = session.get('role', 'Staff')
     
-    # Customer redirect
+    # Redirectionare Customer
     if user_role == 'Customer':
         return redirect(url_for('customer.portal'))
-    
-    # Pentru Admin sau Staff: Incarcam datele doar pentru citire (Read-Only)
-    try:
-        view_data = dashboard_logic.load_dashboard_data()
-        return render_template(
-            'admin/dashboard.html', 
-            data=view_data, 
-            role=user_role, 
-            username=session.get('username', 'User')
-        )
-    except Exception as routing_error:
-        logging.error(f"Dashboard routing error: {routing_error}")
-        flash("An error occurred while loading the dashboard.", "danger")
-        return redirect(url_for('auth.login'))
+        
+    # Redirectionare Staff
+    elif user_role == 'Staff':
+        try:
+            view_data = dashboard_logic.load_staff_dashboard_data()
+            return render_template(
+                'staff/portal.html', 
+                data=view_data, 
+                role=user_role, 
+                username=session.get('username', 'User')
+            )
+        except Exception as routing_error:
+            logging.error(f"Staff routing error: {routing_error}")
+            flash("An error occurred while loading the staff portal.", "danger")
+            return redirect(url_for('auth.login'))
+            
+    # Redirectionare Admin (Fallback)
+    else:
+        try:
+            view_data = dashboard_logic.load_dashboard_data()
+            return render_template(
+                'admin/dashboard.html', 
+                data=view_data, 
+                role=user_role, 
+                username=session.get('username', 'User')
+            )
+        except Exception as routing_error:
+            logging.error(f"Admin routing error: {routing_error}")
+            flash("An error occurred while loading the dashboard.", "danger")
+            return redirect(url_for('auth.login'))
