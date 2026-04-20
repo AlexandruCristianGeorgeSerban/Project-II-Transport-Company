@@ -8,9 +8,11 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     
     <style>
+        .leaflet-routing-container { display: none !important; } /* Ascunde panoul alb cu instructiunile GPS de text */
+        
         .welcome-banner { background: linear-gradient(135deg, #0078d4, #00b4d8); color: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .stat-card { border-radius: 12px; border: none; transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-3px); }
@@ -99,7 +101,7 @@
                             <tr><td colspan="5" class="text-center py-5 text-muted">You have no transport requests yet. Let's get started!</td></tr>
                             {% else %}
                                 {% for r in data.requests %}
-                                <tr onclick="updateMap('{{ r.pickup }}', '{{ r.delivery }}')" style="cursor: pointer;">
+                                <tr onclick="updateMap('{{ r.pickup }}', '{{ r.delivery }}', '{{ r.id }}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='transparent';">
                                     <td class="fw-bold text-primary">{{ r.id }}</td>
                                     <td><span class="small text-muted">From:</span> <strong>{{ r.pickup }}</strong> <br><span class="small text-muted">To:</span> <strong>{{ r.delivery }}</strong></td>
                                     <td><span class="badge rounded-pill bg-{{ 'warning' if r.status == 'Pending' else ('info' if r.status == 'Negotiation' else 'success') }} px-3 py-2">{{ r.status }}</span></td>
@@ -107,13 +109,17 @@
                                     <td>
                                         {% if r.status == 'Pending' %}
                                             <form action="{{ url_for('customer.handle_response', req_id=r.id, action='accept') }}" method="POST" style="display:inline;">
-                                                <button type="submit" class="btn btn-sm btn-success custom-rounded">Accept</button>
+                                                <button type="submit" class="btn btn-sm btn-success custom-rounded shadow-sm">Accept</button>
                                             </form>
                                             <form action="{{ url_for('customer.handle_response', req_id=r.id, action='negotiate') }}" method="POST" style="display:inline;">
-                                                <button type="submit" class="btn btn-sm btn-outline-warning custom-rounded mt-1">Negotiate</button>
+                                                <button type="submit" class="btn btn-sm btn-outline-warning custom-rounded mt-1 shadow-sm">Negotiate</button>
                                             </form>
+                                        {% elif r.status == 'In Transit' %}
+                                            <span class="badge bg-primary p-2 custom-rounded shadow-sm">🚚 On Route</span>
+                                        {% elif r.status == 'Delivered' %}
+                                            <span class="badge bg-success p-2 custom-rounded shadow-sm">✅ Finished</span>
                                         {% else %}
-                                            <span class="text-muted small">Locked</span>
+                                            <span class="badge bg-secondary p-2 custom-rounded shadow-sm">🔒 Locked</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -122,11 +128,11 @@
                         </tbody>
                     </table>
                 </div>
-                <p class="small text-muted mt-2 text-center">💡 Tip: Click on any row to view the route on the map.</p>
+                <p class="small text-muted mt-2 text-center">💡 Tip: Click on any row to view the real road route on the map.</p>
             </div>
 
             <div class="col-md-5">
-                <div class="card shadow-sm border-0 custom-rounded p-2 bg-white">
+                <div class="card shadow-sm border-0 custom-rounded p-2 bg-white sticky-top" style="top: 20px;">
                     <div id="mini-map"></div>
                 </div>
             </div>
@@ -228,34 +234,98 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
 <script>
-    var map = L.map('mini-map').setView([45.9, 25.0], 6); 
+    var map = L.map('mini-map').setView([45.9432, 24.9668], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    var routeLine;
-    var markers = [];
+    var routingControl = null;
+    var movingMarker = null;
+    var liveTrackingInterval = null;
 
-    function updateMap(pickupCity, deliveryCity) {
-        if(routeLine) map.removeLayer(routeLine);
-        markers.forEach(m => map.removeLayer(m));
-        markers = [];
+    var truckIcon = L.icon({
+        iconUrl: '{{ url_for("static", filename="img/truck.png") }}',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+    });
+
+    // Observa ca acum primim si reqId din tabel
+    function updateMap(pickupCity, deliveryCity, reqId) {
+        // 1. Curatam setarile vechi (AICI ERA PROBLEMA)
+        if (routingControl) { 
+            map.removeControl(routingControl); 
+            routingControl = null;
+        }
+        if (movingMarker) { 
+            map.removeLayer(movingMarker); 
+            movingMarker = null; // <--- ACEST RAND LIPSEA!
+        }
+        if (liveTrackingInterval) { 
+            clearInterval(liveTrackingInterval); 
+            liveTrackingInterval = null;
+        }
+
+        var geocoder = L.Control.Geocoder.nominatim();
         
-        var lat1 = 44.4268 + (Math.random() * 2 - 1); 
-        var lng1 = 26.1025 + (Math.random() * 2 - 1);
-        var lat2 = 46.7712 + (Math.random() * 2 - 1);
-        var lng2 = 23.6236 + (Math.random() * 2 - 1);
+        // 2. Desenam traseul drumului (ruta albastra)
+        geocoder.geocode(pickupCity + ', Romania', function(results1) {
+            if (results1.length > 0) {
+                var p1 = results1[0].center;
+                geocoder.geocode(deliveryCity + ', Romania', function(results2) {
+                    if (results2.length > 0) {
+                        var p2 = results2[0].center;
+                        routingControl = L.Routing.control({
+                            waypoints: [ L.latLng(p1.lat, p1.lng), L.latLng(p2.lat, p2.lng) ],
+                            routeWhileDragging: false,
+                            addWaypoints: false,
+                            show: false,
+                            lineOptions: { styles: [{color: '#0078d4', opacity: 0.9, weight: 5}] }
+                        }).addTo(map);
+                    }
+                });
+            }
+        });
 
-        var m1 = L.marker([lat1, lng1]).addTo(map).bindPopup("<b>Pickup:</b> " + pickupCity).openPopup();
-        var m2 = L.marker([lat2, lng2]).addTo(map).bindPopup("<b>Delivery:</b> " + deliveryCity);
-        markers.push(m1, m2);
+        // 3. Functia care aduce Coordonatele Live din Baza de Date
+        function fetchLiveGPS() {
+            fetch('/api/track/' + reqId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.lat && data.lng) {
+                        var noileCoordonate = new L.LatLng(data.lat, data.lng);
+                        
+                        // Daca camionul nu e pe harta inca, il adaugam
+                        if (!movingMarker) {
+                            movingMarker = L.marker(noileCoordonate, {icon: truckIcon}).addTo(map);
+                            movingMarker.bindPopup("<b>Status Cursa:</b> " + data.status).openPopup();
+                        } else {
+                            // Daca exista, il mutam pe noile coordonate (asa se misca live)
+                            movingMarker.setLatLng(noileCoordonate);
+                        }
 
-        routeLine = L.polyline([[lat1, lng1], [lat2, lng2]], {color: '#0078d4', weight: 4, dashArray: '10, 10'}).addTo(map);
-        map.fitBounds(routeLine.getBounds(), {padding: [50, 50]});
+                        // Oprim inregistrarea daca e livrat
+                        if (data.status === 'Delivered') {
+                            clearInterval(liveTrackingInterval);
+                            movingMarker.bindPopup("✅ Marfa a ajuns cu succes!").openPopup();
+                        }
+                    }
+                })
+                .catch(err => console.error('Eroare conexiune GPS:', err));
+        }
+
+        // Apelam prima data instantaneu
+        fetchLiveGPS();
+        
+        // Apoi setam harta sa ceara locatia la fiecare 3 secunde
+        liveTrackingInterval = setInterval(fetchLiveGPS, 3000);
     }
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
