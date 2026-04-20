@@ -4,6 +4,8 @@ from flask import Blueprint, render_template, session, redirect, url_for, flash,
 from app.controllers.customer_controller import CustomerController
 from app.models.support_model import SupportModel
 from app.models.notification_model import NotificationModel
+from flask import jsonify
+import sqlite3
 
 customer_bp = Blueprint('customer', __name__)
 cust_logic = CustomerController()
@@ -149,3 +151,26 @@ def pay_invoice(invoice_id: str):
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     
     return redirect(url_for('customer.invoices'))
+
+@customer_bp.route('/api/track/<req_id>', methods=['GET'])
+def get_live_location(req_id: str):
+    """API Endpoint: Returneaza coordonatele GPS curente din baza de date pentru o cursa."""
+    try:
+        from app.models.customer_model import DB_PATH
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT current_lat, current_lng, status FROM transport_requests WHERE id = ?", (req_id,))
+            row = cursor.fetchone()
+            
+            if row and row['current_lat'] is not None and row['current_lng'] is not None:
+                return jsonify({
+                    "success": True, 
+                    "lat": row['current_lat'], 
+                    "lng": row['current_lng'],
+                    "status": row['status']
+                })
+            else:
+                return jsonify({"success": False, "message": "No GPS data yet."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
