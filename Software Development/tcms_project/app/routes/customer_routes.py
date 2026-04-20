@@ -3,6 +3,7 @@ import logging
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from app.controllers.customer_controller import CustomerController
 from app.models.support_model import SupportModel
+from app.models.notification_model import NotificationModel
 
 customer_bp = Blueprint('customer', __name__)
 cust_logic = CustomerController()
@@ -54,6 +55,8 @@ def submit_request() -> str:
     )
     
     if success:
+        notif_db = NotificationModel()
+        notif_db.add_notification('Staff', f"Nouă cerere de transport ({r_id}) primită de la {username}!")
         flash(f"🎉 Request submitted! Estimated initial price: ${estimated_price}", "success")
     else:
         flash("Error submitting request. Please try again.", "danger")
