@@ -1,6 +1,7 @@
 import logging
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from app.controllers.allocation_controller import AllocationController
+from app.models.notification_model import NotificationModel
 
 allocation_bp = Blueprint('allocation', __name__)
 allocation_logic = AllocationController()
@@ -27,6 +28,8 @@ def confirm_allocation() -> str:
     response = allocation_logic.process_allocation(req_id, veh_id, drv_id)
     
     if response.get("success") is True:
+        notif_db = NotificationModel()
+        notif_db.add_notification('All', f"Job-ul {req_id} a fost alocat pe mașina {veh_id}.")
         flash(response.get("message"), "success")
     else:
         flash(response.get("message"), "danger")

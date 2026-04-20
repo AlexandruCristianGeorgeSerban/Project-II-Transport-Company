@@ -9,11 +9,13 @@
 <body class="bg-light">
 
 <div class="dashboard-wrapper">
-    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #e9ecef;">
-        <div class="text-center mt-3 mb-4"><img src="{{ url_for('static', filename='img/truck.png') }}" style="width: 100px;"></div>
-        <a href="{{ url_for('customer.portal') }}" class="nav-btn text-secondary">📦 My Transports</a>
-        <a href="{{ url_for('customer.invoices') }}" class="nav-btn active text-dark fw-bold" style="border-left: 4px solid #0078d4; background-color: #f8f9fa;">💳 Invoices & Billing</a>
-        <a href="#" class="nav-btn text-secondary">🎧 Help & Support</a>
+    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #e9ecef; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
+        <div class="text-center mt-3 mb-4">
+            <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
+        </div>
+        <a href="{{ url_for('customer.portal') }}" class="nav-btn text-dark fw-bold">📦 My Transports</a>
+        <a href="{{ url_for('customer.invoices') }}" class="nav-btn active text-secondary">💳 Invoices & Billing</a>
+        <a href="{{ url_for('customer.support') }}" class="nav-btn text-secondary">🎧 Help & Support</a>
         <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
     </div>
 
@@ -21,7 +23,21 @@
         <div class="top-navbar bg-white border-bottom shadow-sm">
             <div class="fw-bold fs-5">Invoices & Billing</div>
             <div class="user-info">
-                <span>👤 {{ session.get('username') }}</span>
+                <div class="user-info d-flex align-items-center">
+    
+    <div class="dropdown d-inline-block me-3">
+        </div>
+
+    <div class="user-profile border-start ps-3">
+        <span class="fw-bold text-dark" style="font-size: 1.05rem;">
+            👤 {{ session.get('username', 'Guest') }}
+        </span>
+        <span class="badge bg-secondary ms-1" style="font-size: 0.75rem;">
+            {{ session.get('role', 'User') }}
+        </span>
+    </div>
+
+</div>
             </div>
         </div>
 

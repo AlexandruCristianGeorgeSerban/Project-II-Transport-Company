@@ -17,7 +17,6 @@ def create_app() -> Flask:
     # Secret key is required for sessions and flash messages
     app.secret_key = "transport_company_super_secret_key"
     
-    # --- BLOCUL PENTRU CLOPOȚELUL DE NOTIFICĂRI ---
     # Acest cod rulează automat pe absolut orice pagină HTML încărcată
     @app.context_processor
     def inject_notifications():

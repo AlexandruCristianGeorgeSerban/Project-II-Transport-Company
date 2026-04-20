@@ -26,36 +26,49 @@
             <div>Fleet Management</div>
             <div class="user-info">
                 <div class="user-info d-flex align-items-center">
-    <div class="dropdown me-3">
-        <button class="btn btn-light position-relative p-1 border-0 bg-transparent dropdown-toggle" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.2rem;">
-            🔔
-            {% if unread_count > 0 %}
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                    {{ unread_count }}
-                </span>
-            {% endif %}
-        </button>
-        
-        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notificationDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
-            <li class="dropdown-header text-primary fw-bold">Notificări Recente</li>
-            
-            {% if unread_count == 0 %}
-                <li><span class="dropdown-item text-muted small">Nu ai notificări noi.</span></li>
-            {% else %}
-                {% for n in notifications %}
-                <li>
-                    <div class="dropdown-item" style="white-space: normal;">
-                        <small class="text-dark d-block">{{ n.message }}</small>
-                        <small class="text-muted" style="font-size: 0.7rem;">{{ n.timestamp }}</small>
-                    </div>
-                </li>
-                {% if not loop.last %}<li><hr class="dropdown-divider"></li>{% endif %}
-                {% endfor %}
-            {% endif %}
-        </ul>
-    </div>
+    <div class="dropdown d-inline-block">
+    <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.2rem;">
+        🔔
+        {% if unread_count > 0 %}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
+            {{ unread_count }}
+        </span>
+        {% endif %}
+    </span>
     
-    <span class="ms-2">👤 {{ role }} Login</span>
+    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
+        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
+        
+        {% if unread_count == 0 %}
+            <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
+        {% else %}
+            {% for n in notifications %}
+            <li>
+                <a class="dropdown-item py-2 border-bottom" style="white-space: normal;" href="{{ url_for('notifications.read_notification', notif_id=n.id) }}">
+                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
+                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
+                </a>
+            </li>
+            {% endfor %}
+        {% endif %}
+    </ul>
+</div>
+    
+    <div class="user-info d-flex align-items-center">
+    
+    <div class="dropdown d-inline-block me-3">
+        </div>
+
+    <div class="user-profile border-start ps-3">
+        <span class="fw-bold text-dark" style="font-size: 1.05rem;">
+            👤 {{ session.get('username', 'Guest') }}
+        </span>
+        <span class="badge bg-secondary ms-1" style="font-size: 0.75rem;">
+            {{ session.get('role', 'User') }}
+        </span>
+    </div>
+
+</div>
 </div>
             </div>
         </div>
