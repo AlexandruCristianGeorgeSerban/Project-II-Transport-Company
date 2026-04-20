@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Active Jobs - Transport Company</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-light">
+
+<div class="dashboard-wrapper">
+    <div class="sidebar">
+        <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 120px; margin-bottom: 20px;">
+        <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn">Dashboard</a>
+        <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn">Support Tickets</a>
+        <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn">Allocation</a>
+        <a href="{{ url_for('allocation.active_jobs') }}" class="nav-btn active">Active Jobs</a>
+        <a href="{{ url_for('driver.driver_management') }}" class="nav-btn">Drivers</a>
+        <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
+        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+    </div>
+
+    <div class="main-content">
+        <div class="top-navbar bg-white border-bottom shadow-sm">
+            <div class="fw-bold fs-5">Active Jobs & Deliveries</div>
+            <div class="user-info">
+                <span>🔔</span><span class="ms-2 fw-bold">👤 {{ session.get('username') }}</span>
+                <span class="badge bg-secondary ms-1">{{ role }}</span>
+            </div>
+        </div>
+
+        <div class="content-body p-4">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} shadow-sm">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header text-white fw-bold" style="background-color: #216a94;">
+                    🚛 Jobs Currently In Transit
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Request ID</th>
+                                <th>Client</th>
+                                <th>Route</th>
+                                <th>Vehicle Assigned</th>
+                                <th>Driver Assigned</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if data.jobs|length == 0 %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <h4>🚚</h4>
+                                    No active jobs on the road right now.
+                                </td>
+                            </tr>
+                            {% else %}
+                                {% for job in data.jobs %}
+                                <tr>
+                                    <td class="fw-bold">{{ job.id }}</td>
+                                    <td>{{ job.client }}</td>
+                                    <td><small>{{ job.pickup }} <br>➔ {{ job.delivery }}</small></td>
+                                    <td><span class="badge bg-info text-dark">{{ job.vehicle_id }}</span></td>
+                                    <td><span class="badge bg-secondary">{{ job.driver_id }}</span></td>
+                                    <td class="text-center">
+                                        <form method="POST" action="{{ url_for('allocation.deliver_job', req_id=job.id) }}" style="margin: 0;">
+                                            <button type="submit" class="btn btn-sm btn-success px-3 shadow-sm" onclick="return confirm('Confirm delivery? This will free the vehicle and send the invoice to the client.');">
+                                                ✅ Mark as Delivered
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

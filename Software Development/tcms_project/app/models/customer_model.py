@@ -14,8 +14,9 @@ class CustomerModel:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
+                # AM REPARAT AICI: folosim estimated_price în loc de price_offer
                 db_cursor.execute(
-                    "SELECT id, cargo_type, weight, pickup, delivery, preferred_date, status, vehicle_type, price_offer FROM transport_requests WHERE client = ? ORDER BY id DESC", 
+                    "SELECT id, cargo_type, weight, pickup, delivery, preferred_date, status, vehicle_type, estimated_price as price_offer FROM transport_requests WHERE client = ? ORDER BY id DESC", 
                     (username,)
                 )
                 rows = db_cursor.fetchall()
@@ -31,8 +32,9 @@ class CustomerModel:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
+                # AM REPARAT AICI: folosim estimated_price în loc de price_offer
                 db_cursor.execute(
-                    "INSERT INTO transport_requests (id, client, cargo_type, description, weight, volume, pickup, delivery, preferred_date, status, vehicle_type, price_offer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO transport_requests (id, client, cargo_type, description, weight, volume, pickup, delivery, preferred_date, status, vehicle_type, estimated_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (r_id, client, c_type, desc, weight, volume, pickup, delivery, date, status, v_type, price)
                 )
                 connection.commit()
