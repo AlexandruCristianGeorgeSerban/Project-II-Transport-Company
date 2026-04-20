@@ -35,3 +35,29 @@ def confirm_allocation() -> str:
         flash(response.get("message"), "danger")
         
     return redirect(url_for('allocation.allocation_management'))
+
+@allocation_bp.route('/active_jobs', methods=['GET'])
+def active_jobs() -> str:
+    """Afișează ecranul cu cursele aflate pe traseu."""
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+        
+    view_data = allocation_logic.load_active_jobs()
+    role = session.get('role', 'Staff')
+    
+    return render_template('staff/active_jobs.html', data=view_data, role=role)
+
+@allocation_bp.route('/active_jobs/deliver/<req_id>', methods=['POST'])
+def deliver_job(req_id: str):
+    """Procesează butonul de 'Mark as Delivered'."""
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+        
+    response = allocation_logic.complete_active_job(req_id)
+    
+    if response.get("success") is True:
+        flash(response.get("message"), "success")
+    else:
+        flash(response.get("message"), "danger")
+        
+    return redirect(url_for('allocation.active_jobs'))

@@ -1,7 +1,7 @@
 import sqlite3
 import logging
 from typing import Dict, List, Any
-from app.models.notification_model import NotificationModel # <-- IMPORTUL NOU
+from app.models.notification_model import NotificationModel
 
 DB_PATH: str = "instance/database.sqlite"
 
@@ -13,10 +13,11 @@ class AllocationModel:
         self._ensure_requests_table()
 
     def _ensure_requests_table(self) -> None:
-        """Creates the requests table if it's missing (with all 10 columns)."""
+        """Creates the requests table if it's missing (with all required columns)."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
+                # AICI AM REPARAT: Am adăugat vehicle_id, driver_id și estimated_price la crearea tabelului
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS transport_requests (
                         id TEXT PRIMARY KEY,
@@ -28,7 +29,10 @@ class AllocationModel:
                         pickup TEXT NOT NULL,
                         delivery TEXT NOT NULL,
                         preferred_date TEXT NOT NULL,
-                        status TEXT NOT NULL
+                        status TEXT NOT NULL,
+                        vehicle_id TEXT,
+                        driver_id TEXT,
+                        estimated_price REAL
                     )
                 """)
                 connection.commit()
@@ -42,14 +46,10 @@ class AllocationModel:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
-                # Modificat pentru a aloca doar cererile acceptate de client
                 db_cursor.execute("SELECT id, client, pickup, delivery FROM transport_requests WHERE status IN ('Pending', 'Accepted')")
                 rows = db_cursor.fetchall()
                 for row in rows:
                     requests.append(dict(row))
-                
-                if not requests:
-                    return [{"id": "2000001", "client": "Gratu Marow", "pickup": "City A", "delivery": "City B"}]
                 return requests
         except sqlite3.Error as db_error:
             logging.error(f"Error fetching requests: {db_error}")
@@ -93,13 +93,17 @@ class AllocationModel:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
                 
-                # Update request status
-                db_cursor.execute("UPDATE transport_requests SET status = 'In Transit' WHERE id = ?", (request_id,))
+                # AICI ERA PROBLEMA! Acum salvăm efectiv și ID-ul mașinii și al șoferului la această cerere!
+                db_cursor.execute("""
+                    UPDATE transport_requests 
+                    SET status = 'In Transit', vehicle_id = ?, driver_id = ? 
+                    WHERE id = ?
+                """, (vehicle_id, driver_id, request_id))
                 
-                # REQ-66: Update vehicle status
+                # Update vehicle status
                 db_cursor.execute("UPDATE vehicles SET status = 'In Transit' WHERE id = ?", (vehicle_id,))
                 
-                # REQ-67: Update driver availability
+                # Update driver availability
                 db_cursor.execute("UPDATE drivers SET availability = 'In Transit' WHERE id = ?", (driver_id,))
                 
                 connection.commit()
@@ -114,32 +118,54 @@ class AllocationModel:
             logging.error(f"Allocation error: {db_error}")
             return False
 
-    def mark_job_delivered(self, request_id: str, vehicle_id: str, driver_id: str) -> bool:
-        """
-        Fulfills REQ-68, 69, 70, 71: 
-        Marks a job as Delivered, frees up the driver and vehicle, and logs the time.
-        """
+    def get_active_jobs(self) -> list:
+        """Aduce toate cererile care se afla in desfasurare."""
         try:
-            with sqlite3.connect(DB_PATH) as connection:
-                db_cursor = connection.cursor()
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, client, cargo_type, pickup, delivery, estimated_price, vehicle_id, driver_id, status
+                    FROM transport_requests
+                    WHERE status = 'In Transit'
+                """)
+                return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            logging.error(f"Error fetching active jobs: {e}")
+            return []
+
+    def mark_job_delivered(self, req_id: str) -> bool:
+        """Trece cursa în 'Delivered' și eliberează mașina și șoferul."""
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
                 
-                # REQ-68 & REQ-71: Update job status (timestamp is handled by the system clock generally, or can be appended)
-                db_cursor.execute("UPDATE transport_requests SET status = 'Delivered' WHERE id = ?", (request_id,))
+                # 1. Luăm ID-urile mașinii și șoferului alocate pe această cerere
+                cursor.execute("SELECT vehicle_id, driver_id FROM transport_requests WHERE id = ?", (req_id,))
+                row = cursor.fetchone()
                 
-                # REQ-69: Mark vehicle as Available again
-                db_cursor.execute("UPDATE vehicles SET status = 'Available' WHERE id = ?", (vehicle_id,))
-                
-                # REQ-70: Mark driver as Available again
-                db_cursor.execute("UPDATE drivers SET availability = 'Available' WHERE id = ?", (driver_id,))
-                
-                connection.commit()
+                if row:
+                    veh_id, drv_id = row
+                    
+                    # 2. Trecem cererea în Delivered
+                    cursor.execute("UPDATE transport_requests SET status = 'Delivered' WHERE id = ?", (req_id,))
+                    
+                    # 3. Eliberăm Mașina (Trece în 'Available')
+                    if veh_id:
+                        cursor.execute("UPDATE vehicles SET status = 'Available' WHERE id = ?", (veh_id,))
+                        
+                    # 4. Eliberăm Șoferul (Trece în 'Available')
+                    if drv_id:
+                        cursor.execute("UPDATE drivers SET availability = 'Available' WHERE id = ?", (drv_id,))
+                        
+                conn.commit()
                 
                 # Notificare de succes!
                 NotificationModel().add_notification(
                     "All", 
-                    f"🏁 Cursa {request_id} a fost LIVRATĂ cu succes! Mașina {vehicle_id} și Șoferul {driver_id} sunt din nou disponibili."
+                    f"🏁 Cursa {req_id} a fost LIVRATĂ cu succes! Mașina și Șoferul sunt din nou disponibili."
                 )
                 return True
-        except sqlite3.Error as db_error:
-            logging.error(f"Delivery update error: {db_error}")
+        except sqlite3.Error as e:
+            logging.error(f"Error marking job delivered: {e}")
             return False

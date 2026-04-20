@@ -31,9 +31,9 @@ def submit_request() -> str:
     username = session.get('username', 'Customer')
     r_id = "REQ-" + str(uuid.uuid4().hex)[:6].upper()
     
-    c_type = request.form.get('cargo_type')
-    v_type = request.form.get('vehicle_type')
-    desc = request.form.get('description')
+    c_type = request.form.get('cargo_type') or "Standard Cargo"
+    v_type = request.form.get('vehicle_type') or "Any Vehicle"
+    desc = request.form.get('description') or "No description provided"
     
     raw_weight = float(request.form.get('weight', 0.0))
     weight_unit = request.form.get('weight_unit', 'kg')
