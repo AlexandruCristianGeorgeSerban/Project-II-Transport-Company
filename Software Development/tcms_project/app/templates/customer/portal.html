@@ -11,8 +11,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     
     <style>
-        .leaflet-routing-container { display: none !important; } /* Ascunde panoul alb cu instructiunile GPS de text */
-        
+        .leaflet-routing-container { display: none !important; }
         .welcome-banner { background: linear-gradient(135deg, #0078d4, #00b4d8); color: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .stat-card { border-radius: 12px; border: none; transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-3px); }
@@ -115,8 +114,11 @@
                                             <form action="{{ url_for('customer.handle_response', req_id=r.id, action='negotiate') }}" method="POST" style="display:inline;">
                                                 <button type="submit" class="btn btn-sm btn-outline-warning custom-rounded mt-1 shadow-sm">Negotiate</button>
                                             </form>
-                                        {% elif r.status == 'In Transit' %}
+                                        {% elif r.status == 'In Transit' or r.status == 'Accepted' %}
                                             <span class="badge bg-primary p-2 custom-rounded shadow-sm">🚚 On Route</span>
+                                            <!-- NOU: BUTON DE CHAT CÂND CURSA E ACTIVĂ -->
+                                            <br>
+                                            <a href="{{ url_for('customer.job_chat', job_id=r.id) }}" class="btn btn-sm btn-dark custom-rounded shadow-sm mt-1">💬 Chat Driver</a>
                                         {% elif r.status == 'Delivered' %}
                                             <span class="badge bg-success p-2 custom-rounded shadow-sm">✅ Finished</span>
                                         {% else %}
@@ -261,16 +263,14 @@
         iconAnchor: [20, 20]
     });
 
-    // Observa ca acum primim si reqId din tabel
     function updateMap(pickupCity, deliveryCity, reqId) {
-        // 1. Curatam setarile vechi (AICI ERA PROBLEMA)
         if (routingControl) { 
             map.removeControl(routingControl); 
             routingControl = null;
         }
         if (movingMarker) { 
             map.removeLayer(movingMarker); 
-            movingMarker = null; // <--- ACEST RAND LIPSEA!
+            movingMarker = null; 
         }
         if (liveTrackingInterval) { 
             clearInterval(liveTrackingInterval); 
@@ -279,7 +279,6 @@
 
         var geocoder = L.Control.Geocoder.nominatim();
         
-        // 2. Desenam traseul drumului (ruta albastra)
         geocoder.geocode(pickupCity + ', Romania', function(results1) {
             if (results1.length > 0) {
                 var p1 = results1[0].center;
@@ -298,7 +297,6 @@
             }
         });
 
-        // 3. Functia care aduce Coordonatele Live din Baza de Date
         function fetchLiveGPS() {
             fetch('/api/track/' + reqId)
                 .then(response => response.json())
@@ -306,16 +304,13 @@
                     if (data.success && data.lat && data.lng) {
                         var noileCoordonate = new L.LatLng(data.lat, data.lng);
                         
-                        // Daca camionul nu e pe harta inca, il adaugam
                         if (!movingMarker) {
                             movingMarker = L.marker(noileCoordonate, {icon: truckIcon}).addTo(map);
                             movingMarker.bindPopup("<b>Status Cursa:</b> " + data.status).openPopup();
                         } else {
-                            // Daca exista, il mutam pe noile coordonate (asa se misca live)
                             movingMarker.setLatLng(noileCoordonate);
                         }
 
-                        // Oprim inregistrarea daca e livrat
                         if (data.status === 'Delivered') {
                             clearInterval(liveTrackingInterval);
                             movingMarker.bindPopup("✅ Marfa a ajuns cu succes!").openPopup();
@@ -325,10 +320,7 @@
                 .catch(err => console.error('Eroare conexiune GPS:', err));
         }
 
-        // Apelam prima data instantaneu
         fetchLiveGPS();
-        
-        // Apoi setam harta sa ceara locatia la fiecare 3 secunde
         liveTrackingInterval = setInterval(fetchLiveGPS, 3000);
     }
 </script>

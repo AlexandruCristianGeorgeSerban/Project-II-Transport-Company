@@ -1,49 +1,97 @@
 import logging
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from app.controllers.driver_controller import DriverController
+from app.models.support_model import SupportModel 
 
 driver_bp = Blueprint('driver', __name__)
 driver_logic = DriverController()
+support_db = SupportModel() 
 
 # ==========================================
-# RUTE PENTRU PORTALUL ȘOFERULUI (CE VEDE EL)
+# RUTE PENTRU PORTALUL ȘOFERULUI 
 # ==========================================
 
 @driver_bp.route('/driver/portal')
 def portal():
-    """Renders the dashboard/portal for the logged-in driver."""
     if 'user_id' not in session or session.get('role') != 'Driver':
         flash("Access denied. Drivers only.", "danger")
         return redirect(url_for('auth.login'))
     
-    # Aici, în mod normal, ai prelua joburile din baza de date pentru acest șofer.
-    # Momentan le setăm ca listă goală ca să nu crape HTML-ul.
     jobs = [] 
+    return render_template('driver/portal.html', jobs=jobs)
+
+# --- NOU: RUTA ACTIVE JOBS (Repară butonul din meniu) ---
+@driver_bp.route('/active_jobs')
+def active_jobs():
+    if 'user_id' not in session or session.get('role') != 'Driver':
+        return redirect(url_for('auth.login'))
     
+    # Momentan refolosim portal.html pt ca acolo sunt joburile active
+    jobs = [] 
     return render_template('driver/portal.html', jobs=jobs)
 
 @driver_bp.route('/driver/history')
 def history():
-    """Renders the history page for the driver."""
     if 'user_id' not in session or session.get('role') != 'Driver':
         return redirect(url_for('auth.login'))
     
-    # La fel, aici vei prelua joburile cu status 'Delivered'
     jobs = []
-    
     return render_template('driver/history.html', jobs=jobs)
 
-@driver_bp.route('/driver/update_status/<int:req_id>/<new_status>', methods=['POST'])
+@driver_bp.route('/driver/update_status/<req_id>/<new_status>', methods=['POST'])
 def update_status(req_id, new_status):
-    """Updates the status of a specific job (e.g. In Transit, Delivered)."""
     if 'user_id' not in session or session.get('role') != 'Driver':
         return redirect(url_for('auth.login'))
         
-    # Aici va veni logica de actualizare a statusului în baza de date.
-    # driver_logic.update_job_status(req_id, new_status)
-    
     flash(f"Status for Route #{req_id} updated to {new_status}!", "success")
     return redirect(url_for('driver.portal'))
+
+
+# --- RUTE PENTRU SUPORT (HELPDESK & CHAT PRIVAT) ---
+
+@driver_bp.route('/driver/support', methods=['GET'])
+def support():
+    if 'user_id' not in session or session.get('role') != 'Driver':
+        return redirect(url_for('auth.login'))
+    
+    user_id = session.get('user_id')
+    user_tickets = support_db.get_user_tickets(user_id)
+    return render_template('driver/support.html', tickets=user_tickets)
+
+@driver_bp.route('/driver/support/create', methods=['POST'])
+def create_support_ticket():
+    if 'user_id' not in session or session.get('role') != 'Driver':
+        return redirect(url_for('auth.login'))
+    
+    user_id = session.get('user_id')
+    username = session.get('username')
+    subject = request.form.get('subject')
+    message = request.form.get('message')
+    
+    if subject and message:
+        if support_db.create_ticket(user_id, username, subject, message):
+             flash("Your support ticket has been submitted.", "success")
+        else:
+             flash("Error submitting ticket.", "danger")
+    else:
+        flash("Subject and message are required.", "warning")
+        
+    return redirect(url_for('driver.support'))
+
+@driver_bp.route('/driver/chat/<job_id>', methods=['GET', 'POST'])
+def job_chat(job_id):
+    if 'user_id' not in session or session.get('role') != 'Driver':
+        flash("Please log in as a Driver.", "danger")
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'POST':
+        message = request.form.get('message')
+        if message:
+            support_db.add_job_message(job_id, session['user_id'], 'Driver', message)
+        return redirect(url_for('driver.job_chat', job_id=job_id))
+
+    messages = support_db.get_job_messages(job_id)
+    return render_template('driver/job_chat.html', job_id=job_id, messages=messages)
 
 
 # ==========================================
@@ -52,19 +100,16 @@ def update_status(req_id, new_status):
 
 @driver_bp.route('/drivers', methods=['GET'])
 def driver_management() -> str:
-    """Renders the main Driver Management page."""
     if 'user_id' not in session:
         flash("Please log in.", "danger")
         return redirect(url_for('auth.login'))
     
     view_data = driver_logic.load_driver_data()
     role = session.get('role', 'Staff')
-    
     return render_template('admin/drivers.html', data=view_data, role=role)
 
 @driver_bp.route('/drivers/add', methods=['POST'])
 def add_driver() -> str:
-    """Handles adding a driver."""
     d_id = request.form.get('driver_id')
     name = request.form.get('name')
     status = request.form.get('status')
@@ -74,7 +119,6 @@ def add_driver() -> str:
     address = request.form.get('address')
     avail = request.form.get('availability')
     
-    # Checkboxes send a list in Flask
     licenses_list = request.form.getlist('licenses')
     licenses_str = ", ".join(licenses_list)
     
@@ -84,7 +128,6 @@ def add_driver() -> str:
 
 @driver_bp.route('/drivers/edit', methods=['POST'])
 def edit_driver() -> str:
-    """Handles editing a driver."""
     d_id = request.form.get('edit_driver_id')
     name = request.form.get('edit_name')
     status = request.form.get('edit_status')
@@ -103,7 +146,6 @@ def edit_driver() -> str:
 
 @driver_bp.route('/drivers/delete/<driver_id>', methods=['POST'])
 def delete_driver(driver_id: str) -> str:
-    """Handles deleting a driver."""
     resp = driver_logic.remove_driver(driver_id)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))

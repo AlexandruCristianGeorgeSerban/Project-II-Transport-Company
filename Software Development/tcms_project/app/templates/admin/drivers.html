@@ -21,6 +21,7 @@
             <a href="{{ url_for('driver.driver_management') }}" class="nav-btn active">Drivers</a>
             <a href="#" class="nav-btn">Invoices</a>
             <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
+            <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn">💬 Support</a>
             <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
         {% else %}
             <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn">Dashboard</a>
@@ -29,6 +30,7 @@
             <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn">Requests</a>
             <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn">Allocation</a>
             <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
+            <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn">💬 Support</a>
             <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
         {% endif %}
     </div>
