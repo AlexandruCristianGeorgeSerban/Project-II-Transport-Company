@@ -5,7 +5,13 @@ from app.controllers.auth_controller import AuthController
 auth_bp = Blueprint('auth', __name__)
 auth_logic = AuthController()
 
-@auth_bp.route('/', methods=['GET', 'POST'])
+# 1. RUTA PENTRU GUEST PAGE
+@auth_bp.route('/', methods=['GET'])
+def guest():
+    """Renders the Guest landing page without auto-redirecting."""
+    return render_template('guest/home.html')
+
+# 2. RUTA PENTRU LOGIN
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login() -> str:
     """Renders the login page and handles authentication requests."""
@@ -23,7 +29,8 @@ def login() -> str:
             if session['role'] == 'Customer':
                 return redirect(url_for('customer.portal'))
             elif session['role'] == 'Driver':
-                return redirect(url_for('driver_portal.portal'))
+                # AICI ERA GRESEALA - Am corectat in 'driver.portal'
+                return redirect(url_for('driver.portal'))
             else:
                 return redirect(url_for('dashboard.main_dashboard'))
         else:
@@ -32,6 +39,7 @@ def login() -> str:
     else:
         return render_template('auth/login.html')
 
+# 3. RUTA PENTRU REGISTER
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register() -> str:
     """Renders the registration page and handles new account creation."""
@@ -51,6 +59,7 @@ def register() -> str:
     else:
         return render_template('auth/register.html')
 
+# 4. RUTA PENTRU LOGOUT
 @auth_bp.route('/logout')
 def logout() -> str:
     """Destroys the user session and redirects to login."""
