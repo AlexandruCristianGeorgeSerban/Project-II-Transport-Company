@@ -23,15 +23,16 @@
 <body class="bg-light">
 
 <div class="dashboard-wrapper">
-    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #e9ecef; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
+    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #0285e9; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
         <div class="text-center mt-3 mb-4">
             <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
         </div>
-        <a href="{{ url_for('customer.portal') }}" class="nav-btn active text-dark fw-bold">📦 My Transports</a>
-        <a href="{{ url_for('customer.invoices') }}" class="nav-btn text-secondary">💳 Invoices & Billing</a>
-        <a href="{{ url_for('customer.support') }}" class="nav-btn text-secondary">🎧 Help & Support</a>
+        <a href="{{ url_for('customer.portal') }}" class="nav-btn active fw-bold">📦 My Transports</a>
+        <a href="{{ url_for('customer.invoices') }}" class="nav-btn">💳 Invoices & Billing</a>
+        <a href="{{ url_for('customer.support') }}" class="nav-btn">🎧 Help & Support</a>
         <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
     </div>
+    
 
     <div class="main-content p-4">
         
@@ -160,6 +161,7 @@
                           <option value="Vehicles">🚗 Vehicles</option>
                       </select>
                   </div>
+
                   <div class="col-md-6">
                       <label class="form-label fw-bold text-secondary small">PREFERRED VEHICLE</label>
                       <select class="form-select shadow-sm" name="vehicle_type" required>
@@ -200,6 +202,10 @@
                   <div class="col-md-12">
                       <label class="form-label fw-bold text-secondary small">📅 PREFERRED DATE</label>
                       <input type="date" class="form-control shadow-sm" name="preferred_date" required>
+                  </div>
+                   <div class="mb-3 text-start">
+                     <label class="form-label fw-bold">Cargo Details / Description</label>
+                        <textarea class="form-control" name="description" rows="2" placeholder="Ex: Fragile cargo, requires side unloading, etc..." required></textarea>
                   </div>
               </div>
               
