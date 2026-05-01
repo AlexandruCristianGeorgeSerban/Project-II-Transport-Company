@@ -1,30 +1,46 @@
 import sqlite3
+import os
 
-def sync_driver_tables():
+# Calea trebuie sa fie identica cu cea din Controller
+db_path = os.path.join(os.getcwd(), "instance", "database.sqlite")
+
+def force_fix():
+    print(f"🔍 Încerc să modific baza de date la: {db_path}")
+    
+    if not os.path.exists(db_path):
+        print("❌ EROARE: Fișierul bazei de date NU a fost găsit la această cale!")
+        return
+
     try:
-        with sqlite3.connect("instance/database.sqlite") as conn:
-            cursor = conn.cursor()
-            # Adaugam coloanele pentru Alocare in cereri
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Lista de coloane care lipsesc
+        columns_to_add = [
+            ("email", "TEXT DEFAULT ''"),
+            ("profile_picture", "TEXT DEFAULT ''"),
+            ("first_name", "TEXT DEFAULT ''"),
+            ("last_name", "TEXT DEFAULT ''"),
+            ("phone", "TEXT DEFAULT ''"),
+            ("address", "TEXT DEFAULT ''")
+        ]
+        
+        for col_name, col_type in columns_to_add:
             try:
-                cursor.execute("ALTER TABLE transport_requests ADD COLUMN assigned_driver TEXT DEFAULT NULL")
-                cursor.execute("ALTER TABLE transport_requests ADD COLUMN assigned_vehicle TEXT DEFAULT NULL")
-            except sqlite3.OperationalError:
-                pass # Coloanele exista deja
-            
-            # Ne asiguram ca avem tabelul de soferi cu Disponibilitate (REQ-23)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS drivers (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    license_category TEXT NOT NULL,
-                    experience_years INTEGER DEFAULT 0,
-                    status TEXT DEFAULT 'Available'
-                )
-            """)
-            conn.commit()
-            print("✅ Baza de date a fost pregatita pentru portalul Soferului!")
+                cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+                print(f"✅ Coloana '{col_name}' a fost adăugată cu succes.")
+            except sqlite3.OperationalError as e:
+                if "duplicate column name" in str(e).lower():
+                    print(f"ℹ️ Coloana '{col_name}' există deja.")
+                else:
+                    print(f"⚠️ Eroare la coloana '{col_name}': {e}")
+        
+        conn.commit()
+        conn.close()
+        print("\n🚀 TOATE COLOANELE SUNT PREGĂTITE!")
+        
     except Exception as e:
-        print(f"❌ Eroare: {e}")
+        print(f"❌ Eroare generală: {e}")
 
 if __name__ == "__main__":
-    sync_driver_tables()
+    force_fix()

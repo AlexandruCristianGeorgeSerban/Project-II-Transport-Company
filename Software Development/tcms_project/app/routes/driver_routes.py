@@ -5,6 +5,51 @@ from app.controllers.driver_controller import DriverController
 driver_bp = Blueprint('driver', __name__)
 driver_logic = DriverController()
 
+# ==========================================
+# RUTE PENTRU PORTALUL ȘOFERULUI (CE VEDE EL)
+# ==========================================
+
+@driver_bp.route('/driver/portal')
+def portal():
+    """Renders the dashboard/portal for the logged-in driver."""
+    if 'user_id' not in session or session.get('role') != 'Driver':
+        flash("Access denied. Drivers only.", "danger")
+        return redirect(url_for('auth.login'))
+    
+    # Aici, în mod normal, ai prelua joburile din baza de date pentru acest șofer.
+    # Momentan le setăm ca listă goală ca să nu crape HTML-ul.
+    jobs = [] 
+    
+    return render_template('driver/portal.html', jobs=jobs)
+
+@driver_bp.route('/driver/history')
+def history():
+    """Renders the history page for the driver."""
+    if 'user_id' not in session or session.get('role') != 'Driver':
+        return redirect(url_for('auth.login'))
+    
+    # La fel, aici vei prelua joburile cu status 'Delivered'
+    jobs = []
+    
+    return render_template('driver/history.html', jobs=jobs)
+
+@driver_bp.route('/driver/update_status/<int:req_id>/<new_status>', methods=['POST'])
+def update_status(req_id, new_status):
+    """Updates the status of a specific job (e.g. In Transit, Delivered)."""
+    if 'user_id' not in session or session.get('role') != 'Driver':
+        return redirect(url_for('auth.login'))
+        
+    # Aici va veni logica de actualizare a statusului în baza de date.
+    # driver_logic.update_job_status(req_id, new_status)
+    
+    flash(f"Status for Route #{req_id} updated to {new_status}!", "success")
+    return redirect(url_for('driver.portal'))
+
+
+# ==========================================
+# RUTE PENTRU MANAGEMENT (CE VEDE ADMINUL)
+# ==========================================
+
 @driver_bp.route('/drivers', methods=['GET'])
 def driver_management() -> str:
     """Renders the main Driver Management page."""

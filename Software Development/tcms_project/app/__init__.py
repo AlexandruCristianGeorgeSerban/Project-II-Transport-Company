@@ -10,7 +10,7 @@ from app.routes.report_routes import report_bp
 from app.routes.customer_routes import customer_bp
 from app.routes.admin_support_routes import admin_support_bp
 from app.routes.guest_routes import guest_bp
-
+from app.routes.profile_routes import profile_bp
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
     app = Flask(__name__)
@@ -39,6 +39,7 @@ def create_app() -> Flask:
     app.register_blueprint(report_bp)
     app.register_blueprint(customer_bp)
     app.register_blueprint(admin_support_bp)
+    app.register_blueprint(profile_bp)
     
     # Initialize the database table for users
     user_db = UserModel()

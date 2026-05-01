@@ -19,11 +19,12 @@
 <div class="dashboard-wrapper">
     <div class="sidebar">
         <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 120px; margin-bottom: 20px;">
-        <a href="{{ url_for('driver_portal.portal') }}" class="nav-btn active">My Routes</a>
+        <a href="{{ url_for('driver.portal') }}" class="nav-btn active">My Routes</a>
         
         <a href="/active_jobs" class="nav-btn">Active Jobs</a>
         
-        <a href="{{ url_for('driver_portal.history') }}" class="nav-btn">Delivery History</a>
+        <!-- Observă cum am schimbat aici din driver_portal.history in driver.history -->
+        <a href="{{ url_for('driver.history') }}" class="nav-btn">Delivery History</a>
         
         <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
     </div>
@@ -62,10 +63,26 @@
                     </div>
 
                     <div class="user-profile border-start ps-3 ms-3">
-                        <span class="fw-bold text-dark" style="font-size: 1.05rem;">
-                            👤 {{ session.get('username', 'Driver') }}
-                        </span>
-                        <span class="badge bg-primary ms-1" style="font-size: 0.75rem;">Driver</span>
+                        <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none d-flex align-items-center text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                            
+                            {% if session.get('profile_picture') and session.get('profile_picture') != '' %}
+                                <img src="{{ url_for('static', filename='img/avatars/' + session.get('profile_picture')) }}" 
+                                     alt="Avatar" 
+                                     style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%; border: 2px solid #007bff; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            {% else %}
+                                <span class="fs-3 me-2" style="line-height: 1;">👤</span>
+                            {% endif %}
+                            
+                            <div class="d-flex flex-column justify-content-center">
+                                <span class="fw-bold" style="font-size: 1rem; line-height: 1.2;">
+                                    {{ session.get('username') }}
+                                </span>
+                                <span class="badge bg-primary mt-1" style="font-size: 0.70rem; align-self: flex-start;">
+                                    {{ session.get('role') }}
+                                </span>
+                            </div>
+                            
+                        </a>
                     </div>
                 </div>
             </div>
@@ -82,7 +99,7 @@
 
             <div class="section-header">Current Assignments</div>
             
-            {% if jobs|length == 0 %}
+            {% if not jobs or jobs|length == 0 %}
                 <div class="text-center py-5 bg-light rounded border border-dashed">
                     <h1 class="display-4 text-muted mb-3">☕</h1>
                     <h5 class="text-secondary">No active routes assigned.</h5>
@@ -122,11 +139,11 @@
 
                             <div class="mt-3">
                                 {% if job.status == 'Accepted' %}
-                                    <form action="{{ url_for('driver_portal.update_status', req_id=job.id, new_status='In Transit') }}" method="POST">
+                                    <form action="{{ url_for('driver.update_status', req_id=job.id, new_status='In Transit') }}" method="POST">
                                         <button type="submit" class="btn btn-warning w-100 fw-bold shadow-sm text-dark">🚀 Start Journey (In Transit)</button>
                                     </form>
                                 {% elif job.status == 'In Transit' %}
-                                    <form action="{{ url_for('driver_portal.update_status', req_id=job.id, new_status='Delivered') }}" method="POST">
+                                    <form action="{{ url_for('driver.update_status', req_id=job.id, new_status='Delivered') }}" method="POST">
                                         <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">✅ Mark as Delivered</button>
                                     </form>
                                 {% endif %}
