@@ -10,9 +10,9 @@
 <div class="dashboard-wrapper">
     <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #e9ecef;">
         <div class="text-center mt-3 mb-4"><img src="{{ url_for('static', filename='img/truck.png') }}" style="width: 100px;"></div>
-        <a href="{{ url_for('customer.portal') }}" class="nav-btn text-secondary">📦 My Transports</a>
-        <a href="{{ url_for('customer.invoices') }}" class="nav-btn text-secondary">💳 Invoices & Billing</a>
-        <a href="{{ url_for('customer.support') }}" class="nav-btn active text-dark fw-bold">🎧 Help & Support</a>
+        <a href="{{ url_for('customer.portal') }}" class="nav-btn">📦 My Transports</a>
+        <a href="{{ url_for('customer.invoices') }}" class="nav-btn">💳 Invoices & Billing</a>
+        <a href="{{ url_for('customer.support') }}" class="nav-btn active fw-bold">🎧 Help & Support</a>
         <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
     </div>
     

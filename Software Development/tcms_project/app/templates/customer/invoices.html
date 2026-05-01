@@ -13,9 +13,9 @@
         <div class="text-center mt-3 mb-4">
             <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
         </div>
-        <a href="{{ url_for('customer.portal') }}" class="nav-btn text-dark fw-bold">📦 My Transports</a>
-        <a href="{{ url_for('customer.invoices') }}" class="nav-btn active text-secondary">💳 Invoices & Billing</a>
-        <a href="{{ url_for('customer.support') }}" class="nav-btn text-secondary">🎧 Help & Support</a>
+        <a href="{{ url_for('customer.portal') }}" class="nav-btn fw-bold">📦 My Transports</a>
+        <a href="{{ url_for('customer.invoices') }}" class="nav-btn active">💳 Invoices & Billing</a>
+        <a href="{{ url_for('customer.support') }}" class="nav-btn">🎧 Help & Support</a>
         <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
     </div>
 
