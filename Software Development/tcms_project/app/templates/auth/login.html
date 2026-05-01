@@ -9,48 +9,51 @@
 </head>
 <body>
 
-<div class="auth-wrapper">
-    <div class="auth-image-side">
-        <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Transport Truck">
-    </div>
-
-    <div class="auth-form-side">
-        <div class="auth-card mb-4">
-            <div class="auth-card-header">
-                Login
-            </div>
-            <div class="auth-card-body">
-                
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-
-                <form method="POST" action="{{ url_for('auth.login') }}">
-                    <div class="mb-3 row align-items-center">
-                        <label for="username" class="col-sm-4 col-form-label text-end">Username:</label>
-                        <div class="col-sm-8">
-                            <input type="text" class="form-control" id="username" name="username" required>
-                        </div>
-                    </div>
-                    <div class="mb-3 row align-items-center">
-                        <label for="password" class="col-sm-4 col-form-label text-end">Password:</label>
-                        <div class="col-sm-8">
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-custom-blue mt-3">Login</button>
-                    <div class="text-end mt-2">
-                        <a href="{{ url_for('auth.register') }}" class="text-decoration-none" style="font-size: 0.85rem;">Create Account</a>
-                    </div>
-                </form>
-            </div>
+<!-- Am adaugat containerul de fundal si centrare -->
+<div class="login-body-container">
+    <div class="auth-wrapper">
+        <div class="auth-image-side">
+            <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Transport Truck">
         </div>
-        <div class="system-title">
-            Transport<br>Company<br>Management<br>System
+
+        <div class="auth-form-side">
+            <div class="auth-card mb-4">
+                <div class="auth-card-header">
+                    Login
+                </div>
+                <div class="auth-card-body">
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" action="{{ url_for('auth.login') }}">
+                        <div class="mb-3 row align-items-center">
+                            <label for="username" class="col-sm-4 col-form-label text-end">Username:</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                        </div>
+                        <div class="mb-3 row align-items-center">
+                            <label for="password" class="col-sm-4 col-form-label text-end">Password:</label>
+                            <div class="col-sm-8">
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-custom-blue mt-3">Login</button>
+                        <div class="text-end mt-2">
+                            <a href="{{ url_for('auth.register') }}" class="text-decoration-none" style="font-size: 0.85rem;">Create Account</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="system-title">
+                Transport<br>Company<br>Management<br>System
+            </div>
         </div>
     </div>
 </div>
