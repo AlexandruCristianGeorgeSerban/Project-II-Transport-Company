@@ -20,8 +20,12 @@ def login() -> str:
             session['role'] = auth_result.get("role")
             session['username'] = auth_result.get("username")
             
-            # AICI E MODIFICAREA: Trimitem toti utilizatorii logati catre noul dashboard
-            return redirect(url_for('dashboard.main_dashboard'))
+            if session['role'] == 'Customer':
+                return redirect(url_for('customer.portal'))
+            elif session['role'] == 'Driver':
+                return redirect(url_for('driver_portal.portal'))
+            else:
+                return redirect(url_for('dashboard.main_dashboard'))
         else:
             flash(auth_result.get("message"), "danger")
             return render_template('auth/login.html')
