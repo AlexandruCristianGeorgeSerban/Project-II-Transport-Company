@@ -9,8 +9,6 @@ from app.routes.request_routes import request_bp
 from app.routes.report_routes import report_bp
 from app.routes.customer_routes import customer_bp
 from app.routes.admin_support_routes import admin_support_bp
-from app.routes.notification_routes import notification_bp
-from app.routes.guest_routes import guest_bp # <-- NEW IMPORT
 
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
@@ -30,7 +28,7 @@ def create_app() -> Flask:
     # ----------------------------------------------
     
     # Register the blueprints
-    app.register_blueprint(guest_bp) # <-- REGISTER NEW BLUEPRINT
+    app.register_blueprint(guest_bp) 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(fleet_bp)
@@ -40,7 +38,6 @@ def create_app() -> Flask:
     app.register_blueprint(report_bp)
     app.register_blueprint(customer_bp)
     app.register_blueprint(admin_support_bp)
-    app.register_blueprint(notification_bp)
     
     # Initialize the database table for users
     user_db = UserModel()

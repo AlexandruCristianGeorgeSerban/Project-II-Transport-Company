@@ -13,14 +13,23 @@ def allocation_management() -> str:
         flash("Please log in.", "danger")
         return redirect(url_for('auth.login'))
     
-    view_data = allocation_logic.load_allocation_data()
-    role = session.get('role', 'Staff')
+    role = session.get('role')
+    # Protejăm ruta: doar Admin și Staff pot face alocări
+    if role not in ['Administrator', 'Staff']:
+        flash("Access denied. You do not have permission to view allocations.", "danger")
+        return redirect(url_for('dashboard.main_dashboard'))
     
+    view_data = allocation_logic.load_allocation_data()
     return render_template('staff/allocation.html', data=view_data, role=role)
 
 @allocation_bp.route('/allocation/confirm', methods=['POST'])
 def confirm_allocation() -> str:
     """Handles the allocation form submission."""
+    # Protecție la nivel de backend pentru POST
+    if 'user_id' not in session or session.get('role') not in ['Administrator', 'Staff']:
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for('auth.login'))
+
     req_id = request.form.get('request_id')
     veh_id = request.form.get('vehicle_id')
     drv_id = request.form.get('driver_id')
@@ -42,8 +51,14 @@ def active_jobs() -> str:
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
         
+    role = session.get('role')
+    
+    # AICI ESTE SECRETUL: Permitem și rolului 'Driver' să acceseze această pagină
+    if role not in ['Administrator', 'Staff', 'Driver']:
+        flash("Access denied.", "danger")
+        return redirect(url_for('dashboard.main_dashboard'))
+        
     view_data = allocation_logic.load_active_jobs()
-    role = session.get('role', 'Staff')
     
     return render_template('staff/active_jobs.html', data=view_data, role=role)
 
@@ -51,6 +66,13 @@ def active_jobs() -> str:
 def deliver_job(req_id: str):
     """Procesează butonul de 'Mark as Delivered'."""
     if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+        
+    role = session.get('role')
+    
+    # Oferim permisiunea șoferului să execute această acțiune
+    if role not in ['Administrator', 'Staff', 'Driver']:
+        flash("Unauthorized action.", "danger")
         return redirect(url_for('auth.login'))
         
     response = allocation_logic.complete_active_job(req_id)
