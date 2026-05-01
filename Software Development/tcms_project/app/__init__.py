@@ -9,6 +9,7 @@ from app.routes.request_routes import request_bp
 from app.routes.report_routes import report_bp
 from app.routes.customer_routes import customer_bp
 from app.routes.admin_support_routes import admin_support_bp
+from app.routes.guest_routes import guest_bp
 
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
