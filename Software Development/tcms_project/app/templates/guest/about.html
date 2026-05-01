@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Transport Company</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-light">
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark sticky-top shadow-sm" style="background-color: #0285e9;">
+    <div class="container d-flex justify-content-between align-items-center">
+        
+        <!-- Logo and Brand -->
+        <a class="navbar-brand fw-bold d-flex align-items-center m-0" href="{{ url_for('guest.home') }}">
+            <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" height="40" class="me-3">
+            <span class="fs-4">TCMS</span>
+        </a>
+        
+        <!-- Navigation Links -->
+        <ul class="navbar-nav d-flex flex-row align-items-center m-0" style="list-style: none;">
+            <li class="nav-item me-4">
+                <a class="nav-link text-light fs-5 px-0" href="{{ url_for('guest.about') }}" style="white-space: nowrap;">About Us</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-light fs-5 px-0" href="{{ url_for('auth.login') }}">Login</a>
+            </li>
+        </ul>
+
+    </div>
+</nav>
+<div class="container my-5">
+    <h2 class="text-center fw-bold mb-5" style="color: #216a94;">How Our System Works</h2>
+
+    <div class="row align-items-center mb-5">
+        <div class="col-md-6">
+            <h4 class="fw-bold">1. Easy Booking</h4>
+            <p class="text-muted">Customers can easily submit transport requests, specifying cargo details, pickup, and delivery locations through our intuitive portal.</p>
+        </div>
+        <div class="col-md-6 text-center">
+             <!-- Placeholder for booking image -->
+            <div class="bg-secondary rounded" style="height: 250px; display:flex; align-items:center; justify-content:center; color:white;">
+                http://googleusercontent.com/image_content/283
+
+
+            </div>
+        </div>
+    </div>
+
+    <div class="row align-items-center mb-5 flex-md-row-reverse">
+        <div class="col-md-6">
+            <h4 class="fw-bold">2. Efficient Allocation</h4>
+            <p class="text-muted">Our dispatch team quickly reviews requests, negotiates terms, and allocates the most suitable vehicles and drivers from our fleet.</p>
+        </div>
+        <div class="col-md-6 text-center">
+             <!-- Placeholder for allocation image -->
+            <div class="bg-secondary rounded" style="height: 250px; display:flex; align-items:center; justify-content:center; color:white;">
+                
+            </div>
+        </div>
+    </div>
+
+     <div class="row align-items-center mb-5">
+        <div class="col-md-6">
+            <h4 class="fw-bold">3. Real-time Tracking & Support</h4>
+            <p class="text-muted">Stay updated with live status changes and communicate directly with our support team if any issues arise during transit.</p>
+        </div>
+        <div class="col-md-6 text-center">
+             <!-- Placeholder for tracking/support image -->
+            <div class="bg-secondary rounded" style="height: 250px; display:flex; align-items:center; justify-content:center; color:white;">
+                http://googleusercontent.com/image_content/306
+
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -14,11 +14,11 @@ def main_dashboard() -> str:
     
     user_role = session.get('role', 'Staff')
     
-    # Redirectionare Customer
     if user_role == 'Customer':
         return redirect(url_for('customer.portal'))
+    elif user_role == 'Driver':
+        return redirect(url_for('driver_portal.portal'))
         
-    # Redirectionare Staff
     elif user_role == 'Staff':
         try:
             view_data = dashboard_logic.load_staff_dashboard_data()
@@ -33,7 +33,6 @@ def main_dashboard() -> str:
             flash("An error occurred while loading the staff portal.", "danger")
             return redirect(url_for('auth.login'))
             
-    # Redirectionare Admin (Fallback)
     else:
         try:
             view_data = dashboard_logic.load_dashboard_data()
