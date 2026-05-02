@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, Any
 from app.models.driver_model import DriverModel
+from app.models.user_model import UserModel
 
 class DriverController:
     """Processes business logic and formats data for Driver Management."""
@@ -9,6 +10,7 @@ class DriverController:
         """Initializes the model and creates the table."""
         self.model = DriverModel()
         self.model.create_table()
+        self.user_model = UserModel() # Initializam UserModel pentru a crea conturi
 
     def load_driver_data(self) -> Dict[str, Any]:
         """Loads and structures all necessary driver data."""
@@ -23,13 +25,36 @@ class DriverController:
             driver_data["drivers"] = []
             return driver_data
 
-    def add_new_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, doc_id: str, address: str, avail: str) -> dict:
-        """Handles logic for adding a new driver."""
+    def add_new_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, doc_id: str, address: str, avail: str, username: str = None, password: str = None) -> dict:
+        """Handles logic for adding a new driver and automatically creates an account."""
+        
+        print(f"DEBUG: Incepem crearea soferului: {name}, User dorit: {username}")
+        
+        # 1. Creare cont utilizator (Daca au fost completate in formular)
+        if username and password:
+            account_created = self.user_model.register_user(username, password, role="Driver")
+            if not account_created:
+                print(f"DEBUG: FAIL - Eroare la salvarea userului '{username}' in baza de date 'users'")
+                # Daca userul e deja luat in baza de date de login, ne oprim.
+                return {"success": False, "message": f"Error: The username '{username}' is already taken. Please choose another."}
+            else:
+                print(f"DEBUG: SUCCESS - Userul '{username}' a fost salvat in tabelul 'users'")
+
+        # 2. Creare dosar de angajat in baza de date drivers
         result = self.model.insert_driver(d_id, name, status, licenses, exp, dob, doc_id, address, avail)
+        
         if result is True:
-            return {"success": True, "message": f"Driver {name} added successfully!"}
+            print(f"DEBUG: SUCCESS - Profilul de sofer pentru '{name}' a fost salvat in tabelul 'drivers'")
+            # Succes total
+            msg = f"Driver {name} added successfully"
+            if username:
+                 msg += f" and account '{username}' was created!"
+            else:
+                 msg += "!"
+            return {"success": True, "message": msg}
         else:
-            return {"success": False, "message": "Error: Driver ID might already exist."}
+            print(f"DEBUG: FAIL - Profilul de sofer pentru '{name}' NU a putut fi salvat in tabelul 'drivers'")
+            return {"success": False, "message": "Error: Driver ID or Data might already exist."}
 
     def modify_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, doc_id: str, address: str, avail: str) -> dict:
         """Handles logic for updating a driver."""
