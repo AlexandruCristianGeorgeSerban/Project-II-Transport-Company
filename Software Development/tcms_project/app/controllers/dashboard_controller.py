@@ -28,10 +28,18 @@ class DashboardController:
         try:
             # Folosim modelul pentru a trage datele specifice dispecerului
             staff_data["counts"] = self.model.get_staff_summary_counts()
+            
+            # ---> AM ADĂUGAT ASTA: Tragem cererile clienților din baza de date <---
+            staff_data["requests"] = self.model.get_recent_requests()
+            
             staff_data["schedule"] = self.model.get_todays_schedule()
             return staff_data
         except Exception as logic_error:
             logging.error(f"Error processing staff dashboard data: {logic_error}")
             staff_data["counts"] = {"pending_allocations": 0, "unread_tickets": 0, "pending_invoices": 0}
+            
+            # ---> AM ADĂUGAT ASTA CA SĂ NU DEA EROARE HTML-UL <---
+            staff_data["requests"] = [] 
+            
             staff_data["schedule"] = []
             return staff_data

@@ -46,3 +46,28 @@ class RequestController:
             return {"success": True, "message": "Request deleted successfully!"}
         else:
             return {"success": False, "message": "Error deleting request."}
+        
+    def send_price_offer(self, req_id: str, price: str) -> dict:
+        """Validează prețul și trimite comanda către Model pentru a actualiza cererea."""
+        try:
+            price_val = float(price)
+            if price_val <= 0:
+                return {"success": False, "message": "Prețul trebuie să fie mai mare decât 0."}
+                
+            # Schimbăm statusul din 'Pending' în 'Awaiting Approval'
+            new_status = "Awaiting Approval"
+            
+            return self.model.update_request_status_and_price(req_id, new_status, price_val)
+            
+        except ValueError:
+            return {"success": False, "message": "Format de preț invalid. Te rog introdu un număr."}
+    def client_decision(self, req_id: str, decision: str) -> dict:
+        """Procesează decizia clientului de a accepta sau refuza o ofertă."""
+        if decision == 'accept':
+            # Dacă acceptă, comanda este gata să primească șofer și mașină
+            return self.model.update_request_status(req_id, "Approved")
+        elif decision == 'reject':
+            # Dacă refuză, o anulăm
+            return self.model.update_request_status(req_id, "Canceled")
+        else:
+            return {"success": False, "message": "Decizie invalidă."}
