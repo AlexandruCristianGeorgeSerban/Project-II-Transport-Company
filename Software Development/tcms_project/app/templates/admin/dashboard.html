@@ -60,33 +60,30 @@
     <div class="dropdown d-inline-block me-3">
         </div>
 
-   <!-- AICI ÎNCEPE BUTONUL CĂTRE PROFIL -->
-                    <div class="user-profile border-start ps-3 ms-3">
-                        <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none d-flex align-items-center text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                            
-                            <!-- Verificăm dacă are poză sau punem emoji -->
-                            {% if session.get('profile_picture') and session.get('profile_picture') != '' %}
-                                <img src="{{ url_for('static', filename='img/avatars/' + session.get('profile_picture')) }}" 
-                                     alt="Avatar" 
-                                     style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%; border: 2px solid #007bff; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            {% else %}
-                                <span class="fs-3 me-2" style="line-height: 1;">👤</span>
-                            {% endif %}
-                            
-                            <!-- Numele și Rolul -->
-                            <div class="d-flex flex-column justify-content-center">
-                                <span class="fw-bold" style="font-size: 1rem; line-height: 1.2;">
-                                    {{ session.get('username') }}
-                                </span>
-                                <span class="badge bg-primary mt-1" style="font-size: 0.70rem; align-self: flex-start;">
-                                    {{ session.get('role') }}
-                                </span>
-                            </div>
-                            
-                        </a>
-                    </div>
-                    <!-- AICI SE TERMINĂ BUTONUL CĂTRE PROFIL -->
-
+       <!-- AICI ÎNCEPE BUTONUL CĂTRE PROFIL -->
+    <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none">
+        <div class="user-profile border-start ps-3 d-flex align-items-center" style="cursor: pointer;">
+            <!-- Verificam daca are poza in sesiune -->
+            {% if session.get('profile_picture') %}
+                <img src="{{ url_for('static', filename='img/avatars/' + session.get('profile_picture')) }}" 
+                     alt="Profile" 
+                     class="rounded-circle me-2" 
+                     style="width: 35px; height: 35px; object-fit: cover; border: 2px solid #0078d4;">
+            {% else %}
+                <!-- Daca nu are poza, afisam omuletul (emoji) -->
+                <span class="me-2" style="font-size: 1.2rem;">👤</span>
+            {% endif %}
+            
+            <span class="fw-bold text-dark" style="font-size: 1.05rem;">
+                {{ session.get('username', 'Guest') }}
+            </span>
+            <span class="badge bg-primary ms-2" style="font-size: 0.75rem;">
+                {{ session.get('role', 'User') }}
+            </span>
+        </div>
+    </a>
+    <!-- AICI SE TERMINĂ BUTONUL CĂTRE PROFIL -->
+                
 </div>
 </div>
             </div>

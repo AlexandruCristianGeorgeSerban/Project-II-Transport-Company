@@ -27,6 +27,12 @@ def login() -> str:
             session['role'] = auth_result.get("role")
             session['username'] = auth_result.get("username")
             
+            
+            if "profile_picture" in auth_result and auth_result["profile_picture"]:
+                session['profile_picture'] = auth_result["profile_picture"]
+            else:
+                
+                session.pop('profile_picture', None)
             if session['role'] == 'Customer':
                 return redirect(url_for('customer.portal'))
             elif session['role'] == 'Driver':
