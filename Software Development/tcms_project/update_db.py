@@ -1,46 +1,43 @@
 import sqlite3
 import os
 
-# Calea trebuie sa fie identica cu cea din Controller
-db_path = os.path.join(os.getcwd(), "instance", "database.sqlite")
+# Calea către baza ta de date
+DB_PATH = "instance/database.sqlite"
 
-def force_fix():
-    print(f"🔍 Încerc să modific baza de date la: {db_path}")
-    
-    if not os.path.exists(db_path):
-        print("❌ EROARE: Fișierul bazei de date NU a fost găsit la această cale!")
-        return
+def update_database():
+    # Ne asigurăm că folderul 'instance' există
+    if not os.path.exists('instance'):
+        os.makedirs('instance')
+        print("Folderul 'instance' a fost creat.")
 
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Lista de coloane care lipsesc
-        columns_to_add = [
-            ("email", "TEXT DEFAULT ''"),
-            ("profile_picture", "TEXT DEFAULT ''"),
-            ("first_name", "TEXT DEFAULT ''"),
-            ("last_name", "TEXT DEFAULT ''"),
-            ("phone", "TEXT DEFAULT ''"),
-            ("address", "TEXT DEFAULT ''")
-        ]
-        
-        for col_name, col_type in columns_to_add:
-            try:
-                cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
-                print(f"✅ Coloana '{col_name}' a fost adăugată cu succes.")
-            except sqlite3.OperationalError as e:
-                if "duplicate column name" in str(e).lower():
-                    print(f"ℹ️ Coloana '{col_name}' există deja.")
-                else:
-                    print(f"⚠️ Eroare la coloana '{col_name}': {e}")
-        
-        conn.commit()
-        conn.close()
-        print("\n🚀 TOATE COLOANELE SUNT PREGĂTITE!")
-        
-    except Exception as e:
-        print(f"❌ Eroare generală: {e}")
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    print("Se actualizează structura bazei de date...")
+
+    # Pasul 1: Ștergem tabelul vechi pentru a evita conflictele de coloane
+    # Atenție: Acest lucru va șterge utilizatorii creați anterior!
+    cursor.execute("DROP TABLE IF EXISTS users")
+
+    # Pasul 2: Creăm tabelul cu TOATE coloanele noi
+    cursor.execute("""
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            phone_number TEXT,
+            date_of_birth TEXT NOT NULL
+        )
+    """)
+
+    connection.commit()
+    connection.close()
+    print("✅ Succes! Tabelul 'users' a fost recreat cu toate câmpurile necesare:")
+    print("   - first_name, last_name, username, email, password_hash, role, phone_number, date_of_birth")
 
 if __name__ == "__main__":
-    force_fix()
+    update_database()
