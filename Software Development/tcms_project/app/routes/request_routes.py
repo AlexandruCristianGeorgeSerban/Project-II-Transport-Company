@@ -59,3 +59,31 @@ def delete_request(req_id: str) -> str:
     resp = req_logic.remove_request(req_id)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('request_routes.request_management'))
+@request_bp.route('/send_offer/<req_id>', methods=['POST'])
+def send_offer(req_id: str) -> str:
+    """Staff-ul trimite o ofertă de preț clientului."""
+    if session.get('role') not in ['Administrator', 'Staff']:
+        flash("Access denied. Doar Staff-ul poate trimite oferte.", "danger")
+        return redirect(url_for('dashboard.main_dashboard'))
+    
+    price = request.form.get('price_offer')
+    
+    resp = req_logic.send_price_offer(req_id, price)
+    
+    flash(resp.get("message"), "success" if resp.get("success") else "danger")
+    return redirect(url_for('dashboard.main_dashboard'))
+@request_bp.route('/requests/decision/<req_id>/<decision>', methods=['POST'])
+def handle_offer_decision(req_id: str, decision: str) -> str:
+    """Clientul acceptă sau refuză oferta de preț."""
+    if session.get('role') != 'Customer':
+        flash("Doar clienții pot accepta sau refuza oferte.", "danger")
+        return redirect(url_for('dashboard.main_dashboard'))
+    
+    resp = req_logic.client_decision(req_id, decision)
+    
+    if resp.get("success"):
+        flash(f"Ai { 'acceptat' if decision == 'accept' else 'refuzat' } oferta cu succes!", "success")
+    else:
+        flash(resp.get("message"), "danger")
+        
+    return redirect(url_for('customer.portal'))
