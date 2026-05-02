@@ -10,9 +10,14 @@
 <div class="dashboard-wrapper">
     <div class="sidebar">
         <img src="{{ url_for('static', filename='img/truck.png') }}" style="width: 100px; margin-bottom: 20px;">
-        <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn">Dashboard</a>
-        <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn active">Support Tickets</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>        
+      <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn active">Dashboard</a>
+        <a href="{{ url_for('fleet.fleet_management') }}" class="nav-btn">Fleet Management</a>
+        <a href="{{ url_for('driver.driver_management') }}" class="nav-btn">Driver Management</a>
+        <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn">Requests</a>
+        <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn">Allocation</a>
+        <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
+        <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn">💬 Support</a>
+        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>  
     </div>
 
     <div class="main-content p-4">

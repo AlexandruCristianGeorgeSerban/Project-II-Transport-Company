@@ -3,24 +3,46 @@ import logging
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from app.models.user_model import UserModel
+
 DB_PATH: str = "instance/database.sqlite"
 MINIMUM_AGE: int = 13
 
 class AuthController:
     """Manages authentication business logic, registration, and age validation."""
 
-    def register_customer(self, username: str, password: str, date_of_birth: str) -> dict:
+    def register_customer(self, username, password, first_name, last_name, email, phone_number, date_of_birth) -> dict:
         """Registers a new customer if they meet the minimum age requirement."""
+        user_db = UserModel()
+        user_db.create_table() # Ne asigurăm că tabelul există
+        
         try:
+            # 1. Calculăm vârsta
             dob_date = datetime.strptime(date_of_birth, "%Y-%m-%d")
             today = datetime.today()
             calculated_age = today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
             
-            if calculated_age < MINIMUM_AGE:
+            # 2. Verificăm vârsta
+            if calculated_age < 13: # Am pus 13 direct aici ca să nu ne mai complicăm cu variabile globale
                 return {"success": False, "message": "Registration blocked: You must be at least 13 years old."}
+                
+            # 3. Trimitem TOT la baza de date
+            success = user_db.register_user(
+                username=username, 
+                password=password, 
+                first_name=first_name, 
+                last_name=last_name, 
+                email=email, 
+                phone_number=phone_number, 
+                date_of_birth=date_of_birth, 
+                role="Customer"
+            )
+            
+            if success:
+                 return {"success": True, "message": "Account created successfully! You can now login."}
             else:
-                hashed_password = generate_password_hash(password)
-                return self._insert_user(username, hashed_password, "Customer", date_of_birth)
+                 return {"success": False, "message": "Registration failed. Username or email might already exist."}
+
         except ValueError as val_error:
             logging.error(f"Date parsing error: {val_error}")
             return {"success": False, "message": "Invalid date format provided."}

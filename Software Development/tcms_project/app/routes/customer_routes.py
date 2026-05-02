@@ -1,10 +1,9 @@
 import uuid
 import logging
-from flask import Blueprint, render_template, session, redirect, url_for, flash, request
+from flask import Blueprint, render_template, session, redirect, url_for, flash, request, jsonify
 from app.controllers.customer_controller import CustomerController
 from app.models.support_model import SupportModel
 from app.models.notification_model import NotificationModel
-from flask import jsonify
 import sqlite3
 
 customer_bp = Blueprint('customer', __name__)
@@ -15,7 +14,6 @@ support_db.create_table()
 
 @customer_bp.route('/portal', methods=['GET'])
 def portal() -> str:
-    """Renders the Customer Portal."""
     if 'user_id' not in session or session.get('role') != 'Customer':
         return redirect(url_for('auth.login'))
         
@@ -26,7 +24,6 @@ def portal() -> str:
 
 @customer_bp.route('/portal/submit', methods=['POST'])
 def submit_request() -> str:
-    """Handles the creation of a new transport request with unit conversion."""
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
         
@@ -67,7 +64,6 @@ def submit_request() -> str:
 
 @customer_bp.route('/portal/response/<req_id>/<action>', methods=['POST'])
 def handle_response(req_id: str, action: str) -> str:
-    """Handles Accept/Reject/Negotiate."""
     username = session.get('username')
     result = cust_logic.process_customer_response(req_id, action, username)
     
@@ -80,19 +76,16 @@ def handle_response(req_id: str, action: str) -> str:
 
 @customer_bp.route('/portal/support', methods=['GET'])
 def support() -> str:
-    """Afișează pagina de suport cu istoricul mesajelor."""
     if 'user_id' not in session: 
         return redirect(url_for('auth.login'))
     
     username = session.get('username')
-    # Aducem mesajele clientului din baza de date
     my_tickets = support_db.get_tickets_by_client(username)
     
     return render_template('customer/support.html', username=username, tickets=my_tickets)
 
 @customer_bp.route('/portal/support/submit', methods=['POST'])
 def submit_support() -> str:
-    """Handles the support form submission."""
     if 'user_id' not in session: 
         return redirect(url_for('auth.login'))
     
@@ -112,7 +105,6 @@ def submit_support() -> str:
 
 @customer_bp.route('/customer/support/reply/<int:ticket_id>', methods=['POST'])
 def reply_support(ticket_id: int):
-    """Permite clientului sa raspunda la un tichet existent (conversatie)."""
     if session.get('role') != 'Customer':
         return redirect(url_for('auth.login'))
     
@@ -120,19 +112,15 @@ def reply_support(ticket_id: int):
     username = session.get('username')
     
     if reply_message and username:
-        # Folosim aceeasi functie add_reply din suport_model
-        from app.models.support_model import SupportModel
-        db = SupportModel()
-        
-        if db.add_reply(ticket_id, username, reply_message):
+        if support_db.add_reply(ticket_id, username, reply_message):
             flash("Mesajul tău a fost trimis echipei de suport!", "success")
         else:
             flash("Eroare la trimiterea mesajului.", "danger")
             
     return redirect(url_for('customer.support'))
+
 @customer_bp.route('/portal/invoices', methods=['GET'])
 def invoices():
-    """Renders the Customer Invoices page."""
     if 'user_id' not in session or session.get('role') != 'Customer':
         return redirect(url_for('auth.login'))
     
@@ -143,7 +131,6 @@ def invoices():
 
 @customer_bp.route('/portal/invoices/pay/<invoice_id>', methods=['POST'])
 def pay_invoice(invoice_id: str):
-    """Processes a payment for an invoice."""
     if 'user_id' not in session or session.get('role') != 'Customer':
         return redirect(url_for('auth.login'))
         
@@ -154,7 +141,6 @@ def pay_invoice(invoice_id: str):
 
 @customer_bp.route('/api/track/<req_id>', methods=['GET'])
 def get_live_location(req_id: str):
-    """API Endpoint: Returneaza coordonatele GPS curente din baza de date pentru o cursa."""
     try:
         from app.models.customer_model import DB_PATH
         with sqlite3.connect(DB_PATH) as conn:
@@ -174,3 +160,20 @@ def get_live_location(req_id: str):
                 return jsonify({"success": False, "message": "No GPS data yet."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+# --- NOU: RUTA DE CHAT PENTRU CLIENT ---
+@customer_bp.route('/customer/chat/<job_id>', methods=['GET', 'POST'])
+def job_chat(job_id):
+    if 'user_id' not in session or session.get('role') != 'Customer':
+        flash("Please log in as a Customer.", "danger")
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'POST':
+        message = request.form.get('message')
+        if message:
+            # Clientul scrie mesajul
+            support_db.add_job_message(job_id, session['user_id'], 'Customer', message)
+        return redirect(url_for('customer.job_chat', job_id=job_id))
+
+    messages = support_db.get_job_messages(job_id)
+    return render_template('customer/job_chat.html', job_id=job_id, messages=messages)
