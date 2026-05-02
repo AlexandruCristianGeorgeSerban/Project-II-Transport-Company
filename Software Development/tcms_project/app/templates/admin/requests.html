@@ -10,6 +10,7 @@
 <body>
 
 <div class="dashboard-wrapper">
+    <!-- SIDEBAR -->
     <div class="sidebar">
         <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 120px; margin-bottom: 20px;">
         <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn">Dashboard</a>
@@ -21,112 +22,68 @@
         <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
     </div>
 
+    <!-- MAIN CONTENT -->
     <div class="main-content">
+        <!-- TOP NAVBAR -->
         <div class="top-navbar">
             <div>Transport Requests</div>
-            <div class="user-info">
-                <div class="user-info d-flex align-items-center">
-    <div class="dropdown d-inline-block">
-    <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.2rem;">
-        🔔
-        {% if unread_count > 0 %}
-        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
-            {{ unread_count }}
-        </span>
-        {% endif %}
-    </span>
-    
-    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
-        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
-        
-        {% if unread_count == 0 %}
-            <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
-        {% else %}
-            {% for n in notifications %}
-            <li>
-                <a class="dropdown-item py-2 border-bottom" style="white-space: normal;" href="{{ url_for('notifications.read_notification', notif_id=n.id) }}">
-                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
-                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
-                </a>
-            </li>
-            {% endfor %}
-        {% endif %}
-    </ul>
-</div>
-    
-    <div class="user-info d-flex align-items-center">
-    
-    <div class="dropdown d-inline-block me-3">
-        </div>
-
-     <div class="user-profile border-start ps-3 ms-3">
-                        <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none d-flex align-items-center text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                            
-                            {% if session.get('profile_picture') and session.get('profile_picture') != '' %}
-                                <img src="{{ url_for('static', filename='img/avatars/' + session.get('profile_picture')) }}" 
-                                     alt="Avatar" 
-                                     style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%; border: 2px solid #007bff; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            {% else %}
-                                <span class="fs-3 me-2" style="line-height: 1;">👤</span>
-                            {% endif %}
-                            
-                            <div class="d-flex flex-column justify-content-center">
-                                <span class="fw-bold" style="font-size: 1rem; line-height: 1.2;">
-                                    {{ session.get('username') }}
-                                </span>
-                                <span class="badge bg-primary mt-1" style="font-size: 0.70rem; align-self: flex-start;">
-                                    {{ session.get('role') }}
-                                </span>
-                            </div>
-                            
-                        </a>
-                    </div>
-
-</div>
-</div>
-                    <div class="dropdown d-inline-block">
-                        <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.2rem;">
-                            🔔
-                            {% if unread_count > 0 %}
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
-                                {{ unread_count }}
-                            </span>
-                            {% endif %}
+            
+            <div class="user-info d-flex align-items-center">
+                <!-- Clopoțel Notificări -->
+                <div class="dropdown d-inline-block">
+                    <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.2rem;">
+                        🔔
+                        {% if unread_count and unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
+                            {{ unread_count }}
                         </span>
-                        
-                        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
-                            <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
-                            
-                            {% if unread_count == 0 %}
-                                <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
-                            {% else %}
-                                {% for n in notifications %}
-                                <li>
-                                    <a class="dropdown-item py-2 border-bottom" style="white-space: normal;" href="{{ url_for('notifications.read_notification', notif_id=n.id) }}">
-                                        <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
-                                        <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
-                                    </a>
-                                </li>
-                                {% endfor %}
-                            {% endif %}
-                        </ul>
-                    </div>
+                        {% endif %}
+                    </span>
                     
-                    <div class="user-info d-flex align-items-center">
-                        <div class="dropdown d-inline-block me-3"></div>
-                        <div class="user-profile border-start ps-3">
-                            <span class="fw-bold text-dark" style="font-size: 1.05rem;">
-                                👤 {{ session.get('username', 'Guest') }}
+                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
+                        
+                        {% if not unread_count or unread_count == 0 %}
+                            <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
+                        {% else %}
+                            {% for n in notifications %}
+                            <li>
+                                <a class="dropdown-item py-2 border-bottom" style="white-space: normal;" href="{{ url_for('notifications.read_notification', notif_id=n.id) }}">
+                                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
+                                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Profil Utilizator -->
+                <div class="user-profile border-start ps-3 ms-3">
+                    <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none d-flex align-items-center text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                        
+                        {% if session.get('profile_picture') and session.get('profile_picture') != '' %}
+                            <img src="{{ url_for('static', filename='img/avatars/' + session.get('profile_picture')) }}" 
+                                 alt="Avatar" 
+                                 style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%; border: 2px solid #007bff; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        {% else %}
+                            <span class="fs-3 me-2" style="line-height: 1;">👤</span>
+                        {% endif %}
+                        
+                        <div class="d-flex flex-column justify-content-center">
+                            <span class="fw-bold" style="font-size: 1rem; line-height: 1.2;">
+                                {{ session.get('username', 'Guest') }}
                             </span>
-                            <span class="badge bg-secondary ms-1" style="font-size: 0.75rem;">
+                            <span class="badge bg-primary mt-1" style="font-size: 0.70rem; align-self: flex-start;">
                                 {{ session.get('role', 'User') }}
                             </span>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </div>
         </div>
 
+        <!-- CONTENT BODY -->
         <div class="content-body">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -163,7 +120,7 @@
                         <tr>
                             <th>Request ID</th>
                             <th>Client Name</th>
-                            <th>Cargo & Details</th> <!-- Updated Header -->
+                            <th>Cargo & Details</th>
                             <th>Pickup</th>
                             <th>Delivery</th>
                             <th>Preferred Date</th>
@@ -180,7 +137,6 @@
                                 <td class="fw-bold text-muted">{{ req.id }}</td>
                                 <td>{{ req.client }}</td>
                                 
-                                <!-- Updated Cargo Cell -->
                                 <td>
                                     <strong>{{ req.cargo_type }}</strong><br>
                                     <small class="text-muted">

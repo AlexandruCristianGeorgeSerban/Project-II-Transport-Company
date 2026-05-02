@@ -19,6 +19,7 @@ class ProfileController:
         try:
             pic_filename = None
             
+            # Gestionăm încărcarea imaginii dacă există
             if profile_pic and profile_pic.filename != '':
                 safe_name = secure_filename(profile_pic.filename)
                 pic_filename = f"user_{user_id}_{safe_name}"
@@ -32,30 +33,42 @@ class ProfileController:
             with sqlite3.connect(DB_PATH) as conn:
                 cursor = conn.cursor()
                 
-                # Verifica duplicat username
+                # Verificăm dacă noul username este deja luat de ALT user
                 cursor.execute("SELECT id FROM users WHERE username = ? AND id != ?", (new_username, user_id))
                 if cursor.fetchone():
                     return {"success": False, "message": "Username already taken."}
 
+                # Executăm update-ul. Atenție: Folosim funcția COALESCE în SQLite sau verificări în Python 
+                # pentru a nu lăsa adresa 'None' să crape baza. O convertim într-un string gol dacă vine None.
+                safe_phone = phone if phone else ""
+                safe_address = address if address else ""
+                safe_first = first_name if first_name else ""
+                safe_last = last_name if last_name else ""
+                safe_email = email if email else ""
+
+
+                # Dacă avem o imagine nouă, o salvăm în baza de date pe lângă datele textuale
                 if pic_filename:
+                    # Ne asigurăm că ambele variabile (pic_filename și user_id) sunt la locul lor în execute
                     cursor.execute("""
                         UPDATE users 
-                        SET username=?, email=?, first_name=?, last_name=?, phone=?, address=?, profile_picture=? 
+                        SET username=?, email=?, first_name=?, last_name=?, phone_number=?, address=?, profile_picture=? 
                         WHERE id=?
-                    """, (new_username, email, first_name, last_name, phone, address, pic_filename, user_id))
+                    """, (new_username, safe_email, safe_first, safe_last, safe_phone, safe_address, pic_filename, user_id))
                 else:
+                    # Facem update FĂRĂ să atingem imaginea
                     cursor.execute("""
                         UPDATE users 
-                        SET username=?, email=?, first_name=?, last_name=?, phone=?, address=? 
+                        SET username=?, email=?, first_name=?, last_name=?, phone_number=?, address=? 
                         WHERE id=?
-                    """, (new_username, email, first_name, last_name, phone, address, user_id))
+                    """, (new_username, safe_email, safe_first, safe_last, safe_phone, safe_address, user_id))
                 
                 conn.commit()
-                return {"success": True, "message": "Profile updated!", "new_username": new_username, "new_pic": pic_filename}
+                return {"success": True, "message": "Profile updated successfully!", "new_username": new_username, "new_pic": pic_filename}
         
         except Exception as e:
-            print(f"\n❌ EROARE CRITICĂ LA UPDATE: {e}\n")
-            return {"success": False, "message": "Failed to update profile."}
+            logging.error(f"Eroare la update profil: {e}")
+            return {"success": False, "message": "Failed to update profile. Database error."}
 
     def change_password(self, user_id: int, current_pw: str, new_pw: str) -> dict:
         try:
@@ -64,14 +77,14 @@ class ProfileController:
                 cursor.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,))
                 row = cursor.fetchone()
                 if not row or not check_password_hash(row[0], current_pw):
-                    return {"success": False, "message": "Incorrect password."}
+                    return {"success": False, "message": "Incorrect current password."}
                 
                 new_hash = generate_password_hash(new_pw)
                 cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
                 conn.commit()
-                return {"success": True, "message": "Password changed!"}
+                return {"success": True, "message": "Password changed successfully!"}
         except Exception as e:
-            print(f"❌ PWD Error: {e}")
+            logging.error(f"Eroare schimbare parola: {e}")
             return {"success": False, "message": "Error changing password."}
 
     def delete_account(self, user_id: int) -> dict:
@@ -82,5 +95,5 @@ class ProfileController:
                 conn.commit()
                 return {"success": True, "message": "Account deleted."}
         except Exception as e:
-            print(f"❌ Delete Error: {e}")
+            logging.error(f"Eroare stergere cont: {e}")
             return {"success": False, "message": "Error deleting account."}
