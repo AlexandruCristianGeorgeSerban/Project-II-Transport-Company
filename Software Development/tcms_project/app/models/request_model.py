@@ -110,3 +110,31 @@ class RequestModel:
         except sqlite3.Error as database_error:
             logging.error(f"Error retrieving request summary: {database_error}")
             return summary
+    def update_request_status_and_price(self, req_id: str, new_status: str, price: float) -> dict:
+        """Actualizează statusul și prețul unei cereri în baza de date."""
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                db_cursor = connection.cursor()
+                
+                db_cursor.execute("""
+                    UPDATE transport_requests 
+                    SET status = ?, estimated_price = ? 
+                    WHERE id = ?
+                """, (new_status, price, req_id))
+                
+                connection.commit()
+                return {"success": True, "message": f"Oferta de {price} a fost trimisă cu succes pentru cererea #{req_id}!"}
+        except sqlite3.Error as db_error:
+            logging.error(f"Eroare la actualizarea ofertei de preț: {db_error}")
+            return {"success": False, "message": "A apărut o eroare la salvarea în baza de date."}
+    def update_request_status(self, req_id: str, new_status: str) -> dict:
+        """Actualizează doar statusul unei cereri (ex: Acceptat/Refuzat)."""
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                db_cursor = connection.cursor()
+                db_cursor.execute("UPDATE requests SET status = ? WHERE id = ?", (new_status, req_id))
+                connection.commit()
+                return {"success": True, "message": f"Cererea #{req_id} a fost marcată ca {new_status}."}
+        except sqlite3.Error as db_error:
+            logging.error(f"Eroare la actualizarea statusului: {db_error}")
+            return {"success": False, "message": "Eroare la salvarea în baza de date."}

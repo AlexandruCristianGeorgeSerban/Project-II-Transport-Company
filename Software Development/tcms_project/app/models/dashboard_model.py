@@ -52,8 +52,14 @@ class DashboardModel:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
-                # Extragem doar cele 5 coloane necesare vizualizarii in Dashboard
-                db_cursor.execute("SELECT id, client, pickup, delivery, status FROM transport_requests ORDER BY id DESC LIMIT 10")
+                
+                
+                db_cursor.execute("""
+                    SELECT id, client, pickup, delivery, status, cargo_type, weight, estimated_price as price 
+                    FROM transport_requests 
+                    ORDER BY id DESC LIMIT 10
+                """)
+                
                 for row in db_cursor.fetchall():
                     requests.append(dict(row))
         except sqlite3.Error as e:
@@ -69,7 +75,8 @@ class DashboardModel:
             "pending_invoices": 0
         }
         try:
-            with sqlite3.connect(self.db_path) as connection:
+            # BAGA BINE DE SEAMA AICI: Am modificat din self.db_path in DB_PATH
+            with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
                 
                 # Numar real de cereri care asteapta alocare
@@ -85,7 +92,7 @@ class DashboardModel:
         except sqlite3.Error as database_error:
             logging.error(f"Error retrieving staff summary: {database_error}")
             return summary
-
+        
     def get_todays_schedule(self) -> List[Dict[str, Any]]:
         """Retrieves today's schedule for the staff member."""
         # Aici vom extrage in viitor alocarile facute pe ziua de azi. 
