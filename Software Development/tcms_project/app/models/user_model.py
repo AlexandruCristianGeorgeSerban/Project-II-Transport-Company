@@ -13,13 +13,20 @@ class UserModel:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
+                # Am adaugat toate coloanele necesare profilului!
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         username TEXT UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL,
                         role TEXT NOT NULL,
-                        date_of_birth TEXT
+                        date_of_birth TEXT,
+                        email TEXT,
+                        first_name TEXT,
+                        last_name TEXT,
+                        phone TEXT,
+                        address TEXT,
+                        profile_picture TEXT
                     )
                 """)
                 connection.commit()
@@ -53,7 +60,8 @@ class UserModel:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
-                db_cursor.execute("SELECT id, username, password_hash, role FROM users WHERE username = ?", (username,))
+                # Aici tragem si poza din baza de date
+                db_cursor.execute("SELECT id, username, password_hash, role, profile_picture FROM users WHERE username = ?", (username,))
                 row = db_cursor.fetchone()
                 
                 if row is not None:

@@ -9,6 +9,7 @@ def force_fix():
     
     if not os.path.exists(db_path):
         print("❌ EROARE: Fișierul bazei de date NU a fost găsit la această cale!")
+        print("💡 Sfat: Asigură-te că rulezi acest script din folderul principal al proiectului (unde este run.py).")
         return
 
     try:
@@ -37,7 +38,7 @@ def force_fix():
         
         conn.commit()
         conn.close()
-        print("\n🚀 TOATE COLOANELE SUNT PREGĂTITE!")
+        print("\n🚀 TOATE COLOANELE SUNT PREGĂTITE! Acum poți porni aplicația Flask.")
         
     except Exception as e:
         print(f"❌ Eroare generală: {e}")

@@ -49,8 +49,10 @@ class AuthController:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
+                
+                # MODIFICAREA 1: Am adăugat profile_picture în SELECT
                 db_cursor.execute(
-                    "SELECT id, username, password_hash, role FROM users WHERE username = ?", 
+                    "SELECT id, username, password_hash, role, profile_picture FROM users WHERE username = ?", 
                     (username,)
                 )
                 user_record = db_cursor.fetchone()
@@ -58,11 +60,13 @@ class AuthController:
                 if user_record is None:
                     return {"success": False, "message": "Invalid username or password."}
                 elif check_password_hash(user_record["password_hash"], password):
+                    # MODIFICAREA 2: Returnăm și profile_picture în dicționar
                     return {
                         "success": True, 
                         "user_id": user_record["id"], 
                         "role": user_record["role"],
-                        "username": user_record["username"]
+                        "username": user_record["username"],
+                        "profile_picture": user_record["profile_picture"]
                     }
                 else:
                     return {"success": False, "message": "Invalid username or password."}
