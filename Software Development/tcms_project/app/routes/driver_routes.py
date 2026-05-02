@@ -1,62 +1,137 @@
 import logging
+import sqlite3
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from app.controllers.driver_controller import DriverController
 from app.models.support_model import SupportModel 
+from app.models.notification_model import NotificationModel
 
 driver_bp = Blueprint('driver', __name__)
 driver_logic = DriverController()
 support_db = SupportModel() 
+notif_db = NotificationModel()
+
+DB_PATH = "instance/database.sqlite"
+
+def get_header_data():
+    """Aduce notificările și numărul lor pentru clopoțelul din meniul de sus."""
+    role = session.get('role', 'Driver')
+    try:
+        notifications = notif_db.get_unread_notifications(role)
+        unread_count = len(notifications)
+    except Exception as e:
+        logging.error(f"Error fetching notifications: {e}")
+        notifications = []
+        unread_count = 0
+    return notifications, unread_count
+
+def get_driver_jobs(user_id, username, status_type='active'):
+    """Incarcă joburile reale făcând o punte inteligentă între tabelul users și drivers."""
+    jobs = []
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # MAGIA AICI: Căutăm cursa chiar dacă ID-ul alocat (ex: 100) diferă de User ID-ul de login.
+            # Verificăm dacă ID-ul salvat aparține unui șofer cu același nume ca username-ul logat.
+            if status_type == 'active':
+                query = """
+                    SELECT * FROM transport_requests 
+                    WHERE (
+                        CAST(driver_id AS TEXT) = ? 
+                        OR CAST(driver_id AS TEXT) = ? 
+                        OR CAST(driver_id AS TEXT) IN (SELECT CAST(id AS TEXT) FROM drivers WHERE name = ?)
+                    ) 
+                    AND status != 'Delivered'
+                """
+            else:
+                query = """
+                    SELECT * FROM transport_requests 
+                    WHERE (
+                        CAST(driver_id AS TEXT) = ? 
+                        OR CAST(driver_id AS TEXT) = ? 
+                        OR CAST(driver_id AS TEXT) IN (SELECT CAST(id AS TEXT) FROM drivers WHERE name = ?)
+                    ) 
+                    AND status = 'Delivered'
+                """
+            
+            # Trimitem parametrii: user_id (ex: 3), username (ex: 'aurel'), și din nou username pt sub-interogare
+            cursor.execute(query, (str(user_id), str(username), str(username)))
+            jobs = [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        logging.error(f"Database error in driver_routes: {e}")
+    return jobs
 
 # ==========================================
-# RUTE PENTRU PORTALUL ȘOFERULUI 
+# RUTE PORTAL ȘI JOBURI ACTIVE
 # ==========================================
 
 @driver_bp.route('/driver/portal')
+@driver_bp.route('/active_jobs') # Ambele rute duc în același loc (portal.html)
 def portal():
     if 'user_id' not in session or session.get('role') != 'Driver':
         flash("Access denied. Drivers only.", "danger")
         return redirect(url_for('auth.login'))
     
-    jobs = [] 
-    return render_template('driver/portal.html', jobs=jobs)
-
-# --- NOU: RUTA ACTIVE JOBS (Repară butonul din meniu) ---
-@driver_bp.route('/active_jobs')
-def active_jobs():
-    if 'user_id' not in session or session.get('role') != 'Driver':
-        return redirect(url_for('auth.login'))
+    user_id = session.get('user_id')
+    username = session.get('username')
     
-    # Momentan refolosim portal.html pt ca acolo sunt joburile active
-    jobs = [] 
-    return render_template('driver/portal.html', jobs=jobs)
+    notifications, unread_count = get_header_data()
+    jobs = get_driver_jobs(user_id, username, 'active')
+    
+    return render_template('driver/portal.html', 
+                           jobs=jobs, 
+                           notifications=notifications, 
+                           unread_count=unread_count)
 
 @driver_bp.route('/driver/history')
 def history():
     if 'user_id' not in session or session.get('role') != 'Driver':
         return redirect(url_for('auth.login'))
     
-    jobs = []
-    return render_template('driver/history.html', jobs=jobs)
+    user_id = session.get('user_id')
+    username = session.get('username')
+    
+    notifications, unread_count = get_header_data()
+    jobs = get_driver_jobs(user_id, username, 'history')
+
+    return render_template('driver/history.html', 
+                           jobs=jobs, 
+                           notifications=notifications, 
+                           unread_count=unread_count)
 
 @driver_bp.route('/driver/update_status/<req_id>/<new_status>', methods=['POST'])
 def update_status(req_id, new_status):
     if 'user_id' not in session or session.get('role') != 'Driver':
         return redirect(url_for('auth.login'))
+    
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("UPDATE transport_requests SET status = ? WHERE id = ?", (new_status, req_id))
+            conn.commit()
+            flash(f"Status updated to {new_status}!", "success")
+    except Exception as e:
+        logging.error(f"Error updating status: {e}")
+        flash("Error updating status.", "danger")
         
-    flash(f"Status for Route #{req_id} updated to {new_status}!", "success")
     return redirect(url_for('driver.portal'))
 
+# ==========================================
+# RUTE CHAT ȘI SUPPORT
+# ==========================================
 
-# --- RUTE PENTRU SUPORT (HELPDESK & CHAT PRIVAT) ---
-
-@driver_bp.route('/driver/support', methods=['GET'])
+@driver_bp.route('/driver/support')
 def support():
     if 'user_id' not in session or session.get('role') != 'Driver':
         return redirect(url_for('auth.login'))
     
-    user_id = session.get('user_id')
-    user_tickets = support_db.get_user_tickets(user_id)
-    return render_template('driver/support.html', tickets=user_tickets)
+    notifications, unread_count = get_header_data()
+    user_tickets = support_db.get_user_tickets(session.get('user_id'))
+    
+    return render_template('driver/support.html', 
+                           tickets=user_tickets, 
+                           notifications=notifications, 
+                           unread_count=unread_count)
 
 @driver_bp.route('/driver/support/create', methods=['POST'])
 def create_support_ticket():
@@ -73,15 +148,12 @@ def create_support_ticket():
              flash("Your support ticket has been submitted.", "success")
         else:
              flash("Error submitting ticket.", "danger")
-    else:
-        flash("Subject and message are required.", "warning")
-        
+             
     return redirect(url_for('driver.support'))
 
 @driver_bp.route('/driver/chat/<job_id>', methods=['GET', 'POST'])
 def job_chat(job_id):
     if 'user_id' not in session or session.get('role') != 'Driver':
-        flash("Please log in as a Driver.", "danger")
         return redirect(url_for('auth.login'))
 
     if request.method == 'POST':
@@ -90,26 +162,31 @@ def job_chat(job_id):
             support_db.add_job_message(job_id, session['user_id'], 'Driver', message)
         return redirect(url_for('driver.job_chat', job_id=job_id))
 
+    notifications, unread_count = get_header_data()
     messages = support_db.get_job_messages(job_id)
-    return render_template('driver/job_chat.html', job_id=job_id, messages=messages)
-
+    
+    return render_template('driver/job_chat.html', 
+                           job_id=job_id, 
+                           messages=messages, 
+                           notifications=notifications, 
+                           unread_count=unread_count)
 
 # ==========================================
-# RUTE PENTRU MANAGEMENT (CE VEDE ADMINUL)
+# RUTE MANAGEMENT ADMIN PENTRU SOFERI
 # ==========================================
 
 @driver_bp.route('/drivers', methods=['GET'])
 def driver_management() -> str:
     if 'user_id' not in session:
-        flash("Please log in.", "danger")
         return redirect(url_for('auth.login'))
-    
+        
     view_data = driver_logic.load_driver_data()
     role = session.get('role', 'Staff')
     return render_template('admin/drivers.html', data=view_data, role=role)
 
 @driver_bp.route('/drivers/add', methods=['POST'])
 def add_driver() -> str:
+    # Extragem informatiile angajatului
     d_id = request.form.get('driver_id')
     name = request.form.get('name')
     status = request.form.get('status')
@@ -119,10 +196,16 @@ def add_driver() -> str:
     address = request.form.get('address')
     avail = request.form.get('availability')
     
+    # Extragem datele contului de conectare (Asta rezolva eroarea cu "Invalid username")
+    username = request.form.get('username')
+    password = request.form.get('password')
+    
     licenses_list = request.form.getlist('licenses')
     licenses_str = ", ".join(licenses_list)
     
-    resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, doc_id, address, avail)
+    # Trimitem tot pachetul in controller pentru salvare
+    resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, doc_id, address, avail, username, password)
+    
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 

@@ -78,9 +78,21 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Script ca sa dea mereu scroll jos la ultimul mesaj automat -->
+<!-- Script pentru Scroll Jos și Auto-Refresh -->
 <script>
+    // 1. Dă scroll automat la ultimul mesaj
     const chatBody = document.querySelector('.card-body');
     if(chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+
+    // 2. Dă refresh automat la pagină la fiecare 5 secunde ca să aducă mesaje noi
+    setInterval(function() {
+        var inputBox = document.querySelector('input[name="message"]');
+        
+        // Verificăm ca utilizatorul să NU fie cu mouse-ul în căsuță și să NU fi scris ceva deja
+        if (document.activeElement !== inputBox && inputBox.value.trim() === '') {
+            window.location.reload();
+        }
+    }, 5000); // 5000 milisecunde = 5 secunde
 </script>
 </body>
 </html>

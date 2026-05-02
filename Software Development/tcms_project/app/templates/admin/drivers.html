@@ -40,39 +40,34 @@
             <div>{{ 'Active Drivers' if role == 'Staff' else 'Driver Management' }}</div>
             <div class="user-info">
                 <div class="user-info d-flex align-items-center">
-    <div class="dropdown d-inline-block">
-    <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.2rem;">
-        🔔
-        {% if unread_count > 0 %}
-        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
-            {{ unread_count }}
-        </span>
-        {% endif %}
-    </span>
+                    <div class="dropdown d-inline-block">
+                        <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.2rem;">
+                            🔔
+                            {% if unread_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
+                                {{ unread_count }}
+                            </span>
+                            {% endif %}
+                        </span>
+                        
+                        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                            <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
+                            
+                            {% if unread_count == 0 %}
+                                <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
+                            {% else %}
+                                {% for n in notifications %}
+                                <li>
+                                    <a class="dropdown-item py-2 border-bottom" style="white-space: normal;" href="{{ url_for('notifications.read_notification', notif_id=n.id) }}">
+                                        <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
+                                        <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
     
-    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
-        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
-        
-        {% if unread_count == 0 %}
-            <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
-        {% else %}
-            {% for n in notifications %}
-            <li>
-                <a class="dropdown-item py-2 border-bottom" style="white-space: normal;" href="{{ url_for('notifications.read_notification', notif_id=n.id) }}">
-                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
-                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
-                </a>
-            </li>
-            {% endfor %}
-        {% endif %}
-    </ul>
-</div>
-    
-    <div class="user-info d-flex align-items-center">
-    
-    <div class="dropdown d-inline-block me-3">
-        </div>
-
                     <div class="user-profile border-start ps-3 ms-3">
                         <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none d-flex align-items-center text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
                             
@@ -84,7 +79,6 @@
                                 <span class="fs-3 me-2" style="line-height: 1;">👤</span>
                             {% endif %}
                             
-                            <!-- Numele și Rolul -->
                             <div class="d-flex flex-column justify-content-center">
                                 <span class="fw-bold" style="font-size: 1rem; line-height: 1.2;">
                                     {{ session.get('username') }}
@@ -93,11 +87,9 @@
                                     {{ session.get('role') }}
                                 </span>
                             </div>
-                            
                         </a>
                     </div>
-</div>
-</div>
+                </div>
             </div>
         </div>
 
@@ -176,8 +168,9 @@
     </div>
 </div>
 
+<!-- NOU: Adaugat "modal-dialog-scrollable" -->
 <div class="modal fade" id="addDriverModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('driver.add_driver') }}">
           <div class="modal-header bg-success text-white">
@@ -186,26 +179,27 @@
           </div>
           <div class="modal-body bg-light">
               <div class="row g-3">
+                  <!-- COLOANA STANGA -->
                   <div class="col-md-6">
-                      <div class="card h-100 shadow-sm">
+                      <div class="card h-100 shadow-sm border-0">
                           <div class="card-header bg-secondary text-white">Driver Profiles & Licenses</div>
                           <div class="card-body">
-                              <div class="mb-2">
+                              <div class="mb-3">
                                   <label class="form-label">System ID</label>
                                   <input type="text" class="form-control form-control-sm" name="driver_id" required>
                               </div>
-                              <div class="mb-2">
+                              <div class="mb-3">
                                   <label class="form-label">Driver Name</label>
                                   <input type="text" class="form-control form-control-sm" name="name" required>
                               </div>
-                              <div class="mb-2">
+                              <div class="mb-3">
                                   <label class="form-label">Status</label>
                                   <select class="form-select form-select-sm" name="status" required>
                                       <option value="Active">Active</option>
                                       <option value="Inactive">Inactive</option>
                                   </select>
                               </div>
-                              <div class="mb-2">
+                              <div class="mb-3">
                                   <label class="form-label fw-bold">License Categories</label><br>
                                   <div class="mb-1 text-muted small">Road Vehicles:</div>
                                   <div class="form-check form-check-inline">
@@ -231,15 +225,32 @@
                               </div>
                               <div class="mb-2">
                                   <label class="form-label">Experience</label>
-                                  <textarea class="form-control form-control-sm" name="experience" rows="2" placeholder="Detailed history..."></textarea>
+                                  <textarea class="form-control form-control-sm" name="experience" rows="3" placeholder="Detailed history..."></textarea>
                               </div>
                           </div>
                       </div>
                   </div>
-                  <div class="col-md-6">
-                      <div class="card shadow-sm mb-3">
-                          <div class="card-header bg-secondary text-white">Personal Data & Verification</div>
+                  
+                  <!-- COLOANA DREAPTA -->
+                  <div class="col-md-6 d-flex flex-column gap-3">
+                      <div class="card shadow-sm border-0">
+                          <div class="card-header bg-secondary text-white">Account & Verification</div>
                           <div class="card-body">
+                              
+                              <!-- MUTAT AICI: Câmpuri de Logare -->
+                              <div class="mb-3 pb-3 border-bottom border-success">
+                                  <label class="form-label fw-bold text-success small mb-2">🔑 LOGIN CREDENTIALS</label>
+                                  <div class="row">
+                                      <div class="col-6">
+                                          <input type="text" class="form-control form-control-sm border-success shadow-sm" name="username" placeholder="Username" required>
+                                      </div>
+                                      <div class="col-6">
+                                          <input type="password" class="form-control form-control-sm border-success shadow-sm" name="password" placeholder="Password" required>
+                                      </div>
+                                  </div>
+                                  <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">Offer these to the driver so they can log in.</small>
+                              </div>
+
                               <div class="row">
                                   <div class="col-6 mb-2">
                                       <label class="form-label">DOB</label>
@@ -252,7 +263,7 @@
                               </div>
                           </div>
                       </div>
-                      <div class="card shadow-sm">
+                      <div class="card shadow-sm border-0 flex-grow-1">
                           <div class="card-header bg-secondary text-white">Address & Availability</div>
                           <div class="card-body">
                               <div class="mb-2">
@@ -273,9 +284,10 @@
                   </div>
               </div>
           </div>
-          <div class="modal-footer">
+          <!-- BUTONUL ESTE AICI ȘI VA FI VIZIBIL MEREU -->
+          <div class="modal-footer bg-white">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-success">Save Driver Profile</button>
+            <button type="submit" class="btn btn-success fw-bold px-4">Save Driver & Create Account</button>
           </div>
       </form>
     </div>
@@ -283,8 +295,9 @@
 </div>
 
 {% for driver in data.drivers %}
+<!-- NOU: Adaugat "modal-dialog-scrollable" și la Edit -->
 <div class="modal fade" id="editModal{{ driver.id }}" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('driver.edit_driver') }}">
           <div class="modal-header bg-primary text-white">
@@ -294,7 +307,7 @@
           <div class="modal-body bg-light">
               <div class="row g-3">
                   <div class="col-md-6">
-                      <div class="card h-100 shadow-sm">
+                      <div class="card h-100 shadow-sm border-0">
                           <div class="card-header bg-secondary text-white">Driver Profiles & Licenses</div>
                           <div class="card-body">
                               <div class="mb-2">
@@ -343,8 +356,8 @@
                           </div>
                       </div>
                   </div>
-                  <div class="col-md-6">
-                      <div class="card shadow-sm mb-3">
+                  <div class="col-md-6 d-flex flex-column gap-3">
+                      <div class="card shadow-sm border-0">
                           <div class="card-header bg-secondary text-white">Personal Data & Verification</div>
                           <div class="card-body">
                               <div class="row">
@@ -359,7 +372,7 @@
                               </div>
                           </div>
                       </div>
-                      <div class="card shadow-sm">
+                      <div class="card shadow-sm border-0 flex-grow-1">
                           <div class="card-header bg-secondary text-white">Address & Availability</div>
                           <div class="card-body">
                               <div class="mb-2">
@@ -380,9 +393,9 @@
                   </div>
               </div>
           </div>
-          <div class="modal-footer">
+          <div class="modal-footer bg-white">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Update Profile</button>
+            <button type="submit" class="btn btn-primary fw-bold px-4">Update Profile</button>
           </div>
       </form>
     </div>
