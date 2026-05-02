@@ -23,7 +23,9 @@ class UserModel:
                         last_name TEXT,
                         email TEXT UNIQUE,
                         phone_number TEXT,
-                        date_of_birth TEXT
+                        date_of_birth TEXT,
+                        address TEXT,
+                        profile_picture TEXT
                     )
                 """)
                 connection.commit()
