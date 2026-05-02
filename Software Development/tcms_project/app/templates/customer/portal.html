@@ -287,8 +287,6 @@
 
     // AICI E MODIFICAREA: primeste si vehicleType ca argument
     function updateMap(pickupCity, deliveryCity, reqId, vehicleType) {
-    // Observa ca acum primim si reqId din tabel
-    function updateMap(pickupCity, deliveryCity, reqId) {
         // 1. Curatam setarile vechi (AICI ERA PROBLEMA)
         if (routingControl) { 
             map.removeControl(routingControl); 
