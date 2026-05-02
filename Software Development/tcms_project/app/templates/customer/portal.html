@@ -101,7 +101,8 @@
                             <tr><td colspan="5" class="text-center py-5 text-muted">You have no transport requests yet. Let's get started!</td></tr>
                             {% else %}
                                 {% for r in data.requests %}
-                                <tr onclick="updateMap('{{ r.pickup }}', '{{ r.delivery }}', '{{ r.id }}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='transparent';">
+                                <!-- AICI ESTE MODIFICAREA: Trimitem r.vehicle_type catre functia updateMap -->
+                                <tr onclick="updateMap('{{ r.pickup }}', '{{ r.delivery }}', '{{ r.id }}', '{{ r.vehicle_type }}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='transparent';">
                                     <td class="fw-bold text-primary">{{ r.id }}</td>
                                     <td><span class="small text-muted">From:</span> <strong>{{ r.pickup }}</strong> <br><span class="small text-muted">To:</span> <strong>{{ r.delivery }}</strong></td>
                                     <td><span class="badge rounded-pill bg-{{ 'warning' if r.status == 'Pending' else ('info' if r.status == 'Negotiation' else 'success') }} px-3 py-2">{{ r.status }}</span></td>
@@ -116,7 +117,6 @@
                                             </form>
                                         {% elif r.status == 'In Transit' or r.status == 'Accepted' %}
                                             <span class="badge bg-primary p-2 custom-rounded shadow-sm">🚚 On Route</span>
-                                            <!-- NOU: BUTON DE CHAT CÂND CURSA E ACTIVĂ -->
                                             <br>
                                             <a href="{{ url_for('customer.job_chat', job_id=r.id) }}" class="btn btn-sm btn-dark custom-rounded shadow-sm mt-1">💬 Chat Driver</a>
                                         {% elif r.status == 'Delivered' %}
@@ -166,11 +166,14 @@
 
                   <div class="col-md-6">
                       <label class="form-label fw-bold text-secondary small">PREFERRED VEHICLE</label>
+                      <!-- AICI AI SETAT TINE CONT DE LISTA TA -->
                       <select class="form-select shadow-sm" name="vehicle_type" required>
                           <option value="Truck">🚛 Standard Truck</option>
                           <option value="Van">🚐 Delivery Van</option>
                           <option value="Lorrie">🚜 Heavy Lorrie</option>
-                          <option value="Airplane">✈️ Express Air Cargo</option>
+                          <option value="Ship">🚢 Ship</option>
+                          <option value="Train">🚂 Train</option>
+                          <option value="Airplane">✈️ Airplane</option>
                       </select>
                   </div>
                   
@@ -256,14 +259,33 @@
     var routingControl = null;
     var movingMarker = null;
     var liveTrackingInterval = null;
+    
+    // Functie helper pentru a genera iconita dinamic
+    function getVehicleIcon(vehicleType) {
+        let iconName = 'default.png'; // Fallback
+        
+        if(vehicleType) {
+            let type = vehicleType.toLowerCase();
+            if (type.includes('truck')) iconName = 'truck.png';
+            else if (type.includes('van')) iconName = 'van.png';
+            else if (type.includes('lorrie')) iconName = 'lorrie.png';
+            else if (type.includes('ship')) iconName = 'ship.png';
+            else if (type.includes('train')) iconName = 'train.png';
+            else if (type.includes('airplane') || type.includes('air')) iconName = 'airplane.png';
+        }
 
-    var truckIcon = L.icon({
-        iconUrl: '{{ url_for("static", filename="img/truck.png") }}',
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
-    });
+        // Construim URL-ul catre static folder. 
+        // Observatie: deoarece suntem in script direct in HTML, folosim o radacina bruta, dar perfect functionala pt Flask
+        return L.icon({
+            iconUrl: '/static/img/' + iconName,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+            popupAnchor: [0, -20]
+        });
+    }
 
-    function updateMap(pickupCity, deliveryCity, reqId) {
+    // AICI E MODIFICAREA: primeste si vehicleType ca argument
+    function updateMap(pickupCity, deliveryCity, reqId, vehicleType) {
         if (routingControl) { 
             map.removeControl(routingControl); 
             routingControl = null;
@@ -276,6 +298,9 @@
             clearInterval(liveTrackingInterval); 
             liveTrackingInterval = null;
         }
+
+        // Generam iconita potrivita bazata pe textul trimis din randul tabelului
+        var customVehicleIcon = getVehicleIcon(vehicleType);
 
         var geocoder = L.Control.Geocoder.nominatim();
         
@@ -305,7 +330,8 @@
                         var noileCoordonate = new L.LatLng(data.lat, data.lng);
                         
                         if (!movingMarker) {
-                            movingMarker = L.marker(noileCoordonate, {icon: truckIcon}).addTo(map);
+                            // Folosim iconita noastra "Custom" generata mai sus
+                            movingMarker = L.marker(noileCoordonate, {icon: customVehicleIcon}).addTo(map);
                             movingMarker.bindPopup("<b>Status Cursa:</b> " + data.status).openPopup();
                         } else {
                             movingMarker.setLatLng(noileCoordonate);
