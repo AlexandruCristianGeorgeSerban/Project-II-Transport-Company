@@ -13,18 +13,13 @@ class UserModel:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                # Am adaugat toate coloanele necesare profilului!
+                # Am curățat duplicatele. Acestea sunt singurele coloane necesare.
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         username TEXT UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL,
                         role TEXT NOT NULL,
-                        date_of_birth TEXT,
-                        email TEXT,
-                        first_name TEXT,
-                        last_name TEXT,
-                        phone TEXT,
                         first_name TEXT,
                         last_name TEXT,
                         email TEXT UNIQUE,
@@ -65,18 +60,19 @@ class UserModel:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
-                # Aici tragem si poza din baza de date
-                db_cursor.execute("SELECT id, username, password_hash, role, profile_picture FROM users WHERE username = ?", (username,))
-                db_cursor.execute("SELECT id, username, password_hash, role, first_name, last_name FROM users WHERE username = ?", (username,))
+                
+                # Un singur SELECT care extrage absolut tot ce ne trebuie, inclusiv poza!
+                db_cursor.execute(
+                    "SELECT id, username, password_hash, role, first_name, last_name, profile_picture FROM users WHERE username = ?", 
+                    (username,)
+                )
                 row = db_cursor.fetchone()
                 
                 if row is not None:
                     if check_password_hash(row['password_hash'], password):
                         return dict(row)
-                    else:
-                        return None
-                else:
-                    return None
+                
+                return None
         except sqlite3.Error as db_error:
             logging.error(f"Login verification error: {db_error}")
             return None
