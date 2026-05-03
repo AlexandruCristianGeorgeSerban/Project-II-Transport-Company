@@ -35,8 +35,6 @@ def get_driver_jobs(user_id, username, status_type='active'):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # MAGIA AICI: Căutăm cursa chiar dacă ID-ul alocat (ex: 100) diferă de User ID-ul de login.
-            # Verificăm dacă ID-ul salvat aparține unui șofer cu același nume ca username-ul logat.
             if status_type == 'active':
                 query = """
                     SELECT * FROM transport_requests 
@@ -58,7 +56,6 @@ def get_driver_jobs(user_id, username, status_type='active'):
                     AND status = 'Delivered'
                 """
             
-            # Trimitem parametrii: user_id (ex: 3), username (ex: 'aurel'), și din nou username pt sub-interogare
             cursor.execute(query, (str(user_id), str(username), str(username)))
             jobs = [dict(row) for row in cursor.fetchall()]
     except Exception as e:
@@ -117,11 +114,7 @@ def update_vehicle_status():
          flash("Eroare la preluarea datelor vehiculului.", "danger")
          return redirect(url_for('driver.portal'))
     
-    fleet_db = FleetModel()
-    
     try:
-        import sqlite3
-        DB_PATH = "instance/database.sqlite"
         with sqlite3.connect(DB_PATH) as connection:
             db_cursor = connection.cursor()
             db_cursor.execute("UPDATE vehicles SET status = ? WHERE id = ?", (new_status, vehicle_id))
@@ -142,7 +135,8 @@ def support():
         return redirect(url_for('auth.login'))
     
     notifications, unread_count = get_header_data()
-    user_tickets = support_db.get_user_tickets(session.get('user_id'))
+    # AICI E MAGIA: Folosim username-ul pentru a gasi tichetele corect in baza de date!
+    user_tickets = support_db.get_user_tickets(session.get('username'))
     
     return render_template('driver/support.html', 
                            tickets=user_tickets, 
@@ -156,15 +150,36 @@ def create_support_ticket():
     
     user_id = session.get('user_id')
     username = session.get('username')
+    # Extragem rolul si il curatam de orice spatiu gol accidental
+    role = str(session.get('role')).strip() 
     subject = request.form.get('subject')
     message = request.form.get('message')
     
     if subject and message:
-        if support_db.create_ticket(user_id, username, subject, message):
+        # Trimitem rolul (Driver) catre baza de date
+        if support_db.create_ticket(user_id, username, subject, message, role):
              flash("Your support ticket has been submitted.", "success")
         else:
              flash("Error submitting ticket.", "danger")
              
+    return redirect(url_for('driver.support'))
+
+@driver_bp.route('/driver/support/reply/<int:ticket_id>', methods=['POST'])
+def add_ticket_reply(ticket_id):
+    if 'user_id' not in session or session.get('role') != 'Driver':
+        return redirect(url_for('auth.login'))
+        
+    message = request.form.get('message')
+    username = session.get('username')
+    role = str(session.get('role')).strip() 
+    
+    if message:
+        # REPARATIE IDENTICA: Specificam clar cine e cine
+        if support_db.add_reply(ticket_id=ticket_id, sender=username, message=message, sender_role=role):
+            flash("Reply sent successfully.", "success")
+        else:
+            flash("Error sending reply.", "danger")
+            
     return redirect(url_for('driver.support'))
 
 @driver_bp.route('/driver/chat/<job_id>', methods=['GET', 'POST'])
