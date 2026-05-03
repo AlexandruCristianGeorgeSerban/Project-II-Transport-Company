@@ -26,13 +26,25 @@ class DriverPortalController:
             return dashboard_data
 
     def update_job_status(self, job_id: str, new_status: str) -> dict:
-        """Handles logic for updating the status of a job."""
+        """Actualizează statusul cursei și eliberează mașina/șoferul dacă e finalizată."""
         try:
-            result = self.model.update_job_status(job_id, new_status)
-            if result:
-                return {"success": True, "message": f"Job status updated to {new_status}!"}
-            else:
-                return {"success": False, "message": "Failed to update job status."}
-        except Exception as e:
-            logging.error(f"Error updating job status: {e}")
-            return {"success": False, "message": "An error occurred while updating job status."}
+             import sqlite3
+             DB_PATH = "instance/database.sqlite"
+             
+             with sqlite3.connect(DB_PATH) as connection:
+                  db_cursor = connection.cursor()
+                  
+                  # 1. Schimbăm statusul cursei
+                  db_cursor.execute("UPDATE transport_requests SET status = ? WHERE id = ?", (new_status, job_id))
+                  
+                  # 2. Dacă cursa este gata (Delivered), eliberăm mașina și șoferul
+                  if new_status == 'Delivered':
+                        db_cursor.execute("UPDATE vehicles SET status = 'Available' WHERE id IN (SELECT vehicle_id FROM transport_requests WHERE id = ?)", (job_id,))
+                        db_cursor.execute("UPDATE drivers SET status = 'Available', availability = 'Available' WHERE id IN (SELECT driver_id FROM transport_requests WHERE id = ?)", (job_id,))
+                  
+                  connection.commit()
+                  return {"success": True, "message": f"Job status successfully updated to {new_status}!"}
+        except Exception as error:
+             import logging
+             logging.error(f"Error updating job status: {error}")
+             return {"success": False, "message": "Could not update the status."}

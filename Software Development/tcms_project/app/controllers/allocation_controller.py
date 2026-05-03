@@ -7,6 +7,31 @@ from datetime import datetime
 import uuid
 import sqlite3
 
+# Define the function OUTSIDE the class
+def check_license_compatibility(driver_licenses: str, vehicle_type: str) -> bool:
+    """Verifică dacă permisul șoferului îi dă dreptul să conducă mașina respectivă."""
+    if not driver_licenses or not vehicle_type:
+        return False
+    
+    rules = {
+        "Van": ["B", "C", "CE"],
+        "Truck": ["C", "CE"],
+        "Lorrie": ["C", "CE"],
+        "Semi-Trailer": ["CE"],
+        "TIR": ["CE"],
+        "Airplane": ["Pilot (Airplane)"],
+        "Ship": ["Maritime (Ship)"],
+        "Train": ["Train Operator"]
+    }
+
+    driver_has = [lic.strip() for lic in driver_licenses.split(',')]
+    allowed_licenses = rules.get(vehicle_type, [])
+
+    for lic in driver_has:
+        if lic in allowed_licenses:
+            return True 
+    return False
+
 class AllocationController:
     """Processes business logic for resource allocation."""
 
@@ -45,7 +70,6 @@ class AllocationController:
     def complete_active_job(self, req_id: str) -> dict:
         """Închide cursa, eliberează resursele, creează factura și trimite notificare."""
         try:
-            # Am inlocuit self.model.db_path
             with sqlite3.connect("instance/database.sqlite") as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
@@ -76,33 +100,3 @@ class AllocationController:
             return {"success": True, "message": f"Succes! Cursa {req_id} a fost livrată. Mașina este liberă, iar factura a fost emisă automat către {client_name}."}
         else:
             return {"success": False, "message": "Eroare la închiderea cursei."}
-        
-    def check_license_compatibility(driver_licenses: str, vehicle_type: str) -> bool:
-        """
-        Verifică dacă permisul șoferului îi dă dreptul să conducă mașina respectivă.
-        driver_licenses: ex. "B", "C", "B, C", "CE"
-        vehicle_type: ex. "Van", "Truck", "Semi-Trailer"
-        """
-    
-        # 1. Definim regulile firmei (Dicționar de compatibilitate)
-        # Adaptează tipurile de mașini ("Van", "Truck") la cele pe care le-ai folosit tu in baza de date
-        rules = {
-            "Van": ["B", "C", "CE"],       # O dubă poate fi condusă cu B, dar evident și de cineva cu C sau CE
-            "Truck": ["C", "CE"],          # Un camion cere minim C
-            "Semi-Trailer": ["CE"],        # Un TIR cu remorcă cere obligatoriu CE
-            "TIR": ["CE"]
-        }
-
-        # 2. Curățăm și transformăm permisele șoferului într-o listă 
-        # (în caz că ai introdus "B, C" cu virgulă în baza de date)
-        driver_has = [lic.strip().upper() for lic in driver_licenses.split(',')]
-
-        # 3. Extragem permisele acceptate pentru mașina respectivă
-        allowed_licenses = rules.get(vehicle_type, [])
-
-        # 4. Verificăm dacă șoferul deține măcar o categorie validă
-        for lic in driver_has:
-            if lic in allowed_licenses:
-                return True # Are voie!
-
-        return False # Nu are voie!
