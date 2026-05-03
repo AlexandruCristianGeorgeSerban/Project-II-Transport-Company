@@ -1,7 +1,9 @@
 import logging
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
-from app.controllers.allocation_controller import AllocationController
+from app.controllers.allocation_controller import AllocationController, check_license_compatibility
 from app.models.notification_model import NotificationModel
+from app.models.driver_model import DriverModel
+from app.models.fleet_model import FleetModel
 
 allocation_bp = Blueprint('allocation', __name__)
 allocation_logic = AllocationController()
@@ -24,7 +26,7 @@ def allocation_management() -> str:
 
 @allocation_bp.route('/allocation/confirm', methods=['POST'])
 def confirm_allocation() -> str:
-    """Handles the allocation form submission."""
+    """Handles the allocation form submission, including license validation."""
     # Protecție la nivel de backend pentru POST
     if 'user_id' not in session or session.get('role') not in ['Administrator', 'Staff']:
         flash("Unauthorized action.", "danger")
@@ -34,6 +36,27 @@ def confirm_allocation() -> str:
     veh_id = request.form.get('vehicle_id')
     drv_id = request.form.get('driver_id')
     
+    # 1. Extragem datele șoferului și ale mașinii din baza de date
+    driver_db = DriverModel()
+    fleet_db = FleetModel()
+    
+    driver_data = driver_db.get_driver_by_id(drv_id)
+    vehicle_data = fleet_db.get_vehicle_by_id(veh_id)
+
+    # 2. VERIFICAREA PERMISULUI
+    # Asigură-te că driver_data['licenses'] și vehicle_data['type'] există
+    if driver_data and vehicle_data:
+        is_compatible = check_license_compatibility(driver_data['licenses'], vehicle_data['type'])
+
+        if not is_compatible:
+            # Dacă nu are permis, dăm eroare și îl trimitem înapoi!
+            flash(f"Error: Driver {driver_data['name']} (Licenses: {driver_data['licenses']}) cannot drive a {vehicle_data['type']}!", "danger")
+            return redirect(url_for('allocation.allocation_management'))
+    else:
+         flash("Error: Could not retrieve driver or vehicle details for validation.", "danger")
+         return redirect(url_for('allocation.allocation_management'))
+
+    # 3. Dacă totul e ok, continuăm cu salvarea alocării normale
     response = allocation_logic.process_allocation(req_id, veh_id, drv_id)
     
     if response.get("success") is True:

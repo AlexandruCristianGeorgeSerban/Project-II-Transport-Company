@@ -1,6 +1,6 @@
 import sqlite3
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 DB_PATH: str = "instance/database.sqlite"
 
@@ -109,3 +109,18 @@ class DriverModel:
         except sqlite3.Error as database_error:
             logging.error(f"Error retrieving driver summary: {database_error}")
             return summary
+
+    def get_driver_by_id(self, driver_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves a specific driver's details based on their ID."""
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                connection.row_factory = sqlite3.Row
+                db_cursor = connection.cursor()
+                db_cursor.execute("SELECT * FROM drivers WHERE id = ?", (driver_id,))
+                row = db_cursor.fetchone()
+                if row:
+                    return dict(row)
+                return None
+        except sqlite3.Error as db_error:
+            logging.error(f"Error retrieving driver by ID {driver_id}: {db_error}")
+            return None
