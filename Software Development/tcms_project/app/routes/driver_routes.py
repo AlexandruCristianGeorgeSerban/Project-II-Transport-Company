@@ -206,7 +206,8 @@ def driver_management() -> str:
 def add_driver() -> str:
     """Handles adding a driver."""
     d_id = request.form.get('driver_id')
-    name = request.form.get('name')
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
     status = request.form.get('status')
     exp = request.form.get('experience')
     dob = request.form.get('dob')
@@ -219,6 +220,16 @@ def add_driver() -> str:
     licenses_str = ", ".join(licenses_list)
     
     resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, doc_id, address, avail)
+    # Extragem datele contului de conectare
+    username = request.form.get('username')
+    password = request.form.get('password')
+    
+    licenses_list = request.form.getlist('licenses')
+    licenses_str = ", ".join(licenses_list)
+    
+    # Trimitem tot pachetul in controller, inclusiv first_name si last_name separat
+    resp = driver_logic.add_new_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, doc_id, address, avail, username, password)
+    
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 

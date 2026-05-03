@@ -76,3 +76,33 @@ class AllocationController:
             return {"success": True, "message": f"Succes! Cursa {req_id} a fost livrată. Mașina este liberă, iar factura a fost emisă automat către {client_name}."}
         else:
             return {"success": False, "message": "Eroare la închiderea cursei."}
+        
+    def check_license_compatibility(driver_licenses: str, vehicle_type: str) -> bool:
+        """
+        Verifică dacă permisul șoferului îi dă dreptul să conducă mașina respectivă.
+        driver_licenses: ex. "B", "C", "B, C", "CE"
+        vehicle_type: ex. "Van", "Truck", "Semi-Trailer"
+        """
+    
+        # 1. Definim regulile firmei (Dicționar de compatibilitate)
+        # Adaptează tipurile de mașini ("Van", "Truck") la cele pe care le-ai folosit tu in baza de date
+        rules = {
+            "Van": ["B", "C", "CE"],       # O dubă poate fi condusă cu B, dar evident și de cineva cu C sau CE
+            "Truck": ["C", "CE"],          # Un camion cere minim C
+            "Semi-Trailer": ["CE"],        # Un TIR cu remorcă cere obligatoriu CE
+            "TIR": ["CE"]
+        }
+
+        # 2. Curățăm și transformăm permisele șoferului într-o listă 
+        # (în caz că ai introdus "B, C" cu virgulă în baza de date)
+        driver_has = [lic.strip().upper() for lic in driver_licenses.split(',')]
+
+        # 3. Extragem permisele acceptate pentru mașina respectivă
+        allowed_licenses = rules.get(vehicle_type, [])
+
+        # 4. Verificăm dacă șoferul deține măcar o categorie validă
+        for lic in driver_has:
+            if lic in allowed_licenses:
+                return True # Are voie!
+
+        return False # Nu are voie!

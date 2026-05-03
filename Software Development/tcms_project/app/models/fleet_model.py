@@ -1,6 +1,6 @@
 import sqlite3
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 DB_PATH: str = "instance/database.sqlite"
 
@@ -109,3 +109,18 @@ class FleetModel:
         except sqlite3.Error as db_error:
             logging.error(f"Update error: {db_error}")
             return False
+
+    def get_vehicle_by_id(self, vehicle_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves a specific vehicle's details based on its ID."""
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                connection.row_factory = sqlite3.Row
+                db_cursor = connection.cursor()
+                db_cursor.execute("SELECT * FROM vehicles WHERE id = ?", (vehicle_id,))
+                row = db_cursor.fetchone()
+                if row:
+                    return dict(row)
+                return None
+        except sqlite3.Error as db_error:
+            logging.error(f"Error retrieving vehicle by ID {vehicle_id}: {db_error}")
+            return None
