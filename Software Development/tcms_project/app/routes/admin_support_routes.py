@@ -21,8 +21,8 @@ def respond_to_ticket(ticket_id: int) -> str:
     
     response_text = request.form.get('admin_reply')
     if response_text:
-        # Folosim noua functie add_reply! Trece cine a dat reply-ul (Staff sau Admin)
-        if support_db.add_reply(ticket_id, role, response_text):
+        # AICI E REPARATIA: Ii zicem explicit "sender_role=role"
+        if support_db.add_reply(ticket_id=ticket_id, sender=role, message=response_text, sender_role=role):
             flash(f"Mesaj trimis cu succes în conversația #{ticket_id}!", "success")
         else:
             flash("Eroare la trimiterea mesajului.", "danger")
