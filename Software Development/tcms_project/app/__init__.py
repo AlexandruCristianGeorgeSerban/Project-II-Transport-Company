@@ -11,12 +11,14 @@ from app.routes.customer_routes import customer_bp
 from app.routes.admin_support_routes import admin_support_bp
 from app.routes.guest_routes import guest_bp
 from app.routes.profile_routes import profile_bp
+from datetime import timedelta 
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
     app = Flask(__name__)
     
     # Secret key is required for sessions and flash messages
     app.secret_key = "transport_company_super_secret_key"
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
     
     # --- BLOCUL PENTRU CLOPOȚELUL DE NOTIFICĂRI ---
     @app.context_processor
