@@ -13,7 +13,6 @@ class UserModel:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                # Am curățat duplicatele. Acestea sunt singurele coloane necesare.
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,6 +28,17 @@ class UserModel:
                         profile_picture TEXT
                     )
                 """)
+                
+                # NOU: Adaugăm coloanele pentru Lockout, în cazul în care tabelul există deja și nu le are
+                try:
+                    db_cursor.execute("ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0")
+                except sqlite3.OperationalError:
+                    pass
+                try:
+                    db_cursor.execute("ALTER TABLE users ADD COLUMN lockout_until TEXT")
+                except sqlite3.OperationalError:
+                    pass
+                    
                 connection.commit()
                 return True
         except sqlite3.Error as error:
@@ -54,25 +64,35 @@ class UserModel:
             logging.error(f"Insert user error: {db_error}")
             return False
 
-    def verify_login(self, username: str, password: str) -> Optional[Dict[str, Any]]:
-        """Verifies credentials and returns user details if successful."""
+    def get_user_for_login(self, username: str) -> Optional[Dict[str, Any]]:
+        """Aduce TOT randul utilizatorului (inclusiv parole si lockout) pentru a fi analizat de controller."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
-                
-                # Un singur SELECT care extrage absolut tot ce ne trebuie, inclusiv poza!
                 db_cursor.execute(
-                    "SELECT id, username, password_hash, role, first_name, last_name, profile_picture FROM users WHERE username = ?", 
+                    "SELECT * FROM users WHERE username = ?", 
                     (username,)
                 )
                 row = db_cursor.fetchone()
-                
-                if row is not None:
-                    if check_password_hash(row['password_hash'], password):
-                        return dict(row)
-                
+                if row:
+                    return dict(row)
                 return None
         except sqlite3.Error as db_error:
-            logging.error(f"Login verification error: {db_error}")
+            logging.error(f"Database error getting user: {db_error}")
             return None
+
+    def update_lockout(self, username: str, failed_attempts: int, lockout_until: str = None) -> bool:
+        """Actualizează în baza de date numărul de greșeli și timpul de blocare."""
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                db_cursor = connection.cursor()
+                db_cursor.execute(
+                    "UPDATE users SET failed_attempts = ?, lockout_until = ? WHERE username = ?",
+                    (failed_attempts, lockout_until, username)
+                )
+                connection.commit()
+                return True
+        except sqlite3.Error as error:
+            logging.error(f"Failed to update lockout: {error}")
+            return False

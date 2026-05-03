@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from werkzeug.security import check_password_hash
 from app.models.user_model import UserModel
 
 DB_PATH: str = "instance/database.sqlite"
@@ -14,16 +15,13 @@ class AuthController:
         user_db.create_table() # Ne asigurăm că tabelul există
         
         try:
-            # 1. Calculăm vârsta
             dob_date = datetime.strptime(date_of_birth, "%Y-%m-%d")
             today = datetime.today()
             calculated_age = today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
             
-            # 2. Verificăm vârsta
             if calculated_age < MINIMUM_AGE:
                 return {"success": False, "message": f"Registration blocked: You must be at least {MINIMUM_AGE} years old."}
                 
-            # 3. Trimitem TOT la baza de date
             success = user_db.register_user(
                 username=username, 
                 password=password, 
@@ -45,18 +43,50 @@ class AuthController:
             return {"success": False, "message": "Invalid date format provided."}
 
     def authenticate_user(self, username: str, password: str) -> dict:
-        """Validates user credentials against the database records."""
+        """Validates credentials and enforces a 15-minute lockout after 3 failed attempts."""
         user_db = UserModel()
-        # Ne folosim de modelul unificat ca sa facem toata treaba!
-        user_record = user_db.verify_login(username, password)
+        user_record = user_db.get_user_for_login(username)
 
-        if user_record:
+        if not user_record:
+            return {"success": False, "message": "Invalid username or password."}
+
+        failed_attempts = user_record.get("failed_attempts") or 0
+        lockout_until_str = user_record.get("lockout_until")
+
+        # 1. Verificăm dacă contul este deja blocat
+        if lockout_until_str:
+            lockout_until = datetime.strptime(lockout_until_str, "%Y-%m-%d %H:%M:%S")
+            if datetime.now() < lockout_until:
+                remaining_mins = int((lockout_until - datetime.now()).total_seconds() / 60) + 1
+                return {"success": False, "message": f"Account locked. Try again in {remaining_mins} minute(s)."}
+            else:
+                # Blocarea a expirat, îl lăsăm să încerce din nou
+                failed_attempts = 0
+                user_db.update_lockout(username, 0, None)
+
+        # 2. Verificăm parola
+        if check_password_hash(user_record["password_hash"], password):
+            # Succes! Ștergem istoricul de greșeli, dacă există
+            if failed_attempts > 0:
+                user_db.update_lockout(username, 0, None)
+                
             return {
                 "success": True, 
                 "user_id": user_record["id"], 
                 "role": user_record["role"],
                 "username": user_record["username"],
-                "profile_picture": user_record.get("profile_picture") # Extragem si poza direct de aici
+                "profile_picture": user_record.get("profile_picture")
             }
         else:
-            return {"success": False, "message": "Invalid username or password."}
+            # Parolă greșită!
+            failed_attempts += 1
+            if failed_attempts >= 3:
+                # 3 greșeli atinse -> Pedeapsă de 15 minute
+                lockout_time = datetime.now() + timedelta(minutes=15)
+                lockout_str = lockout_time.strftime("%Y-%m-%d %H:%M:%S")
+                user_db.update_lockout(username, failed_attempts, lockout_str)
+                return {"success": False, "message": "Account locked for 15 minutes due to 3 failed attempts."}
+            else:
+                user_db.update_lockout(username, failed_attempts, None)
+                attempts_left = 3 - failed_attempts
+                return {"success": False, "message": f"Invalid username or password. {attempts_left} attempt(s) left."}
