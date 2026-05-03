@@ -1,12 +1,14 @@
 import logging
-import sqlite3
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
+from app.controllers.driver_portal_controller import DriverPortalController
 from app.controllers.driver_controller import DriverController
+from app.models.fleet_model import FleetModel
 from app.models.support_model import SupportModel 
 from app.models.notification_model import NotificationModel
 
 driver_bp = Blueprint('driver', __name__)
 driver_logic = DriverController()
+driver_portal_logic = DriverPortalController()
 support_db = SupportModel() 
 notif_db = NotificationModel()
 
@@ -66,23 +68,16 @@ def get_driver_jobs(user_id, username, status_type='active'):
 # RUTE PORTAL ȘI JOBURI ACTIVE
 # ==========================================
 
-@driver_bp.route('/driver/portal')
-@driver_bp.route('/active_jobs') # Ambele rute duc în același loc (portal.html)
+@driver_bp.route('/driver_portal')
 def portal():
     if 'user_id' not in session or session.get('role') != 'Driver':
-        flash("Access denied. Drivers only.", "danger")
         return redirect(url_for('auth.login'))
+        
+    driver_id = session.get('user_id')
     
-    user_id = session.get('user_id')
-    username = session.get('username')
+    data = driver_portal_logic.load_dashboard_data(driver_id)
     
-    notifications, unread_count = get_header_data()
-    jobs = get_driver_jobs(user_id, username, 'active')
-    
-    return render_template('driver/portal.html', 
-                           jobs=jobs, 
-                           notifications=notifications, 
-                           unread_count=unread_count)
+    return render_template('driver/portal.html', data=data)
 
 @driver_bp.route('/driver/history')
 def history():
@@ -100,20 +95,40 @@ def history():
                            notifications=notifications, 
                            unread_count=unread_count)
 
-@driver_bp.route('/driver/update_status/<req_id>/<new_status>', methods=['POST'])
-def update_status(req_id, new_status):
+@driver_bp.route('/driver_portal/update_status/<job_id>/<new_status>', methods=['POST'])
+def update_job_status(job_id, new_status):
     if 'user_id' not in session or session.get('role') != 'Driver':
         return redirect(url_for('auth.login'))
+
+    response = driver_portal_logic.update_job_status(job_id, new_status)
+    flash(response['message'], "success" if response['success'] else "danger")
+    return redirect(url_for('driver.portal'))
+
+@driver_bp.route('/driver_portal/update_vehicle_status', methods=['POST'])
+def update_vehicle_status():
+    if 'user_id' not in session or session.get('role') != 'Driver':
+        return redirect(url_for('auth.login'))
+
+    vehicle_id = request.form.get('vehicle_id')
+    new_status = request.form.get('status')
+
+    if not vehicle_id or not new_status:
+         flash("Eroare la preluarea datelor vehiculului.", "danger")
+         return redirect(url_for('driver.portal'))
+    
+    fleet_db = FleetModel()
     
     try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.execute("UPDATE transport_requests SET status = ? WHERE id = ?", (new_status, req_id))
-            conn.commit()
-            flash(f"Status updated to {new_status}!", "success")
+        import sqlite3
+        DB_PATH = "instance/database.sqlite"
+        with sqlite3.connect(DB_PATH) as connection:
+            db_cursor = connection.cursor()
+            db_cursor.execute("UPDATE vehicles SET status = ? WHERE id = ?", (new_status, vehicle_id))
+            connection.commit()
+            flash(f"Statusul mașinii a fost actualizat la: {new_status}", "success")
     except Exception as e:
-        logging.error(f"Error updating status: {e}")
-        flash("Error updating status.", "danger")
-        
+        flash(f"Eroare la actualizarea statusului: {e}", "danger")
+
     return redirect(url_for('driver.portal'))
 
 # ==========================================
@@ -177,16 +192,19 @@ def job_chat(job_id):
 
 @driver_bp.route('/drivers', methods=['GET'])
 def driver_management() -> str:
+    """Renders the main Driver Management page."""
     if 'user_id' not in session:
+        flash("Please log in.", "danger")
         return redirect(url_for('auth.login'))
-        
+    
     view_data = driver_logic.load_driver_data()
     role = session.get('role', 'Staff')
+    
     return render_template('admin/drivers.html', data=view_data, role=role)
 
 @driver_bp.route('/drivers/add', methods=['POST'])
 def add_driver() -> str:
-    # Extragem informatiile angajatului
+    """Handles adding a driver."""
     d_id = request.form.get('driver_id')
     name = request.form.get('name')
     status = request.form.get('status')
@@ -196,21 +214,17 @@ def add_driver() -> str:
     address = request.form.get('address')
     avail = request.form.get('availability')
     
-    # Extragem datele contului de conectare (Asta rezolva eroarea cu "Invalid username")
-    username = request.form.get('username')
-    password = request.form.get('password')
-    
+    # Checkboxes send a list in Flask
     licenses_list = request.form.getlist('licenses')
     licenses_str = ", ".join(licenses_list)
     
-    # Trimitem tot pachetul in controller pentru salvare
-    resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, doc_id, address, avail, username, password)
-    
+    resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, doc_id, address, avail)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 
 @driver_bp.route('/drivers/edit', methods=['POST'])
 def edit_driver() -> str:
+    """Handles editing a driver."""
     d_id = request.form.get('edit_driver_id')
     name = request.form.get('edit_name')
     status = request.form.get('edit_status')
@@ -229,6 +243,7 @@ def edit_driver() -> str:
 
 @driver_bp.route('/drivers/delete/<driver_id>', methods=['POST'])
 def delete_driver(driver_id: str) -> str:
+    """Handles deleting a driver."""
     resp = driver_logic.remove_driver(driver_id)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
