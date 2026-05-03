@@ -205,7 +205,7 @@ def driver_management() -> str:
 
 @driver_bp.route('/drivers/add', methods=['POST'])
 def add_driver() -> str:
-    """Handles adding a driver."""
+    # Extragem informatiile angajatului
     d_id = request.form.get('driver_id')
     first_name = request.form.get('first_name')
     last_name = request.form.get('last_name')
@@ -216,11 +216,6 @@ def add_driver() -> str:
     address = request.form.get('address')
     avail = request.form.get('availability')
     
-    # Checkboxes send a list in Flask
-    licenses_list = request.form.getlist('licenses')
-    licenses_str = ", ".join(licenses_list)
-    
-    resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, doc_id, address, avail)
     # Extragem datele contului de conectare
     username = request.form.get('username')
     password = request.form.get('password')
@@ -228,7 +223,6 @@ def add_driver() -> str:
     licenses_list = request.form.getlist('licenses')
     licenses_str = ", ".join(licenses_list)
     
-    # Trimitem tot pachetul in controller, inclusiv first_name si last_name separat
     resp = driver_logic.add_new_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, doc_id, address, avail, username, password)
     
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
