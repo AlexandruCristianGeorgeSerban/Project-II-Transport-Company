@@ -1,3 +1,4 @@
+import sqlite3
 import logging
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from app.controllers.driver_portal_controller import DriverPortalController
