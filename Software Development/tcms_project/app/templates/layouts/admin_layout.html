@@ -20,32 +20,22 @@
 </button>
 
 <div class="dashboard-wrapper">
-    <!-- MENIUL LATERAL COMUN PENTRU ADMIN / STAFF -->
+    <!-- MENIUL LATERAL COMUN PENTRU ADMIN -->
     <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #0285e9; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
-        <div class="text-center mt-3 mb-4">
-            <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
-        </div>
-        
-        {% if session.get('role') == 'Staff' %}
-            <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn {% if request.endpoint == 'dashboard.main_dashboard' %}active fw-bold{% endif %}">Dashboard</a>
-            <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn {% if request.endpoint == 'allocation.allocation_management' %}active fw-bold{% endif %}">Allocation</a>
-            <a href="#" class="nav-btn">Route Optimization</a>
-            <a href="{{ url_for('driver.driver_management') }}" class="nav-btn {% if request.endpoint == 'driver.driver_management' %}active fw-bold{% endif %}">Drivers</a>
-            <a href="#" class="nav-btn">Invoices</a>
-            <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn {% if request.endpoint == 'report_routes.reports_management' %}active fw-bold{% endif %}">Reports</a>
-            <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn {% if request.endpoint == 'admin_support.view_tickets' %}active fw-bold{% endif %}">💬 Support</a>
-            <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
-        {% else %}
-            <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn {% if request.endpoint == 'dashboard.main_dashboard' %}active fw-bold{% endif %}">Dashboard</a>
-            <a href="{{ url_for('fleet.fleet_management') }}" class="nav-btn {% if request.endpoint == 'fleet.fleet_management' %}active fw-bold{% endif %}">Fleet Management</a>
-            <a href="{{ url_for('driver.driver_management') }}" class="nav-btn {% if request.endpoint == 'driver.driver_management' %}active fw-bold{% endif %}">Driver Management</a>
-            <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn {% if request.endpoint == 'request_routes.request_management' %}active fw-bold{% endif %}">Requests</a>
-            <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn {% if request.endpoint == 'allocation.allocation_management' %}active fw-bold{% endif %}">Allocation</a>
-            <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn {% if request.endpoint == 'report_routes.reports_management' %}active fw-bold{% endif %}">Reports</a>
-            <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn {% if request.endpoint == 'admin_support.view_tickets' %}active fw-bold{% endif %}">💬 Support</a>
-            <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
-        {% endif %}
+    <div class="text-center mt-3 mb-4">
+        <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
     </div>
+    
+    <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn {% if request.endpoint == 'dashboard.main_dashboard' %}active fw-bold{% endif %}">🏠 Dashboard</a>
+    <a href="{{ url_for('fleet.fleet_management') }}" class="nav-btn {% if request.endpoint == 'fleet.fleet_management' %}active fw-bold{% endif %}">🚛 Fleet Management</a>
+    <a href="{{ url_for('driver.driver_management') }}" class="nav-btn {% if request.endpoint == 'driver.driver_management' %}active fw-bold{% endif %}">👤 Driver Management</a>
+    <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn {% if request.endpoint == 'request_routes.request_management' %}active fw-bold{% endif %}">📋 Requests</a>
+    <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn {% if request.endpoint == 'allocation.allocation_management' %}active fw-bold{% endif %}">📍 Allocation</a>
+    <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn {% if request.endpoint == 'report_routes.reports_management' %}active fw-bold{% endif %}">📊 Reports</a>
+    <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn {% if request.endpoint == 'admin_support.view_tickets' %}active fw-bold{% endif %}">💬 Support</a>
+    
+    <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+</div>
 
     <!-- ZONA PRINCIPALĂ DE CONȚINUT -->
     <div class="main-content p-4">

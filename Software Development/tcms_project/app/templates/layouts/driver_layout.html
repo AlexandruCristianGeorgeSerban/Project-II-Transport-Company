@@ -22,15 +22,17 @@
 <div class="dashboard-wrapper">
     <!-- MENIUL LATERAL COMUN PENTRU ȘOFERI -->
     <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #0285e9; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
-        <div class="text-center mt-3 mb-4">
-            <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
-        </div>
-        <a href="{{ url_for('driver.portal') }}" class="nav-btn {% if request.endpoint == 'driver.portal' %}active fw-bold{% endif %}">🚚 My Jobs</a>
-        <a href="{{ url_for('profile.view_profile') }}" class="nav-btn {% if request.endpoint == 'profile.view_profile' %}active fw-bold{% endif %}">👤 Profile</a>
-        <a href="{{ url_for('driver.history') }}" class="nav-btn {% if request.endpoint == 'driver.history' %}active fw-bold{% endif %}">📋 History</a>
-        <a href="{{ url_for('driver.support') }}" class="nav-btn {% if request.endpoint == 'driver.support' %}active fw-bold{% endif %}">🎧 Support</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+    <div class="text-center mt-3 mb-4">
+        <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
     </div>
+
+    <a href="{{ url_for('driver.portal') }}" class="nav-btn {% if request.endpoint == 'driver.portal' %}active fw-bold{% endif %}">🚚 My Jobs</a>
+    <a href="{{ url_for('profile.view_profile') }}" class="nav-btn {% if request.endpoint == 'profile.view_profile' %}active fw-bold{% endif %}">👤 Profile</a>
+    <a href="{{ url_for('driver.history') }}" class="nav-btn {% if request.endpoint == 'driver.history' %}active fw-bold{% endif %}">📋 History</a>
+    <a href="{{ url_for('driver.support') }}" class="nav-btn {% if request.endpoint == 'driver.support' %}active fw-bold{% endif %}">🎧 Support</a>
+    
+    <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+</div>
 
     <!-- ZONA PRINCIPALĂ DE CONȚINUT -->
     <div class="main-content p-4">

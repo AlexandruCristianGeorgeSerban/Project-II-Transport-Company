@@ -1,4 +1,4 @@
-{% extends "layouts/admin_layout.html" %}
+{% extends "layouts/admin_layout.html" if session.get('role') == 'Administrator' else "layouts/staff_layout.html" %}
 
 {% block title %}Allocation Module{% endblock %}
 {% block page_header %}Job Allocation{% endblock %}

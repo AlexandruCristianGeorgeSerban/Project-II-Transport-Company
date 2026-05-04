@@ -22,13 +22,15 @@
 <div class="dashboard-wrapper">
     <!-- MENIUL LATERAL COMUN PENTRU CLIENȚI -->
     <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #0285e9; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
-        <div class="text-center mt-3 mb-4">
-            <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
-        </div>
-        <a href="{{ url_for('customer.portal') }}" class="nav-btn {% if request.endpoint == 'customer.portal' %}active fw-bold{% endif %}">📦 My Transports</a>
-        <a href="{{ url_for('customer.invoices') }}" class="nav-btn {% if request.endpoint == 'customer.invoices' %}active fw-bold{% endif %}">💳 Invoices & Billing</a>
-        <a href="{{ url_for('customer.support') }}" class="nav-btn {% if request.endpoint == 'customer.support' %}active fw-bold{% endif %}">🎧 Help & Support</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+    <div class="text-center mt-3 mb-4">
+        <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
+    </div>
+    
+    <a href="{{ url_for('customer.portal') }}" class="nav-btn {% if request.endpoint == 'customer.portal' %}active fw-bold{% endif %}">📦 My Transports</a>
+    <a href="{{ url_for('customer.invoices') }}" class="nav-btn {% if request.endpoint == 'customer.invoices' %}active fw-bold{% endif %}">💳 Invoices & Billing</a>
+    <a href="{{ url_for('customer.support') }}" class="nav-btn {% if request.endpoint == 'customer.support' %}active fw-bold{% endif %}">🎧 Help & Support</a>
+    
+    <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
     </div>
 
     <!-- ZONA PRINCIPALĂ DE CONȚINUT -->
