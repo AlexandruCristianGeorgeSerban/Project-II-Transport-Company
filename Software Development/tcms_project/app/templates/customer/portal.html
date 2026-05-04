@@ -1,149 +1,128 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Portal - Transport Company</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
+{% extends "layouts/customer_layout.html" %}
+
+{% block title %}My Transports{% endblock %}
+
+{% block page_header %}My Transports{% endblock %}
+
+{% block extra_css %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-    
     <style>
-        .leaflet-routing-container { display: none !important; } /* Ascunde panoul alb cu instructiunile GPS de text */
-        
+        .leaflet-routing-container { display: none !important; }
         .welcome-banner { background: linear-gradient(135deg, #0078d4, #00b4d8); color: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .stat-card { border-radius: 12px; border: none; transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-3px); }
         #mini-map { height: 380px; width: 100%; border-radius: 12px; border: 2px solid #e9ecef; }
         .custom-rounded { border-radius: 12px !important; }
     </style>
-</head>
-<body class="bg-light">
+{% endblock %}
 
-<div class="dashboard-wrapper">
-    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #0285e9; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
-        <div class="text-center mt-3 mb-4">
-            <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
-        </div>
-        <a href="{{ url_for('customer.portal') }}" class="nav-btn active fw-bold">📦 My Transports</a>
-        <a href="{{ url_for('customer.invoices') }}" class="nav-btn">💳 Invoices & Billing</a>
-        <a href="{{ url_for('customer.support') }}" class="nav-btn">🎧 Help & Support</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+{% block content %}
+<div class="welcome-banner d-flex justify-content-between align-items-center">
+    <div>
+        <h4 class="fw-bold mb-0 text-white">Welcome to your personal freight dashboard. Where are we shipping today?</h4>
     </div>
-    
+    <button type="button" class="btn btn-light btn-lg text-primary fw-bold shadow-sm custom-rounded" data-bs-toggle="modal" data-bs-target="#requestModal">
+        🚚 Request New Transport
+    </button>
+</div>
 
-    <div class="main-content p-4">
-        
-        <div class="welcome-banner d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="fw-bold mb-1">👋 Hello, {{ username }}!</h2>
-                <p class="mb-0 text-white-50">Welcome to your personal freight dashboard. Where are we shipping today?</p>
-            </div>
-            <button type="button" class="btn btn-light btn-lg text-primary fw-bold shadow-sm custom-rounded" data-bs-toggle="modal" data-bs-target="#requestModal">
-                🚚 Request New Transport
-            </button>
-        </div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} shadow-sm custom-rounded">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} shadow-sm custom-rounded">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card stat-card bg-white shadow-sm border-start border-4 border-primary">
-                    <div class="card-body">
-                        <h6 class="text-muted mb-2">Total Requests</h6>
-                        <h2 class="fw-bold text-dark">{{ data.total }}</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card stat-card bg-white shadow-sm border-start border-4 border-warning">
-                    <div class="card-body">
-                        <h6 class="text-muted mb-2">Pending / Negotiating</h6>
-                        <h2 class="fw-bold text-dark">{{ data.pending }}</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card stat-card bg-white shadow-sm border-start border-4 border-success">
-                    <div class="card-body">
-                        <h6 class="text-muted mb-2">Active Transports</h6>
-                        <h2 class="fw-bold text-dark">{{ data.active }}</h2>
-                    </div>
-                </div>
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card bg-white shadow-sm border-start border-4 border-primary">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Total Requests</h6>
+                <h2 class="fw-bold text-dark">{{ data.total }}</h2>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-md-7">
-                <div class="card shadow-sm border-0 custom-rounded">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-dark">Recent Activity</h5>
-                    </div>
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Tracking ID</th>
-                                <th>Route</th>
-                                <th>Status</th>
-                                <th>Offer</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if data.requests|length == 0 %}
-                            <tr><td colspan="5" class="text-center py-5 text-muted">You have no transport requests yet. Let's get started!</td></tr>
-                            {% else %}
-                                {% for r in data.requests %}
-                                <!-- AICI ESTE MODIFICAREA: Trimitem r.vehicle_type catre functia updateMap -->
-                                <tr onclick="updateMap('{{ r.pickup }}', '{{ r.delivery }}', '{{ r.id }}', '{{ r.vehicle_type }}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='transparent';">
-                                    <td class="fw-bold text-primary">{{ r.id }}</td>
-                                    <td><span class="small text-muted">From:</span> <strong>{{ r.pickup }}</strong> <br><span class="small text-muted">To:</span> <strong>{{ r.delivery }}</strong></td>
-                                    <td><span class="badge rounded-pill bg-{{ 'warning' if r.status == 'Pending' else ('info' if r.status == 'Negotiation' else 'success') }} px-3 py-2">{{ r.status }}</span></td>
-                                    <td class="fw-bold text-success">${{ r.price_offer }}</td>
-                                    <td>
-                                        {% if r.status == 'Pending' %}
-                                            <form action="{{ url_for('customer.handle_response', req_id=r.id, action='accept') }}" method="POST" style="display:inline;">
-                                                <button type="submit" class="btn btn-sm btn-success custom-rounded shadow-sm">Accept</button>
-                                            </form>
-                                            <form action="{{ url_for('customer.handle_response', req_id=r.id, action='negotiate') }}" method="POST" style="display:inline;">
-                                                <button type="submit" class="btn btn-sm btn-outline-warning custom-rounded mt-1 shadow-sm">Negotiate</button>
-                                            </form>
-                                        {% elif r.status == 'In Transit' %}
-                                            <span class="badge bg-primary p-2 custom-rounded shadow-sm">🚚 On Route</span>
-                                            <br>
-                                            <a href="{{ url_for('customer.job_chat', job_id=r.id) }}" class="btn btn-sm btn-dark custom-rounded shadow-sm mt-1">💬 Chat Driver</a>
-                                        {% elif r.status == 'Delivered' %}
-                                            <span class="badge bg-success p-2 custom-rounded shadow-sm">✅ Finished</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary p-2 custom-rounded shadow-sm">🔒 Locked</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-                <p class="small text-muted mt-2 text-center">💡 Tip: Click on any row to view the real road route on the map.</p>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card bg-white shadow-sm border-start border-4 border-warning">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Pending / Negotiating</h6>
+                <h2 class="fw-bold text-dark">{{ data.pending }}</h2>
             </div>
-
-            <div class="col-md-5">
-                <div class="card shadow-sm border-0 custom-rounded p-2 bg-white sticky-top" style="top: 20px;">
-                    <div id="mini-map"></div>
-                </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card bg-white shadow-sm border-start border-4 border-success">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Active Transports</h6>
+                <h2 class="fw-bold text-dark">{{ data.active }}</h2>
             </div>
         </div>
     </div>
 </div>
 
+<div class="row">
+    <div class="col-md-7">
+        <div class="card shadow-sm border-0 custom-rounded">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="fw-bold mb-0 text-dark">Recent Activity</h5>
+            </div>
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tracking ID</th>
+                        <th>Route</th>
+                        <th>Status</th>
+                        <th>Offer</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if data.requests|length == 0 %}
+                    <tr><td colspan="5" class="text-center py-5 text-muted">You have no transport requests yet. Let's get started!</td></tr>
+                    {% else %}
+                        {% for r in data.requests %}
+                        <tr onclick="updateMap('{{ r.pickup }}', '{{ r.delivery }}', '{{ r.id }}', '{{ r.vehicle_type }}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='transparent';">
+                            <td class="fw-bold text-primary">{{ r.id }}</td>
+                            <td><span class="small text-muted">From:</span> <strong>{{ r.pickup }}</strong> <br><span class="small text-muted">To:</span> <strong>{{ r.delivery }}</strong></td>
+                            <td><span class="badge rounded-pill bg-{{ 'warning' if r.status == 'Pending' else ('info' if r.status == 'Negotiation' else 'success') }} px-3 py-2">{{ r.status }}</span></td>
+                            <td class="fw-bold text-success">${{ r.price_offer }}</td>
+                            <td>
+                                {% if r.status == 'Pending' %}
+                                    <form action="{{ url_for('customer.handle_response', req_id=r.id, action='accept') }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-success custom-rounded shadow-sm">Accept</button>
+                                    </form>
+                                    <form action="{{ url_for('customer.handle_response', req_id=r.id, action='negotiate') }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning custom-rounded mt-1 shadow-sm">Negotiate</button>
+                                    </form>
+                                {% elif r.status == 'In Transit' %}
+                                    <span class="badge bg-primary p-2 custom-rounded shadow-sm">🚚 On Route</span>
+                                    <br>
+                                    <a href="{{ url_for('customer.job_chat', job_id=r.id) }}" class="btn btn-sm btn-dark custom-rounded shadow-sm mt-1">💬 Chat Driver</a>
+                                {% elif r.status == 'Delivered' %}
+                                    <span class="badge bg-success p-2 custom-rounded shadow-sm">✅ Finished</span>
+                                {% else %}
+                                    <span class="badge bg-secondary p-2 custom-rounded shadow-sm">🔒 Locked</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted mt-2 text-center">💡 Tip: Click on any row to view the real road route on the map.</p>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0 custom-rounded p-2 bg-white sticky-top" style="top: 20px;">
+            <div id="mini-map"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal-ul pentru request nou -->
 <div class="modal fade" id="requestModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content custom-rounded border-0">
@@ -153,7 +132,6 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body p-4 bg-light">
-              
               <div class="row g-4">
                   <div class="col-md-6">
                       <label class="form-label fw-bold text-secondary small">WHAT ARE YOU SHIPPING?</label>
@@ -164,10 +142,8 @@
                           <option value="Vehicles">🚗 Vehicles</option>
                       </select>
                   </div>
-
                   <div class="col-md-6">
                       <label class="form-label fw-bold text-secondary small">PREFERRED VEHICLE</label>
-                      <!-- AICI AI SETAT TINE CONT DE LISTA TA -->
                       <select class="form-select shadow-sm" name="vehicle_type" required>
                           <option value="Truck">🚛 Standard Truck</option>
                           <option value="Van">🚐 Delivery Van</option>
@@ -177,7 +153,6 @@
                           <option value="Airplane">✈️ Airplane</option>
                       </select>
                   </div>
-                  
                   <div class="col-md-6">
                       <label class="form-label fw-bold text-secondary small">ESTIMATED WEIGHT</label>
                       <div class="input-group shadow-sm">
@@ -195,7 +170,6 @@
                           <span class="input-group-text bg-light">m³</span>
                       </div>
                   </div>
-
                   <div class="col-md-6">
                       <label class="form-label fw-bold text-secondary small">📍 PICKUP CITY</label>
                       <input class="form-control shadow-sm" list="romanianCities" name="pickup" placeholder="Start typing city..." required>
@@ -204,38 +178,23 @@
                       <label class="form-label fw-bold text-secondary small">🏁 DELIVERY CITY</label>
                       <input class="form-control shadow-sm" list="romanianCities" name="delivery" placeholder="Start typing city..." required>
                   </div>
-                  
                   <div class="col-md-12">
                       <label class="form-label fw-bold text-secondary small">📅 PREFERRED DATE</label>
                       <input type="date" class="form-control shadow-sm" name="preferred_date" required>
                   </div>
-                   <div class="mb-3 text-start">
-                     <label class="form-label fw-bold">Cargo Details / Description</label>
-                        <textarea class="form-control" name="description" rows="2" placeholder="Ex: Fragile cargo, requires side unloading, etc..." required></textarea>
+                  <div class="mb-3 text-start">
+                     <label class="form-label fw-bold text-secondary small">Cargo Details / Description</label>
+                     <textarea class="form-control" name="description" rows="2" placeholder="Ex: Fragile cargo, requires side unloading, etc..." required></textarea>
                   </div>
               </div>
-              
               <datalist id="romanianCities">
-                  <option value="București">
-                  <option value="Cluj-Napoca">
-                  <option value="Timișoara">
-                  <option value="Iași">
-                  <option value="Constanța">
-                  <option value="Craiova">
-                  <option value="Brașov">
-                  <option value="Galați">
-                  <option value="Ploiești">
-                  <option value="Oradea">
-                  <option value="Brăila">
-                  <option value="Arad">
-                  <option value="Pitești">
-                  <option value="Sibiu">
-                  <option value="Bacău">
-                  <option value="Târgu Mureș">
-                  <option value="Baia Mare">
-                  <option value="Buzău">
+                  <option value="București"><option value="Cluj-Napoca"><option value="Timișoara">
+                  <option value="Iași"><option value="Constanța"><option value="Craiova">
+                  <option value="Brașov"><option value="Galați"><option value="Ploiești">
+                  <option value="Oradea"><option value="Brăila"><option value="Arad">
+                  <option value="Pitești"><option value="Sibiu"><option value="Bacău">
+                  <option value="Târgu Mureș"><option value="Baia Mare"><option value="Buzău">
               </datalist>
-
           </div>
           <div class="modal-footer bg-white" style="border-radius: 0 0 12px 12px;">
             <button type="button" class="btn btn-light custom-rounded" data-bs-dismiss="modal">Cancel</button>
@@ -245,12 +204,12 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-
 <script>
     var map = L.map('mini-map').setView([45.9432, 24.9668], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -261,10 +220,8 @@
     var movingMarker = null;
     var liveTrackingInterval = null;
     
-    // Functie helper pentru a genera iconita dinamic
     function getVehicleIcon(vehicleType) {
-        let iconName = 'default.png'; // Fallback
-        
+        let iconName = 'default.png'; 
         if(vehicleType) {
             let type = vehicleType.toLowerCase();
             if (type.includes('truck')) iconName = 'truck.png';
@@ -274,39 +231,17 @@
             else if (type.includes('train')) iconName = 'train.png';
             else if (type.includes('airplane') || type.includes('air')) iconName = 'airplane.png';
         }
-
-        // Construim URL-ul catre static folder. 
-        // Observatie: deoarece suntem in script direct in HTML, folosim o radacina bruta, dar perfect functionala pt Flask
-        return L.icon({
-            iconUrl: '/static/img/' + iconName,
-            iconSize: [40, 40],
-            iconAnchor: [20, 20],
-            popupAnchor: [0, -20]
-        });
+        return L.icon({ iconUrl: '/static/img/' + iconName, iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20] });
     }
 
-    // AICI E MODIFICAREA: primeste si vehicleType ca argument
     function updateMap(pickupCity, deliveryCity, reqId, vehicleType) {
-        // 1. Curatam setarile vechi (AICI ERA PROBLEMA)
-        if (routingControl) { 
-            map.removeControl(routingControl); 
-            routingControl = null;
-        }
-        if (movingMarker) { 
-            map.removeLayer(movingMarker); 
-            movingMarker = null; // <--- ACEST RAND LIPSEA!
-        }
-        if (liveTrackingInterval) { 
-            clearInterval(liveTrackingInterval); 
-            liveTrackingInterval = null;
-        }
+        if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+        if (movingMarker) { map.removeLayer(movingMarker); movingMarker = null; }
+        if (liveTrackingInterval) { clearInterval(liveTrackingInterval); liveTrackingInterval = null; }
 
-        // Generam iconita potrivita bazata pe textul trimis din randul tabelului
         var customVehicleIcon = getVehicleIcon(vehicleType);
-
         var geocoder = L.Control.Geocoder.nominatim();
         
-        // 2. Desenam traseul drumului (ruta albastra)
         geocoder.geocode(pickupCity + ', Romania', function(results1) {
             if (results1.length > 0) {
                 var p1 = results1[0].center;
@@ -325,25 +260,18 @@
             }
         });
 
-        // 3. Functia care aduce Coordonatele Live din Baza de Date
         function fetchLiveGPS() {
             fetch('/api/track/' + reqId)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.lat && data.lng) {
                         var noileCoordonate = new L.LatLng(data.lat, data.lng);
-                        
-                        // Daca camionul nu e pe harta inca, il adaugam
                         if (!movingMarker) {
-                            // Folosim iconita noastra "Custom" generata mai sus
                             movingMarker = L.marker(noileCoordonate, {icon: customVehicleIcon}).addTo(map);
                             movingMarker.bindPopup("<b>Status Cursa:</b> " + data.status).openPopup();
                         } else {
-                            // Daca exista, il mutam pe noile coordonate (asa se misca live)
                             movingMarker.setLatLng(noileCoordonate);
                         }
-
-                        // Oprim inregistrarea daca e livrat
                         if (data.status === 'Delivered') {
                             clearInterval(liveTrackingInterval);
                             movingMarker.bindPopup("✅ Marfa a ajuns cu succes!").openPopup();
@@ -353,13 +281,8 @@
                 .catch(err => console.error('Eroare conexiune GPS:', err));
         }
 
-        // Apelam prima data instantaneu
         fetchLiveGPS();
-        
-        // Apoi setam harta sa ceara locatia la fiecare 3 secunde
         liveTrackingInterval = setInterval(fetchLiveGPS, 3000);
     }
 </script>
-
-</body>
-</html>
+{% endblock %}

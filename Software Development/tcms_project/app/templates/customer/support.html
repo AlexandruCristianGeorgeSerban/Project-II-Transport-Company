@@ -1,124 +1,111 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Support - Transport Company</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body class="bg-light">
-<div class="dashboard-wrapper">
-    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #e9ecef;">
-        <div class="text-center mt-3 mb-4"><img src="{{ url_for('static', filename='img/truck.png') }}" style="width: 100px;"></div>
-        <a href="{{ url_for('customer.portal') }}" class="nav-btn">📦 My Transports</a>
-        <a href="{{ url_for('customer.invoices') }}" class="nav-btn">💳 Invoices & Billing</a>
-        <a href="{{ url_for('customer.support') }}" class="nav-btn active fw-bold">🎧 Help & Support</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+{% extends "layouts/customer_layout.html" %}
+
+{% block title %}Help & Support{% endblock %}
+
+{% block page_header %}Support Center{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} shadow-sm rounded-3">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="card shadow-sm border-0 mb-5" style="border-radius: 12px;">
+    <div class="card-body p-4 text-center">
+        <h3 class="fw-bold">🎧 Submit a Ticket</h3>
+        <form method="POST" action="{{ url_for('customer.submit_support') }}">
+            <textarea class="form-control mt-3 bg-light" name="support_message" rows="3" placeholder="Ai o problemă nouă? Descrie-o aici..." required></textarea>
+            <button type="submit" class="btn btn-primary mt-3 px-5 fw-bold">Deschide Tichet Nou</button>
+        </form>
     </div>
-    
-    <div class="main-content p-5">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} shadow-sm custom-rounded">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+</div>
 
-        <div class="card shadow-sm border-0 mb-5" style="border-radius: 12px;">
-            <div class="card-body p-4 text-center">
-                <h2 class="fw-bold">🎧 Support Center</h2>
-                <form method="POST" action="{{ url_for('customer.submit_support') }}">
-                    <textarea class="form-control mt-3" name="support_message" rows="3" placeholder="Ai o problemă nouă? Descrie-o aici..." required></textarea>
-                    <button type="submit" class="btn btn-primary mt-3 w-100 fw-bold">Deschide Tichet Nou</button>
-                </form>
-            </div>
-        </div>
+<div class="card shadow-sm border-0" style="border-radius: 12px;">
+    <div class="card-header bg-white fw-bold py-3">Istoricul solicitărilor tale</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Data</th>
+                        <th>Subiect / Mesaj Inițial</th>
+                        <th>Conversație</th>
+                        <th>Status</th>
+                        <th class="text-center">Acțiune</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tickets %}
+                    <tr>
+                        <td class="ps-4 small text-muted">{{ t.timestamp[:16] }}</td>
+                        <td><small>{{ t.message[:40] }}...</small></td>
+                        <td><span class="text-muted small"><i>{{ t.replies|length }} mesaje</i></span></td>
+                        <td>
+                            <span class="badge rounded-pill bg-{{ 'warning text-dark' if t.status == 'Answered' else ('success' if t.status == 'Resolved' else 'info') }} px-3 py-2">
+                                {{ t.status }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#chatModal{{ t.id }}">View / Reply</button>
+                        </td>
+                    </tr>
 
-        <div class="card shadow-sm border-0" style="border-radius: 12px;">
-            <div class="card-header bg-white fw-bold py-3">Istoricul solicitărilor tale</div>
-            <div class="card-body p-0">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Data</th>
-                            <th>Subiect / Mesaj Inițial</th>
-                            <th>Conversație</th>
-                            <th>Status</th>
-                            <th class="text-center">Acțiune</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in tickets %}
-                        <tr>
-                            <td class="small text-muted">{{ t.timestamp[:16] }}</td>
-                            <td><small>{{ t.message[:40] }}...</small></td>
-                            <td><span class="text-muted small"><i>{{ t.replies|length }} mesaje</i></span></td>
-                            <td>
-                                <span class="badge rounded-pill bg-{{ 'warning' if t.status == 'Answered' else ('success' if t.status == 'Resolved' else 'info') }}">
-                                    {{ t.status }}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#chatModal{{ t.id }}">View / Reply</button>
-                            </td>
-                        </tr>
-
-                        <div class="modal fade" id="chatModal{{ t.id }}" tabindex="-1">
-                            <div class="modal-dialog modal-dialog-centered modal-lg">
-                                <div class="modal-content">
-                                    <form action="{{ url_for('customer.reply_support', ticket_id=t.id) }}" method="POST">
-                                        <div class="modal-header bg-primary text-white">
-                                            <h5 class="modal-title">Tichet #{{ t.id }}</h5>
-                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body bg-light">
+                    <!-- Modal pentru Chat-ul tichetului -->
+                    <div class="modal fade" id="chatModal{{ t.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-content border-0 custom-rounded">
+                                <form action="{{ url_for('customer.reply_support', ticket_id=t.id) }}" method="POST">
+                                    <div class="modal-header bg-primary text-white" style="border-radius: 12px 12px 0 0;">
+                                        <h5 class="modal-title fw-bold">Tichet #{{ t.id }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body bg-light">
+                                        
+                                        <div class="chat-box bg-white p-3 rounded mb-3 shadow-sm" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6;">
                                             
-                                            <div class="chat-box bg-white p-3 rounded mb-3 shadow-sm" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6;">
-                                                
-                                                <div class="mb-3 text-end">
-                                                    <span class="badge bg-primary">Tu (Cerere Inițială)</span>
-                                                    <div class="p-2 mt-1 bg-primary text-white border rounded shadow-sm d-inline-block text-start" style="max-width: 85%;">
-                                                        {{ t.message }}
-                                                    </div>
-                                                    <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ t.timestamp }}</div>
+                                            <div class="mb-3 text-end">
+                                                <span class="badge bg-primary">Tu (Cerere Inițială)</span>
+                                                <div class="p-2 mt-1 bg-primary text-white border rounded shadow-sm d-inline-block text-start" style="max-width: 85%;">
+                                                    {{ t.message }}
                                                 </div>
+                                                <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ t.timestamp }}</div>
+                                            </div>
 
-                                                {% for reply in t.replies %}
-                                                    <div class="mb-3 {{ 'text-start' if reply.sender in ['Staff', 'Administrator'] else 'text-end' }}">
-                                                        <span class="badge {{ 'bg-secondary' if reply.sender in ['Staff', 'Administrator'] else 'bg-primary' }}">
-                                                            {{ 'Support Team' if reply.sender in ['Staff', 'Administrator'] else 'Tu' }}
-                                                        </span>
-                                                        <div class="p-2 mt-1 {{ 'bg-light border text-dark' if reply.sender in ['Staff', 'Administrator'] else 'bg-primary text-white' }} rounded shadow-sm d-inline-block text-start" style="max-width: 85%;">
-                                                            {{ reply.message }}
-                                                        </div>
-                                                        <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ reply.timestamp }}</div>
+                                            {% for reply in t.replies %}
+                                                <div class="mb-3 {{ 'text-start' if reply.sender in ['Staff', 'Administrator'] else 'text-end' }}">
+                                                    <span class="badge {{ 'bg-secondary' if reply.sender in ['Staff', 'Administrator'] else 'bg-primary' }}">
+                                                        {{ 'Support Team' if reply.sender in ['Staff', 'Administrator'] else 'Tu' }}
+                                                    </span>
+                                                    <div class="p-2 mt-1 {{ 'bg-light border text-dark' if reply.sender in ['Staff', 'Administrator'] else 'bg-primary text-white' }} rounded shadow-sm d-inline-block text-start" style="max-width: 85%;">
+                                                        {{ reply.message }}
                                                     </div>
-                                                {% endfor %}
-                                                
-                                            </div>
+                                                    <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ reply.timestamp }}</div>
+                                                </div>
+                                            {% endfor %}
+                                            
+                                        </div>
 
-                                            <div class="mb-1">
-                                                <textarea class="form-control" name="client_reply" rows="2" placeholder="Scrie un răspuns pentru echipa de suport..." required></textarea>
-                                            </div>
+                                        <div class="mb-1">
+                                            <textarea class="form-control bg-white" name="client_reply" rows="2" placeholder="Scrie un răspuns pentru echipa de suport..." required></textarea>
                                         </div>
-                                        <div class="modal-footer bg-light">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Închide</button>
-                                            <button type="submit" class="btn btn-primary fw-bold">Trimite Mesaj</button>
-                                        </div>
-                                    </form>
-                                </div>
+                                    </div>
+                                    <div class="modal-footer bg-light" style="border-radius: 0 0 12px 12px;">
+                                        <button type="button" class="btn btn-secondary custom-rounded" data-bs-dismiss="modal">Închide</button>
+                                        <button type="submit" class="btn btn-primary fw-bold custom-rounded px-4">Trimite Mesaj</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center py-4 text-muted">Nu ai trimis nicio solicitare încă.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                    </div>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center py-5 text-muted">Nu ai trimis nicio solicitare încă.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}
