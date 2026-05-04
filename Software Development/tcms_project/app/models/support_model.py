@@ -106,6 +106,10 @@ class SupportModel:
 
     # --- FUNCTII PENTRU HELPDESK TICKET SYSTEM ---
 
+    def insert_ticket(self, client: str, message: str) -> bool:
+        """Alias pentru rutele vechi de Customer care trimit doar numele și mesajul."""
+        return self.create_ticket(user_id=0, client=client, subject="Customer Request", message=message, role='Customer')
+
     def create_ticket(self, user_id: int, client: str, subject: str, message: str, role: str = 'Customer') -> bool:
         """Creează tichetul inteligent, adaptându-se la ce coloane există în baza de date."""
         try:
@@ -186,16 +190,12 @@ class SupportModel:
                     
                 for row in cursor.fetchall():
                     ticket = dict(row)
-                    # Extragem replicile pentru a construi istoricul chat-ului
+                    
                     replies_cursor = connection.execute("SELECT * FROM ticket_replies WHERE ticket_id = ? ORDER BY timestamp ASC", (ticket['id'],))
-                    replies = [dict(r) for r in replies_cursor.fetchall()]
                     
-                    # Formatăm replicile într-un string (pentru compatibilitate cu versiunile vechi de UI)
-                    reply_text = ""
-                    for rep in replies:
-                         reply_text += f"[{rep['timestamp']}] {rep['sender']}: {rep['message']}\n"
+                    # REPARAȚIA AICI: Lăsăm datele sub formă de listă adevărată, exact cum sunt la admin!
+                    ticket['replies'] = [dict(r) for r in replies_cursor.fetchall()]
                     
-                    ticket['replies'] = reply_text
                     if 'subject' not in ticket or not ticket['subject']:
                         ticket['subject'] = "Support Request"
                         
@@ -204,6 +204,11 @@ class SupportModel:
         except sqlite3.Error as e:
             logging.error(f"Fetch user tickets error: {e}")
             return tickets
+
+    # Funcția de legătură care rezolvă eroarea ta de la Customer
+    def get_tickets_by_client(self, client_name: str) -> List[Dict[str, Any]]:
+        """Alias pentru get_user_tickets, ca să nu crape rutele vechi de Customer."""
+        return self.get_user_tickets(client_name)
 
     def get_all_tickets(self) -> List[Dict[str, Any]]:
         """Aduce toate tichetele pentru vederea de Admin."""

@@ -6,7 +6,7 @@
     <title>Driver Support - Transport Company</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- NOU: Adaugam font-awesome pt iconite de chat -->
+    <!-- Font-awesome pt iconite de chat -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Stiluri specifice pentru bulele de chat din interiorul tichetului */
@@ -143,7 +143,7 @@
                                     {% for ticket in tickets %}
                                         <div class="accordion-item">
                                             <h2 class="accordion-header" id="heading{{ ticket.id }}">
-                                                <button class="accordion-button collapsed py-3" type="button" data-bs-toggle="collapse" data-bs-toggle="collapse" data-bs-target="#collapse{{ ticket.id }}" aria-expanded="false" aria-controls="collapse{{ ticket.id }}">
+                                                <button class="accordion-button collapsed py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ ticket.id }}" aria-expanded="false" aria-controls="collapse{{ ticket.id }}">
                                                     <div class="d-flex w-100 justify-content-between align-items-center me-3">
                                                         <div>
                                                             <span class="fw-bold text-dark">#{{ ticket.id }} - {{ ticket.subject }}</span>
@@ -169,28 +169,23 @@
                                                             <div class="message-info">You (Original Request)</div>
                                                         </div>
 
-                                                        <!-- Verificam daca exista replici salvate in string-ul pe care ni-l da baza de date -->
-                                                        <!-- In suport_model ai salvat replies ca pe un string "[Data] Nume: Mesaj\n" -->
+                                                        <!-- Replicile corectate (Fara Split) -->
                                                         {% if ticket.replies %}
-                                                            <!-- Impartim string-ul de replici in linii folosind split('\n') -->
-                                                            {% for reply in ticket.replies.split('\n') %}
-                                                                {% if reply.strip() != "" %}
-                                                                    <!-- Verificam cine a trimis raspunsul -->
-                                                                    {% if "Staff:" in reply or "Administrator:" in reply or "Admin:" in reply %}
-                                                                        <div class="chat-message admin">
-                                                                            <div class="message-bubble shadow-sm">
-                                                                                {{ reply.split(']: ')[1] if ']: ' in reply else reply }}
-                                                                            </div>
-                                                                            <div class="message-info"><i class="fa-solid fa-headset"></i> Support Team</div>
+                                                            {% for reply in ticket.replies %}
+                                                                {% if reply.sender in ['Staff', 'Administrator'] %}
+                                                                    <div class="chat-message admin">
+                                                                        <div class="message-bubble shadow-sm">
+                                                                            {{ reply.message }}
                                                                         </div>
-                                                                    {% else %}
-                                                                        <div class="chat-message driver">
-                                                                            <div class="message-bubble shadow-sm">
-                                                                                {{ reply.split(']: ')[1] if ']: ' in reply else reply }}
-                                                                            </div>
-                                                                            <div class="message-info">You</div>
+                                                                        <div class="message-info"><i class="fa-solid fa-headset"></i> Support Team - {{ reply.timestamp }}</div>
+                                                                    </div>
+                                                                {% else %}
+                                                                    <div class="chat-message driver">
+                                                                        <div class="message-bubble shadow-sm">
+                                                                            {{ reply.message }}
                                                                         </div>
-                                                                    {% endif %}
+                                                                        <div class="message-info">You - {{ reply.timestamp }}</div>
+                                                                    </div>
                                                                 {% endif %}
                                                             {% endfor %}
                                                         {% endif %}
