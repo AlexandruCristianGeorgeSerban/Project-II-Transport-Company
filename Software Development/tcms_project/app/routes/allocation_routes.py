@@ -1,9 +1,10 @@
 import logging
-from flask import Blueprint, render_template, session, redirect, url_for, flash, request
+from flask import Blueprint, render_template, session, redirect, url_for, flash, request, jsonify
 from app.controllers.allocation_controller import AllocationController, check_license_compatibility
 from app.models.notification_model import NotificationModel
 from app.models.driver_model import DriverModel
 from app.models.fleet_model import FleetModel
+import sqlite3
 
 allocation_bp = Blueprint('allocation', __name__)
 allocation_logic = AllocationController()
@@ -106,3 +107,28 @@ def deliver_job(req_id: str):
         flash(response.get("message"), "danger")
         
     return redirect(url_for('allocation.active_jobs'))
+
+@allocation_bp.route('/api/locations')
+def api_locations():
+    """Returnează coordonatele tuturor curselor In Transit, citind direct din DB."""
+    try:
+        with sqlite3.connect("instance/database.sqlite") as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            # Preluăm toate cursele active
+            cursor.execute("SELECT id, current_lat, current_lng FROM transport_requests WHERE status = 'In Transit'")
+            jobs = cursor.fetchall()
+            
+            # Formatăm datele pentru JavaScript
+            locations = []
+            for job in jobs:
+                locations.append({
+                    "id": job['id'],
+                    "lat": job['current_lat'],
+                    "lng": job['current_lng']
+                })
+            
+            return jsonify(locations)
+    except Exception as e:
+        logging.error(f"Error fetching locations API: {e}")
+        return jsonify([])

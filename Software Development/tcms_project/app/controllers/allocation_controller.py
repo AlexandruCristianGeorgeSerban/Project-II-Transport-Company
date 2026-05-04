@@ -13,17 +13,19 @@ def check_license_compatibility(driver_licenses: str, vehicle_type: str) -> bool
     if not driver_licenses or not vehicle_type:
         return False
     
+    # Am actualizat dicționarul ca să se potrivească cu valorile din baza de date
     rules = {
         "Van": ["B", "C", "CE"],
         "Truck": ["C", "CE"],
         "Lorrie": ["C", "CE"],
         "Semi-Trailer": ["CE"],
         "TIR": ["CE"],
-        "Airplane": ["Pilot (Airplane)"],
-        "Ship": ["Maritime (Ship)"],
-        "Train": ["Train Operator"]
+        "Airplane": ["Pilot (ATPL)", "Pilot", "Pilot (Airplane)"], # Acoperă multiple variante
+        "Ship": ["Maritime", "Maritime (Ship)"],                   # Aici era problema!
+        "Train": ["Train Operator", "Train"]
     }
 
+    # Curățăm lista de permise a șoferului pentru a evita erorile de spațiere
     driver_has = [lic.strip() for lic in driver_licenses.split(',')]
     allowed_licenses = rules.get(vehicle_type, [])
 
