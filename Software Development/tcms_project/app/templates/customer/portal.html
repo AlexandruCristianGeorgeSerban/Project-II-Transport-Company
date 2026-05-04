@@ -36,6 +36,48 @@
 
     <div class="main-content p-4">
         
+        <!-- NOU: Top Navbar cu Clopoțel de Notificări pentru Customer -->
+        <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 shadow-sm custom-rounded">
+            <h5 class="fw-bold text-primary mb-0">Customer Dashboard</h5>
+            <div class="user-info d-flex align-items-center">
+                
+                <!-- Dropdown Notificări -->
+                <div class="dropdown d-inline-block me-3">
+                    <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.2rem;">
+                        🔔
+                        {% if unread_count is defined and unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
+                            {{ unread_count }}
+                        </span>
+                        {% endif %}
+                    </span>
+                    
+                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Live Alerts & Updates</h6></li>
+                        
+                        {% if notifications is defined and notifications|length > 0 %}
+                            {% for n in notifications %}
+                            <li>
+                               <a class="dropdown-item py-2 border-bottom smart-notif-link" data-notif-id="{{ n.id }}" data-message="{{ n.message }}" style="white-space: normal; cursor: pointer;">
+                                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
+                                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        {% else %}
+                            <li><span class="dropdown-item text-muted text-center py-3">No new alerts right now.</span></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- User Profile -->
+                <div class="user-profile border-start ps-3">
+                    <span class="fw-bold">👤 {{ username }}</span>
+                    <span class="badge bg-secondary ms-1">Customer</span>
+                </div>
+            </div>
+        </div>
+        
         <div class="welcome-banner d-flex justify-content-between align-items-center">
             <div>
                 <h2 class="fw-bold mb-1">👋 Hello, {{ username }}!</h2>
@@ -119,7 +161,7 @@
                                         {% elif r.status == 'In Transit' %}
                                             <span class="badge bg-primary p-2 custom-rounded shadow-sm">🚚 On Route</span>
                                             <br>
-                                            <a href="{{ url_for('customer.job_chat', job_id=r.id) }}" class="btn btn-sm btn-dark custom-rounded shadow-sm mt-1">💬 Chat Driver</a>
+                                           <a href="{{ url_for('customer.job_chat', job_id=r.id) }}" class="btn btn-sm btn-dark custom-rounded shadow-sm mt-1">💬 Chat Driver</a>
                                         {% elif r.status == 'Delivered' %}
                                             <span class="badge bg-success p-2 custom-rounded shadow-sm">✅ Finished</span>
                                         {% else %}
@@ -167,7 +209,6 @@
 
                   <div class="col-md-6">
                       <label class="form-label fw-bold text-secondary small">PREFERRED VEHICLE</label>
-                      <!-- AICI AI SETAT TINE CONT DE LISTA TA -->
                       <select class="form-select shadow-sm" name="vehicle_type" required>
                           <option value="Truck">🚛 Standard Truck</option>
                           <option value="Van">🚐 Delivery Van</option>
@@ -261,7 +302,6 @@
     var movingMarker = null;
     var liveTrackingInterval = null;
     
-    // Functie helper pentru a genera iconita dinamic
     function getVehicleIcon(vehicleType) {
         let iconName = 'default.png'; // Fallback
         
@@ -275,8 +315,6 @@
             else if (type.includes('airplane') || type.includes('air')) iconName = 'airplane.png';
         }
 
-        // Construim URL-ul catre static folder. 
-        // Observatie: deoarece suntem in script direct in HTML, folosim o radacina bruta, dar perfect functionala pt Flask
         return L.icon({
             iconUrl: '/static/img/' + iconName,
             iconSize: [40, 40],
@@ -285,28 +323,23 @@
         });
     }
 
-    // AICI E MODIFICAREA: primeste si vehicleType ca argument
     function updateMap(pickupCity, deliveryCity, reqId, vehicleType) {
-        // 1. Curatam setarile vechi (AICI ERA PROBLEMA)
         if (routingControl) { 
             map.removeControl(routingControl); 
             routingControl = null;
         }
         if (movingMarker) { 
             map.removeLayer(movingMarker); 
-            movingMarker = null; // <--- ACEST RAND LIPSEA!
+            movingMarker = null; 
         }
         if (liveTrackingInterval) { 
             clearInterval(liveTrackingInterval); 
             liveTrackingInterval = null;
         }
 
-        // Generam iconita potrivita bazata pe textul trimis din randul tabelului
         var customVehicleIcon = getVehicleIcon(vehicleType);
-
         var geocoder = L.Control.Geocoder.nominatim();
         
-        // 2. Desenam traseul drumului (ruta albastra)
         geocoder.geocode(pickupCity + ', Romania', function(results1) {
             if (results1.length > 0) {
                 var p1 = results1[0].center;
@@ -325,7 +358,6 @@
             }
         });
 
-        // 3. Functia care aduce Coordonatele Live din Baza de Date
         function fetchLiveGPS() {
             fetch('/api/track/' + reqId)
                 .then(response => response.json())
@@ -333,17 +365,13 @@
                     if (data.success && data.lat && data.lng) {
                         var noileCoordonate = new L.LatLng(data.lat, data.lng);
                         
-                        // Daca camionul nu e pe harta inca, il adaugam
                         if (!movingMarker) {
-                            // Folosim iconita noastra "Custom" generata mai sus
                             movingMarker = L.marker(noileCoordonate, {icon: customVehicleIcon}).addTo(map);
                             movingMarker.bindPopup("<b>Status Cursa:</b> " + data.status).openPopup();
                         } else {
-                            // Daca exista, il mutam pe noile coordonate (asa se misca live)
                             movingMarker.setLatLng(noileCoordonate);
                         }
 
-                        // Oprim inregistrarea daca e livrat
                         if (data.status === 'Delivered') {
                             clearInterval(liveTrackingInterval);
                             movingMarker.bindPopup("✅ Marfa a ajuns cu succes!").openPopup();
@@ -353,12 +381,38 @@
                 .catch(err => console.error('Eroare conexiune GPS:', err));
         }
 
-        // Apelam prima data instantaneu
         fetchLiveGPS();
-        
-        // Apoi setam harta sa ceara locatia la fiecare 3 secunde
         liveTrackingInterval = setInterval(fetchLiveGPS, 3000);
     }
+</script>
+<script>
+    // --- MAGIA PENTRU SMART REDIRECT DIN CLOPOȚEL (CUSTOMER) ---
+    document.querySelectorAll('.smart-notif-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault(); 
+            
+            let msg = this.getAttribute('data-message');
+            let notifId = this.getAttribute('data-notif-id');
+            let nextUrl = "";
+            
+            // Cautam ID-ul cursei in mesaj
+            let cursaMatch = msg.match(/cursa (REQ-[A-Z0-9]+)/i);
+            
+            if (cursaMatch) {
+                nextUrl = "/customer/chat/" + cursaMatch[1]; // Ne duce la Chat
+            } else if (msg.toLowerCase().includes("tichet") || msg.toLowerCase().includes("suport")) {
+                nextUrl = "{{ url_for('customer.support') }}"; // Ne duce la Suport
+            }
+            
+            // Marcam ca citit invizibil si schimbam pagina
+            fetch('/notifications/read/' + notifId)
+                .then(() => {
+                    if (nextUrl) window.location.href = nextUrl;
+                    else window.location.reload();
+                })
+                .catch(() => window.location.reload());
+        });
+    });
 </script>
 
 </body>

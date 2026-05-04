@@ -23,12 +23,13 @@ class NotificationModel:
             logging.error(f"Error creating notifications table: {e}")
 
     def add_notification(self, target_role: str, message: str) -> bool:
-        """Adaugă o alertă pentru un anumit rol (ex: 'Staff', 'Administrator' sau 'All')."""
+        """Adaugă o alertă cu ora sincronizată perfect."""
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.execute(
-                    "INSERT INTO notifications (target_role, message) VALUES (?, ?)",
-                    (target_role, message)
+                    # Am adăugat explicit timestamp-ul local
+                    "INSERT INTO notifications (target_role, message, timestamp) VALUES (?, ?, datetime('now', 'localtime'))",
+                    (str(target_role).strip(), message)
                 )
                 conn.commit()
                 return True
@@ -36,17 +37,18 @@ class NotificationModel:
             logging.error(f"Error adding notification: {e}")
             return False
 
-    def get_unread_notifications(self, role: str) -> List[Dict[str, Any]]:
-        """Aduce toate notificările necitite pentru rolul curent."""
+    def get_unread_notifications(self, target1: str, target2: str = '') -> List[Dict[str, Any]]:
+        """Aduce notificările pentru Username-ul specific, pentru Rolul său sau pentru 'All'."""
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute(
-                    "SELECT * FROM notifications WHERE target_role IN (?, 'All') AND is_read = 0 ORDER BY timestamp DESC", 
-                    (role,)
+                    "SELECT * FROM notifications WHERE target_role IN (?, ?, 'All') AND is_read = 0 ORDER BY timestamp DESC", 
+                    (str(target1).strip(), str(target2).strip())
                 )
                 return [dict(row) for row in cursor.fetchall()]
-        except sqlite3.Error:
+        except sqlite3.Error as e:
+            logging.error(f"Error fetching notifications: {e}")
             return []
             
     def mark_as_read(self, notification_id: int):

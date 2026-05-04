@@ -12,6 +12,7 @@ from app.routes.admin_support_routes import admin_support_bp
 from app.routes.guest_routes import guest_bp
 from app.routes.profile_routes import profile_bp
 from datetime import timedelta 
+from app.routes.notification_routes import notification_bp
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
     app = Flask(__name__)
@@ -21,13 +22,16 @@ def create_app() -> Flask:
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
     
     # --- BLOCUL PENTRU CLOPOȚELUL DE NOTIFICĂRI ---
+    # --- BLOCUL PENTRU CLOPOȚELUL DE NOTIFICĂRI ---
     @app.context_processor
     def inject_notifications():
         from app.models.notification_model import NotificationModel
-        if 'role' in session:
-            notifs = NotificationModel().get_unread_notifications(session['role'])
+        if 'username' in session and 'role' in session:
+            # Acum cerem notificări trimise direct către Username, SAU către Rol!
+            notifs = NotificationModel().get_unread_notifications(session['username'], session['role'])
             return dict(notifications=notifs, unread_count=len(notifs))
         return dict(notifications=[], unread_count=0)
+    # ----------------------------------------------
     # ----------------------------------------------
     
     # Register the blueprints
@@ -42,6 +46,7 @@ def create_app() -> Flask:
     app.register_blueprint(customer_bp)
     app.register_blueprint(admin_support_bp)
     app.register_blueprint(profile_bp)
+    app.register_blueprint(notification_bp)
     
     # Initialize the database table for users
     user_db = UserModel()

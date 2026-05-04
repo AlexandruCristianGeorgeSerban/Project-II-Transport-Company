@@ -28,17 +28,24 @@
         .table th { font-weight: 600; color: #555; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; border-bottom: 2px solid #eee; }
         .table td { vertical-align: middle; color: #444; border-bottom: 1px solid #f8f9fa; }
         .table-hover tbody tr:hover { background-color: #f1f4f8; }
-        #map-container { height: 400px; width: 100%; border-radius: 12px; border: 1px solid #ddd; margin-top: 20px; z-index: 1;}
         .empty-state { padding: 40px; text-align: center; color: #7f8c8d; }
         .empty-state i { font-size: 3rem; margin-bottom: 15px; color: #bdc3c7; }
         .vehicle-status-card { background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); border-left: 5px solid #3498db; }
         .custom-rounded { border-radius: 12px !important; }
+
+        /* Adăugăm scroll bar pentru contentul principal */
+        .main-content {
+            height: 100vh;
+            overflow-y: auto;
+            padding-bottom: 50px; 
+        }
+        
+        #map-container { height: 400px; width: 100%; border-radius: 12px; border: 1px solid #ddd; margin-top: 20px; z-index: 1;}
     </style>
 </head>
 <body class="bg-light">
 
 <div class="dashboard-wrapper">
-    <!-- Standardized Sidebar -->
     <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #0285e9; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
         <div class="text-center mt-3 mb-4">
             <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
@@ -50,13 +57,43 @@
         <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
     </div>
 
-    <!-- Standardized Main Content -->
     <div class="main-content p-4">
         
-        <!-- Standardized Top Navbar -->
         <div class="top-navbar d-flex justify-content-between align-items-center mb-4">
             <div><h2 class="h4 mb-0 fw-bold">Driver Dashboard</h2></div>
             <div class="user-info d-flex align-items-center">
+                
+                <!-- NOU: Clopoțelul de Notificări pentru Șofer -->
+                <div class="dropdown d-inline-block me-4">
+                    <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.3rem;">
+                        🔔
+                        {% if unread_count is defined and unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
+                            {{ unread_count }}
+                        </span>
+                        {% endif %}
+                    </span>
+                    
+                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Live Alerts & Updates</h6></li>
+                        
+                        {% if notifications is defined and notifications|length > 0 %}
+                            {% for n in notifications %}
+                            <li>
+                                <!-- Smart Link (Interceptat de JavaScript la final) -->
+                                <a class="dropdown-item py-2 border-bottom smart-notif-link" data-notif-id="{{ n.id }}" data-message="{{ n.message }}" style="white-space: normal; cursor: pointer;">
+                                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
+                                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        {% else %}
+                            <li><span class="dropdown-item text-muted text-center py-3">No new alerts right now.</span></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <!-- SFÂRȘIT Clopoțel -->
+
                 <span class="me-3 text-muted">Welcome back, <strong>{{ session.get('username') }}</strong></span>
                 <div class="user-profile border-start ps-3 ms-3">
                     <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none d-flex align-items-center text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
@@ -89,7 +126,6 @@
         {% endwith %}
 
         <div class="row">
-            <!-- Vehicle Status Section -->
             <div class="col-12 mb-4">
                 <div class="card vehicle-status-card shadow-sm border-0 custom-rounded">
                     <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
@@ -117,7 +153,6 @@
                 </div>
             </div>
 
-            <!-- Active Jobs Section -->
             <div class="col-lg-12">
                 <div class="card shadow-sm border-0 custom-rounded">
                     <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
@@ -172,6 +207,11 @@
                                                 {% endif %}
                                             </td>
                                             <td class="text-center">
+                                                <!-- BUTONUL DE CHAT ADĂUGAT AICI -->
+                                                <a href="{{ url_for('driver.job_chat', job_id=job.id) }}" class="btn btn-sm btn-info custom-rounded w-100 mb-1 shadow-sm fw-bold text-white">
+                                                    💬 Chat Client
+                                                </a>
+
                                                 {% if job.status == 'Accepted' %}
                                                     <form action="{{ url_for('driver.update_job_status', job_id=job.id, new_status='In Transit') }}" method="POST" class="d-inline">
                                                         <button type="submit" class="btn btn-sm btn-primary custom-rounded w-100 mb-1 shadow-sm fw-bold">🚀 Start Journey</button>
@@ -193,7 +233,6 @@
                 </div>
             </div>
 
-            <!-- Map Section -->
             <div class="col-lg-12">
                 <div class="card shadow-sm border-0 custom-rounded">
                     <div class="card-header bg-white border-bottom py-3">
@@ -213,81 +252,81 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Inițializare hartă
     var map = L.map('map-container').setView([45.9432, 24.9668], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    var currentMarker = null;
-    var trackingInterval = null;
+    var truckIcon = L.icon({
+        iconUrl: "{{ url_for('static', filename='img/truck.png') }}",
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20]
+    });
+
+    var markers = {}; 
+
+    function fetchLocations() {
+        fetch('/api/locations') 
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(job => {
+                    if (job.lat && job.lng) {
+                        if (markers[job.id]) {
+                            markers[job.id].setLatLng([job.lat, job.lng]);
+                        } else {
+                            markers[job.id] = L.marker([job.lat, job.lng], {icon: truckIcon})
+                                .addTo(map)
+                                .bindPopup("<b>Job #" + job.id + "</b><br>In Transit");
+                        }
+                    }
+                });
+            })
+            .catch(err => console.error("Eroare la preluarea locațiilor:", err));
+    }
+
+    fetchLocations();
+    setInterval(fetchLocations, 3000); 
 
     function startGPS(jobId, pickup, delivery) {
         const indicator = document.getElementById('status-indicator');
-        indicator.classList.remove('d-none', 'alert-success', 'alert-danger');
-        indicator.classList.add('alert-warning');
-        indicator.innerHTML = '🔄 Starting GPS Tracking for Job #' + jobId + '...';
-
-        if ("geolocation" in navigator) {
-            if (trackingInterval) clearInterval(trackingInterval);
-
-            const sendLocation = () => {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    var lat = position.coords.latitude;
-                    var lng = position.coords.longitude;
-
-                    if (!currentMarker) {
-                        currentMarker = L.marker([lat, lng]).addTo(map)
-                            .bindPopup("Your Location (Job #" + jobId + ")").openPopup();
-                        map.setView([lat, lng], 13);
-                    } else {
-                        currentMarker.setLatLng([lat, lng]);
-                    }
-                    
-                    indicator.classList.remove('alert-warning');
-                    indicator.classList.add('alert-success');
-                    indicator.innerHTML = '📡 Broadcasting Live Location (Job #' + jobId + ')';
-
-                    fetch('/api/driver/update_location', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            job_id: jobId,
-                            latitude: lat,
-                            longitude: lng
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log("Location sent successfully:", data);
-                    })
-                    .catch((error) => {
-                        console.error('Error sending location:', error);
-                        indicator.classList.remove('alert-success');
-                        indicator.classList.add('alert-danger');
-                        indicator.innerHTML = '❌ Connection lost. Trying to reconnect...';
-                    });
-                }, function(error) {
-                     indicator.classList.remove('alert-warning', 'alert-success');
-                     indicator.classList.add('alert-danger');
-                     indicator.innerHTML = '❌ GPS Error: Please enable location services in your browser.';
-                     console.error("Geolocation error:", error);
-                }, {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                });
-            };
-
-            sendLocation();
-            trackingInterval = setInterval(sendLocation, 5000);
-            
-            document.getElementById('map-container').scrollIntoView({ behavior: 'smooth' });
-
-        } else {
-            alert("Geolocation is not supported by your browser.");
-        }
+        indicator.classList.remove('d-none', 'alert-danger');
+        indicator.classList.add('alert-success');
+        indicator.innerHTML = '📡 Tracking Simulation Active for Job #' + jobId;
+        document.getElementById('map-container').scrollIntoView({ behavior: 'smooth' });
     }
+
+    // --- MAGIA PENTRU SMART REDIRECT DIN CLOPOȚEL ---
+    document.querySelectorAll('.smart-notif-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault(); // Oprim linkul clasic sa incarce pagina imediat
+            
+            let msg = this.getAttribute('data-message');
+            let notifId = this.getAttribute('data-notif-id');
+            let nextUrl = "";
+            
+            // Cautam un ID de cursa (ex: REQ-1A2B3C) în mesaj
+            let cursaMatch = msg.match(/cursa (REQ-[A-Z0-9]+)/i);
+            if (cursaMatch) {
+                nextUrl = "/driver/chat/" + cursaMatch[1]; // Trimitem spre Chat
+            } 
+            // Cautam un tichet
+            else if (msg.toLowerCase().includes("tichet") || msg.toLowerCase().includes("suport")) {
+                nextUrl = "/driver/support"; // Trimitem spre Support
+            }
+            
+            // Marcam ca citit in fundal (invizibil), apoi te trimitem la destinatie
+            fetch('/notifications/read/' + notifId)
+                .then(() => {
+                    if (nextUrl) {
+                        window.location.href = nextUrl; // Hop direct în chat/support!
+                    } else {
+                        window.location.reload(); // Daca e alerta generala, dam refresh sa dispara bulina
+                    }
+                })
+                .catch(() => window.location.reload());
+        });
+    });
 </script>
 
 </body>
