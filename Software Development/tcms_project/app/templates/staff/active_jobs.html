@@ -1,4 +1,4 @@
-{% extends "layouts/staff_layout.html" %}
+{% extends "layouts/admin_layout.html" if session.get('role') == 'Administrator' else ("layouts/driver_layout.html" if session.get('role') == 'Driver' else "layouts/staff_layout.html") %}
 
 {% block title %}Active Jobs{% endblock %}
 {% block page_header %}Active Jobs & Deliveries{% endblock %}
@@ -39,17 +39,28 @@
                 {% else %}
                     {% for job in data.jobs %}
                     <tr>
-                        <td class="ps-4 fw-bold text-primary">{{ job.id }}</td>
+                        <td class="ps-4 fw-bold text-primary">#{{ job.id }}</td>
                         <td class="fw-bold">{{ job.client }}</td>
                         <td><small>{{ job.pickup }} <br>➔ {{ job.delivery }}</small></td>
                         <td><span class="badge bg-info text-dark px-3 py-2 rounded-pill">{{ job.vehicle_id }}</span></td>
                         <td><span class="badge bg-secondary px-3 py-2 rounded-pill">{{ job.driver_id }}</span></td>
                         <td class="text-center">
-                            <form method="POST" action="{{ url_for('allocation.deliver_job', req_id=job.id) }}" style="margin: 0;">
-                                <button type="submit" class="btn btn-sm btn-success px-4 fw-bold shadow-sm custom-rounded" onclick="return confirm('Confirm delivery? This will free the vehicle and send the invoice to the client.');">
-                                    ✅ Mark as Delivered
-                                </button>
-                            </form>
+                            <div class="d-flex justify-content-center gap-2 align-items-center">
+                                
+                                <!-- BUTONUL DE CHAT (Inclus din versiunea main, vizibil doar pentru Driveri) -->
+                                {% if session.get('role') == 'Driver' %}
+                                    <a href="{{ url_for('driver.job_chat', job_id=job.id) }}" class="btn btn-sm btn-primary custom-rounded shadow-sm" title="Chat with Customer">
+                                        💬 Chat
+                                    </a>
+                                {% endif %}
+                                
+                                <!-- BUTONUL DE DELIVERED -->
+                                <form method="POST" action="{{ url_for('allocation.deliver_job', req_id=job.id) }}" style="margin: 0;">
+                                    <button type="submit" class="btn btn-sm btn-success px-3 fw-bold shadow-sm custom-rounded" onclick="return confirm('Confirm delivery? This will free the vehicle and send the invoice to the client.');">
+                                        ✅ Mark as Delivered
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

@@ -8,7 +8,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <style>
-        .leaflet-routing-container { display: none !important; }
+        /* Ascunde panoul alb cu instrucțiunile GPS de text */
+        .leaflet-routing-container { display: none !important; } 
+        
         .welcome-banner { background: linear-gradient(135deg, #0078d4, #00b4d8); color: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .stat-card { border-radius: 12px; border: none; transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-3px); }
@@ -231,7 +233,12 @@
             else if (type.includes('train')) iconName = 'train.png';
             else if (type.includes('airplane') || type.includes('air')) iconName = 'airplane.png';
         }
-        return L.icon({ iconUrl: '/static/img/' + iconName, iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20] });
+        return L.icon({ 
+            iconUrl: '/static/img/' + iconName, 
+            iconSize: [40, 40], 
+            iconAnchor: [20, 20], 
+            popupAnchor: [0, -20] 
+        });
     }
 
     function updateMap(pickupCity, deliveryCity, reqId, vehicleType) {
@@ -284,5 +291,32 @@
         fetchLiveGPS();
         liveTrackingInterval = setInterval(fetchLiveGPS, 3000);
     }
+
+    // --- MAGIA PENTRU SMART REDIRECT DIN CLOPOȚEL (Păstrat din main) ---
+    document.querySelectorAll('.smart-notif-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault(); 
+            
+            let msg = this.getAttribute('data-message');
+            let notifId = this.getAttribute('data-notif-id');
+            let nextUrl = "";
+            
+            // Căutăm ID-ul cursei în mesaj (Ex: "cursa REQ-123")
+            let cursaMatch = msg.match(/cursa (REQ-[A-Z0-9]+)/i);
+            
+            if (cursaMatch) {
+                nextUrl = "/customer/chat/" + cursaMatch[1]; 
+            } else if (msg.toLowerCase().includes("tichet") || msg.toLowerCase().includes("suport")) {
+                nextUrl = "{{ url_for('customer.support') }}"; 
+            }
+            
+            fetch('/notifications/read/' + notifId)
+                .then(() => {
+                    if (nextUrl) window.location.href = nextUrl;
+                    else window.location.reload();
+                })
+                .catch(() => window.location.reload());
+        });
+    });
 </script>
 {% endblock %}

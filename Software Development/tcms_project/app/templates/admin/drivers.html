@@ -3,6 +3,16 @@
 {% block title %}Drivers{% endblock %}
 {% block page_header %}{{ 'Active Drivers' if role == 'Staff' else 'Driver Management' }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Păstrat din versiunea 'main': asigură scroll corect în modalele lungi */
+    .modal-body-scroll {
+        max-height: calc(100vh - 210px);
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -75,7 +85,6 @@
     </table>
 </div>
 
-<!-- AICI PĂSTREZI TOATE MODALURILE TALE (addDriverModal, editModal, viewModal) -->
 <!-- Modal Add Driver -->
 <div class="modal fade" id="addDriverModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -85,10 +94,9 @@
             <h5 class="modal-title fw-bold">Add New Driver Profile</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body bg-light p-4">
-              <!-- CONȚINUTUL TĂU ORIGINAL PENTRU FORMULAR AICI -->
+          <div class="modal-body bg-light p-4 modal-body-scroll">
+              <!-- Câmpurile de formular din varianta Refactoring -->
               <div class="row g-3">
-                  <!-- COLOANA STANGA -->
                   <div class="col-md-6">
                       <div class="card h-100 shadow-sm border-0">
                           <div class="card-header bg-secondary text-white">Driver Profiles & Licenses</div>
@@ -116,7 +124,6 @@
                               </div>
                               <div class="mb-3">
                                   <label class="form-label fw-bold">License Categories</label><br>
-                                  <div class="mb-1 text-muted small">Road Vehicles:</div>
                                   <div class="form-check form-check-inline">
                                       <input class="form-check-input" type="checkbox" name="licenses" value="B"> <label class="form-check-label">B (Van)</label>
                                   </div>
@@ -126,70 +133,34 @@
                                   <div class="form-check form-check-inline">
                                       <input class="form-check-input" type="checkbox" name="licenses" value="CE"> <label class="form-check-label">CE (Lorrie)</label>
                                   </div>
-                                  <br>
-                                  <div class="mb-1 mt-2 text-muted small">Specialized Transport:</div>
-                                  <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="licenses" value="Pilot (ATPL)"> <label class="form-check-label">Pilot (Airplane)</label>
-                                  </div>
-                                  <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="licenses" value="Maritime"> <label class="form-check-label">Maritime (Ship)</label>
-                                  </div>
-                                  <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="licenses" value="Train Operator"> <label class="form-check-label">Train Operator</label>
-                                  </div>
                               </div>
                               <div class="mb-2">
                                   <label class="form-label">Experience</label>
-                                  <textarea class="form-control form-control-sm" name="experience" rows="3" placeholder="Detailed history..."></textarea>
+                                  <textarea class="form-control form-control-sm" name="experience" rows="3"></textarea>
                               </div>
                           </div>
                       </div>
                   </div>
-                  
-                  <!-- COLOANA DREAPTA -->
                   <div class="col-md-6 d-flex flex-column gap-3">
                       <div class="card shadow-sm border-0">
-                          <div class="card-header bg-secondary text-white">Account & Verification</div>
+                          <div class="card-header bg-secondary text-white">Account Credentials</div>
                           <div class="card-body">
-                              <div class="mb-3 pb-3 border-bottom border-success">
-                                  <label class="form-label fw-bold text-success small mb-2">🔑 LOGIN CREDENTIALS</label>
-                                  <div class="row">
-                                      <div class="col-6">
-                                          <input type="text" class="form-control form-control-sm border-success shadow-sm" name="username" placeholder="Username" required>
-                                      </div>
-                                      <div class="col-6">
-                                          <input type="password" class="form-control form-control-sm border-success shadow-sm" name="password" placeholder="Password" required>
-                                      </div>
-                                  </div>
-                                  <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">Offer these to the driver so they can log in.</small>
-                              </div>
-
                               <div class="row">
-                                  <div class="col-6 mb-2">
-                                      <label class="form-label">DOB</label>
-                                      <input type="date" class="form-control form-control-sm" name="dob" required>
-                                  </div>
-                                  <div class="col-6 mb-2">
-                                      <label class="form-label">Document ID</label>
-                                      <input type="text" class="form-control form-control-sm" name="document_id" required>
-                                  </div>
+                                  <div class="col-6"><input type="text" class="form-control form-control-sm" name="username" placeholder="Username" required></div>
+                                  <div class="col-6"><input type="password" class="form-control form-control-sm" name="password" placeholder="Password" required></div>
                               </div>
                           </div>
                       </div>
                       <div class="card shadow-sm border-0 flex-grow-1">
-                          <div class="card-header bg-secondary text-white">Address & Availability</div>
+                          <div class="card-header bg-secondary text-white">Verification & Address</div>
                           <div class="card-body">
+                              <div class="mb-2"><label class="form-label">Full Address</label><input type="text" class="form-control form-control-sm" name="address" required></div>
                               <div class="mb-2">
-                                  <label class="form-label">Full Address</label>
-                                  <input type="text" class="form-control form-control-sm" name="address" required>
-                              </div>
-                              <div class="mb-2">
-                                  <label class="form-label">Current Availability</label>
+                                  <label class="form-label">Availability</label>
                                   <select class="form-select form-select-sm" name="availability" required>
                                       <option value="Available">Available</option>
                                       <option value="In Transit">In Transit</option>
                                       <option value="On Leave">On Leave</option>
-                                      <option value="Not Available">Not Available</option>
                                   </select>
                               </div>
                           </div>
@@ -197,9 +168,9 @@
                   </div>
               </div>
           </div>
-          <div class="modal-footer bg-white" style="border-radius: 0 0 12px 12px;">
-            <button type="button" class="btn btn-light custom-rounded" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-success fw-bold px-4 custom-rounded shadow-sm">Save Driver & Create Account</button>
+          <div class="modal-footer bg-white border-top">
+            <button type="button" class="btn btn-secondary custom-rounded" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success fw-bold px-4 custom-rounded shadow-sm">Save Driver</button>
           </div>
       </form>
     </div>
@@ -207,7 +178,7 @@
 </div>
 
 {% for driver in data.drivers %}
-<!-- Edit Modal pt restul -->
+<!-- Modal Editare -->
 <div class="modal fade" id="editModal{{ driver.id }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content custom-rounded border-0">
@@ -216,7 +187,7 @@
             <h5 class="modal-title fw-bold">Edit Driver: {{ driver.name }}</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body bg-light p-4">
+          <div class="modal-body bg-light p-4 modal-body-scroll">
               <div class="row g-3">
                   <div class="col-md-6">
                       <div class="card h-100 shadow-sm border-0">
@@ -239,26 +210,14 @@
                               </div>
                               <div class="mb-2">
                                   <label class="form-label fw-bold">License Categories</label><br>
-                                  <div class="mb-1 text-muted small">Road Vehicles:</div>
                                   <div class="form-check form-check-inline">
                                       <input class="form-check-input" type="checkbox" name="edit_licenses" value="B" {% if 'B' in driver.licenses %}checked{% endif %}> <label class="form-check-label">B (Van)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="C" {% if 'C' in driver.licenses and 'CE' not in driver.licenses %}checked{% endif %}> <label class="form-check-label">C (Truck)</label>
+                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="C" {% if 'C' in driver.licenses %}checked{% endif %}> <label class="form-check-label">C (Truck)</label>
                                   </div>
                                   <div class="form-check form-check-inline">
                                       <input class="form-check-input" type="checkbox" name="edit_licenses" value="CE" {% if 'CE' in driver.licenses %}checked{% endif %}> <label class="form-check-label">CE (Lorrie)</label>
-                                  </div>
-                                  <br>
-                                  <div class="mb-1 mt-2 text-muted small">Specialized Transport:</div>
-                                  <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="Pilot (ATPL)" {% if 'Pilot' in driver.licenses %}checked{% endif %}> <label class="form-check-label">Pilot (Airplane)</label>
-                                  </div>
-                                  <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="Maritime" {% if 'Maritime' in driver.licenses %}checked{% endif %}> <label class="form-check-label">Maritime (Ship)</label>
-                                  </div>
-                                  <div class="form-check form-check-inline">
-                                      <input class="form-check-input" type="checkbox" name="edit_licenses" value="Train Operator" {% if 'Train' in driver.licenses %}checked{% endif %}> <label class="form-check-label">Train Operator</label>
                                   </div>
                               </div>
                               <div class="mb-2">
@@ -270,34 +229,24 @@
                   </div>
                   <div class="col-md-6 d-flex flex-column gap-3">
                       <div class="card shadow-sm border-0">
-                          <div class="card-header bg-secondary text-white">Personal Data & Verification</div>
+                          <div class="card-header bg-secondary text-white">Verification Data</div>
                           <div class="card-body">
                               <div class="row">
-                                  <div class="col-6 mb-2">
-                                      <label class="form-label">DOB</label>
-                                      <input type="date" class="form-control form-control-sm" name="edit_dob" value="{{ driver.dob }}" required>
-                                  </div>
-                                  <div class="col-6 mb-2">
-                                      <label class="form-label">Document ID</label>
-                                      <input type="text" class="form-control form-control-sm" name="edit_document_id" value="{{ driver.document_id }}" required>
-                                  </div>
+                                  <div class="col-6"><label class="form-label">DOB</label><input type="date" class="form-control form-control-sm" name="edit_dob" value="{{ driver.dob }}" required></div>
+                                  <div class="col-6"><label class="form-label">Doc ID</label><input type="text" class="form-control form-control-sm" name="edit_document_id" value="{{ driver.document_id }}" required></div>
                               </div>
                           </div>
                       </div>
                       <div class="card shadow-sm border-0 flex-grow-1">
                           <div class="card-header bg-secondary text-white">Address & Availability</div>
                           <div class="card-body">
-                              <div class="mb-2">
-                                  <label class="form-label">Full Address</label>
-                                  <input type="text" class="form-control form-control-sm" name="edit_address" value="{{ driver.address }}" required>
-                              </div>
+                              <div class="mb-2"><label class="form-label">Full Address</label><input type="text" class="form-control form-control-sm" name="edit_address" value="{{ driver.address }}" required></div>
                               <div class="mb-2">
                                   <label class="form-label">Current Availability</label>
                                   <select class="form-select form-select-sm" name="edit_availability" required>
                                       <option value="Available" {% if driver.availability == 'Available' %}selected{% endif %}>Available</option>
                                       <option value="In Transit" {% if driver.availability == 'In Transit' %}selected{% endif %}>In Transit</option>
                                       <option value="On Leave" {% if driver.availability == 'On Leave' %}selected{% endif %}>On Leave</option>
-                                      <option value="Not Available" {% if driver.availability == 'Not Available' %}selected{% endif %}>Not Available</option>
                                   </select>
                               </div>
                           </div>
@@ -305,8 +254,8 @@
                   </div>
               </div>
           </div>
-          <div class="modal-footer bg-white" style="border-radius: 0 0 12px 12px;">
-            <button type="button" class="btn btn-light custom-rounded" data-bs-dismiss="modal">Cancel</button>
+          <div class="modal-footer bg-white border-top">
+            <button type="button" class="btn btn-secondary custom-rounded" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-primary fw-bold px-4 custom-rounded shadow-sm">Update Profile</button>
           </div>
       </form>
@@ -314,6 +263,7 @@
   </div>
 </div>
 
+<!-- Modal Vizualizare -->
 <div class="modal fade" id="viewModal{{ driver.id }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content custom-rounded border-0">
