@@ -1,139 +1,120 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Support Management - Admin / Staff</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        .bg-driver { background-color: #fd7e14 !important; color: white !important; }
-        .bg-customer { background-color: #6c757d !important; color: white !important; }
-        .border-driver { border-color: #fd7e14 !important; }
-    </style>
-</head>
-<body class="bg-light">
-<div class="dashboard-wrapper">
-    <div class="sidebar">
-        <img src="{{ url_for('static', filename='img/truck.png') }}" style="width: 100px; margin-bottom: 20px;">
-        <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn active">Dashboard</a>
-        <a href="{{ url_for('fleet.fleet_management') }}" class="nav-btn">Fleet Management</a>
-        <a href="{{ url_for('driver.driver_management') }}" class="nav-btn">Driver Management</a>
-        <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn">Requests</a>
-        <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn">Allocation</a>
-        <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
-        <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn">💬 Support</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>  
-    </div>
+{% extends "layouts/admin_layout.html" %}
 
-    <div class="main-content p-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} shadow-sm">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+{% block title %}Support Management{% endblock %}
+{% block page_header %}🎧 Inbox Support{% endblock %}
 
-        <h2 class="fw-bold mb-4">🎧 Inbox Support</h2>
-        
-        <div class="table-container shadow-sm border-0 bg-white" style="border-radius: 12px; overflow: hidden;">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>User</th>
-                        <th>Subiect / Mesaj Inițial</th>
-                        <th>Conversație</th>
-                        <th>Status</th>
-                        <th class="text-center">Acțiuni</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in tickets %}
-                    <tr>
-                        <td class="fw-bold text-muted">#{{ t.id }}</td>
-                        <td>
-                            <!-- AICI: Citim direct din baza de date rolul t.client_role -->
-                            <span class="badge {{ 'bg-driver' if t.client_role == 'Driver' else 'bg-customer' }}">
-                                {{ t.client }}
-                            </span>
-                        </td>
-                        <td><small>{{ t.message[:40] }}...</small></td>
-                        <td>
-                            <span class="text-muted small"><i>{{ t.replies|length }} mesaje adăugate</i></span>
-                        </td>
-                        <td>
-                            <span class="badge rounded-pill bg-{{ 'info' if t.status == 'New' or t.status == 'Customer Ticket' or t.status == 'Driver Ticket' else ('warning text-dark' if 'Replied' in t.status else 'success') }}">
-                                {{ t.status }}
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#respondModal{{ t.id }}">View / Reply</button>
-                            
-                            <form action="{{ url_for('admin_support.delete_ticket', ticket_id=t.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Sigur ștergi acest tichet și toată conversația?');">
-                                <button type="submit" class="btn btn-sm btn-outline-danger ms-1">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
+{% block extra_css %}
+<style>
+    .bg-driver { background-color: #fd7e14 !important; color: white !important; }
+    .bg-customer { background-color: #6c757d !important; color: white !important; }
+    .border-driver { border-color: #fd7e14 !important; }
+    .chat-box { max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; }
+</style>
+{% endblock %}
 
-                    <div class="modal fade" id="respondModal{{ t.id }}" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered modal-lg">
-                            <div class="modal-content">
-                                <form action="{{ url_for('admin_support.respond_to_ticket', ticket_id=t.id) }}" method="POST">
-                                    <div class="modal-header bg-primary text-white">
-                                        <h5 class="modal-title">Conversație cu {{ t.client }} (Tichet #{{ t.id }})</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body bg-light">
-                                        
-                                        <div class="chat-box bg-white p-3 rounded mb-3 shadow-sm" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6;">
-                                            
-                                            <div class="mb-3 text-start">
-                                                <span class="badge {{ 'bg-driver' if t.client_role == 'Driver' else 'bg-customer' }}">
-                                                    {{ t.client }} (Cerere Inițială)
-                                                </span>
-                                                <div class="p-2 mt-1 bg-light border {{ 'border-driver border-2' if t.client_role == 'Driver' else '' }} rounded d-inline-block" style="max-width: 85%;">
-                                                    {{ t.message }}
-                                                </div>
-                                                <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ t.timestamp }}</div>
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} shadow-sm rounded-3">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="table-container shadow-sm border-0 bg-white custom-rounded" style="overflow: hidden;">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-dark">
+            <tr>
+                <th class="ps-4">ID</th>
+                <th>User</th>
+                <th>Subiect / Mesaj Inițial</th>
+                <th>Conversație</th>
+                <th>Status</th>
+                <th class="text-center">Acțiuni</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if not tickets %}
+            <tr><td colspan="6" class="text-center py-5 text-muted">Nu există tichete de suport deschise.</td></tr>
+            {% else %}
+                {% for t in tickets %}
+                <tr>
+                    <td class="ps-4 fw-bold text-muted">#{{ t.id }}</td>
+                    <td>
+                        <span class="badge {{ 'bg-driver' if t.client_role == 'Driver' else 'bg-customer' }} px-3 py-2 rounded-pill">
+                            {{ t.client }}
+                        </span>
+                    </td>
+                    <td><small>{{ t.message[:40] }}...</small></td>
+                    <td>
+                        <span class="text-muted small"><i>{{ t.replies|length }} mesaje adăugate</i></span>
+                    </td>
+                    <td>
+                        <span class="badge rounded-pill bg-{{ 'info' if t.status == 'New' or t.status == 'Customer Ticket' or t.status == 'Driver Ticket' else ('warning text-dark' if 'Replied' in t.status else 'success') }} px-3 py-2">
+                            {{ t.status }}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-primary fw-bold custom-rounded" data-bs-toggle="modal" data-bs-target="#respondModal{{ t.id }}">View / Reply</button>
+                        
+                        <form action="{{ url_for('admin_support.delete_ticket', ticket_id=t.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Sigur ștergi acest tichet și toată conversația?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger ms-1 custom-rounded fw-bold">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- MODALUL DE RĂSPUNS (Trebuie să fie în interiorul for-ului) -->
+                <div class="modal fade" id="respondModal{{ t.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content border-0 custom-rounded">
+                            <form action="{{ url_for('admin_support.respond_to_ticket', ticket_id=t.id) }}" method="POST">
+                                <div class="modal-header bg-primary text-white" style="border-radius: 12px 12px 0 0;">
+                                    <h5 class="modal-title fw-bold">Conversație cu {{ t.client }} (Tichet #{{ t.id }})</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body bg-light p-4">
+                                    <div class="chat-box bg-white p-3 rounded mb-3 shadow-sm">
+                                        <!-- Mesajul Inițial -->
+                                        <div class="mb-3 text-start">
+                                            <span class="badge {{ 'bg-driver' if t.client_role == 'Driver' else 'bg-customer' }} mb-1">
+                                                {{ t.client }} (Inițial)
+                                            </span>
+                                            <div class="p-2 bg-light border {{ 'border-driver border-2' if t.client_role == 'Driver' else '' }} rounded d-inline-block shadow-sm" style="max-width: 85%;">
+                                                {{ t.message }}
                                             </div>
+                                            <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ t.timestamp }}</div>
+                                        </div>
 
-                                            {% for reply in t.replies %}
-                                                <div class="mb-3 {{ 'text-end' if reply.sender in ['Staff', 'Administrator'] else 'text-start' }}">
-                                                    <span class="badge {{ 'bg-primary' if reply.sender in ['Staff', 'Administrator'] else ('bg-driver' if t.client_role == 'Driver' else 'bg-customer') }}">
-                                                        {{ reply.sender }}
-                                                    </span>
-                                                    
-                                                    <div class="p-2 mt-1 {{ 'bg-primary text-white' if reply.sender in ['Staff', 'Administrator'] else 'bg-light text-dark' }} border {{ 'border-driver border-2' if reply.sender not in ['Staff', 'Administrator'] and t.client_role == 'Driver' else '' }} rounded shadow-sm d-inline-block text-start" style="max-width: 85%;">
-                                                        {{ reply.message }}
-                                                    </div>
-                                                    <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ reply.timestamp }}</div>
+                                        <!-- Istoric Replici -->
+                                        {% for reply in t.replies %}
+                                            <div class="mb-3 {{ 'text-end' if reply.sender in ['Staff', 'Administrator'] else 'text-start' }}">
+                                                <span class="badge {{ 'bg-primary' if reply.sender in ['Staff', 'Administrator'] else ('bg-driver' if t.client_role == 'Driver' else 'bg-customer') }} mb-1">
+                                                    {{ reply.sender }}
+                                                </span>
+                                                <div class="p-2 {{ 'bg-primary text-white' if reply.sender in ['Staff', 'Administrator'] else 'bg-light text-dark' }} border {{ 'border-driver border-2' if reply.sender not in ['Staff', 'Administrator'] and t.client_role == 'Driver' else '' }} rounded shadow-sm d-inline-block text-start" style="max-width: 85%;">
+                                                    {{ reply.message }}
                                                 </div>
-                                            {% endfor %}
-                                            
-                                        </div>
-
-                                        <div class="mb-1">
-                                            <label class="form-label fw-bold text-primary">Scrie un mesaj nou:</label>
-                                            <textarea class="form-control" name="admin_reply" rows="3" placeholder="Tastează răspunsul tău aici..." required></textarea>
-                                        </div>
-
+                                                <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ reply.timestamp }}</div>
+                                            </div>
+                                        {% endfor %}
                                     </div>
-                                    <div class="modal-footer bg-light">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Închide</button>
-                                        <button type="submit" class="btn btn-primary">Trimite Răspuns</button>
+
+                                    <div class="mb-1">
+                                        <label class="form-label fw-bold text-primary">Scrie un mesaj nou:</label>
+                                        <textarea class="form-control shadow-sm" name="admin_reply" rows="3" placeholder="Tastează răspunsul tău aici..." required></textarea>
                                     </div>
-                                </form>
-                            </div>
+                                </div>
+                                <div class="modal-footer bg-white" style="border-radius: 0 0 12px 12px;">
+                                    <button type="button" class="btn btn-light custom-rounded" data-bs-dismiss="modal">Închide</button>
+                                    <button type="submit" class="btn btn-primary fw-bold custom-rounded px-4 shadow-sm">Trimite Răspuns</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

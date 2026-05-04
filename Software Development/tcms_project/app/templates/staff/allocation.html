@@ -1,209 +1,112 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Allocation Module - Transport Company</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+{% extends "layouts/admin_layout.html" %}
 
-<div class="dashboard-wrapper">
-    <div class="sidebar">
-    <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 120px; margin-bottom: 20px;">
-    
-    {% if session.get('role') == 'Staff' %}
-        <!-- Meniul strict pentru STAFF -->
-        <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn active">Dashboard</a>
-        <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn">Allocation</a>
-        <a href="#" class="nav-btn">Route Optimization</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
-    {% else %}
-        <!-- Meniul pentru ADMIN -->
-        <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn active">Dashboard</a>
-        <a href="{{ url_for('fleet.fleet_management') }}" class="nav-btn">Fleet Management</a>
-        <a href="{{ url_for('driver.driver_management') }}" class="nav-btn">Driver Management</a>
-        <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn">Requests</a>
-        <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn">Allocation</a>
-        <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
-        <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn">💬 Support</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+{% block title %}Allocation Module{% endblock %}
+{% block page_header %}Job Allocation{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} shadow-sm rounded-3">{{ message }}</div>
+        {% endfor %}
     {% endif %}
-</div>
+{% endwith %}
 
-    <div class="main-content">
-        <div class="top-navbar">
-            <div>Job Allocation</div>
-            <div class="user-info">
-                <div class="user-info d-flex align-items-center">
-    <div class="dropdown d-inline-block">
-    <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.2rem;">
-        🔔
-        {% if unread_count > 0 %}
-        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
-            {{ unread_count }}
-        </span>
-        {% endif %}
-    </span>
+<form method="POST" action="{{ url_for('allocation.confirm_allocation') }}">
     
-    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
-        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
-        
-        {% if unread_count == 0 %}
-            <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
-        {% else %}
-            {% for n in notifications %}
-            <li>
-                <a class="dropdown-item py-2 border-bottom" style="white-space: normal;" href="{{ url_for('notifications.read_notification', notif_id=n.id) }}">
-                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
-                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
-                </a>
-            </li>
-            {% endfor %}
-        {% endif %}
-    </ul>
-</div>
-    
-    <div class="user-info d-flex align-items-center">
-    
-    <div class="dropdown d-inline-block me-3">
+    <!-- 1. Select Request (Designul tău original, dar restricționat pe înălțime) -->
+    <div class="card shadow-sm mb-3 border-0" style="flex-grow: 0; height: auto; border-radius: 8px;">
+        <div class="card-header text-white fw-bold" style="background-color: #5d758b; border-radius: 8px 8px 0 0;">
+            1. Select Pending Request
         </div>
+        <div class="card-body bg-light" style="border-radius: 0 0 8px 8px;">
+            <select class="form-select form-select-lg" name="request_id" required>
+                <option value="" selected disabled>-- Choose a Request to Allocate --</option>
+                {% for req in data.requests %}
+                    <option value="{{ req.id }}">Request ID: {{ req.id }} | Client: {{ req.client }} | Route: {{ req.pickup }} ➔ {{ req.delivery }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
 
-    <div class="user-profile border-start ps-3 ms-3">
-                        <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none d-flex align-items-center text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                            
-                            {% if session.get('profile_picture') and session.get('profile_picture') != '' %}
-                                <img src="{{ url_for('static', filename='img/avatars/' + session.get('profile_picture')) }}" 
-                                     alt="Avatar" 
-                                     style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%; border: 2px solid #007bff; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <!-- Rândul cu Tabelele pentru Mașini și Șoferi -->
+    <div class="row g-4">
+        
+        <!-- 2. Select Available Vehicle -->
+        <div class="col-md-6">
+            <div class="table-container shadow-sm border-0 h-100 mt-0">
+                <div class="section-header text-white" style="margin-bottom: 0; border-radius: 8px 8px 0 0; background-color: #216a94; padding: 15px;">
+                    2. Select Available Vehicle
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover custom-table mb-0 align-middle">
+                        <thead class="sticky-top table-light">
+                            <tr>
+                                <th class="ps-4">Select</th>
+                                <th>Plate No.</th>
+                                <th>Type</th>
+                                <th>Capacity (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if data.vehicles|length == 0 %}
+                                <tr><td colspan="4" class="text-center text-muted py-5">No available vehicles.</td></tr>
                             {% else %}
-                                <span class="fs-3 me-2" style="line-height: 1;">👤</span>
+                                {% for v in data.vehicles %}
+                                <tr style="cursor: pointer;" onclick="document.getElementById('veh_{{ v.id }}').checked = true;">
+                                    <td class="ps-4"><input type="radio" id="veh_{{ v.id }}" name="vehicle_id" value="{{ v.id }}" required class="form-check-input" style="width: 1.2em; height: 1.2em;"></td>
+                                    <td class="fw-bold text-dark">{{ v.plate_number }}</td>
+                                    <td><span class="badge bg-secondary">{{ v.type }}</span></td>
+                                    <td class="text-muted">{{ v.capacity }}</td>
+                                </tr>
+                                {% endfor %}
                             {% endif %}
-                            
-                            <div class="d-flex flex-column justify-content-center">
-                                <span class="fw-bold" style="font-size: 1rem; line-height: 1.2;">
-                                    {{ session.get('username') }}
-                                </span>
-                                <span class="badge bg-primary mt-1" style="font-size: 0.70rem; align-self: flex-start;">
-                                    {{ session.get('role') }}
-                                </span>
-                            </div>
-                            
-                        </a>
-                    </div>
-
-</div>
-</div>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <div class="content-body">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <form method="POST" action="{{ url_for('allocation.confirm_allocation') }}">
-                
-                <div class="card shadow-sm mb-4 border-0">
-                    <div class="card-header text-white fw-bold" style="background-color: #5d758b;">
-                        1. Select Pending Request
-                    </div>
-                    <div class="card-body bg-light">
-                        <select class="form-select form-select-lg" name="request_id" required>
-                            <option value="" selected disabled>-- Choose a Request to Allocate --</option>
-                            {% for req in data.requests %}
-                                <option value="{{ req.id }}">Request ID: {{ req.id }} | Client: {{ req.client }} | Route: {{ req.pickup }} ➔ {{ req.delivery }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+        <!-- 3. Select Available Driver -->
+        <div class="col-md-6">
+            <div class="table-container shadow-sm border-0 h-100 mt-0">
+                <div class="section-header text-white" style="margin-bottom: 0; border-radius: 8px 8px 0 0; background-color: #216a94; padding: 15px;">
+                    3. Select Available Driver
                 </div>
-
-                <div class="row g-4">
-                    
-                    <div class="col-md-6">
-                        <div class="table-container shadow-sm border-0 h-100 mt-0">
-                            <div class="section-header" style="margin-bottom: 0; border-radius: 4px 4px 0 0; background-color: #216a94;">
-                                2. Select Available Vehicle
-                            </div>
-                            <div style="max-height: 400px; overflow-y: auto;">
-                                <table class="table table-hover custom-table mb-0">
-                                    <thead class="sticky-top bg-light">
-                                        <tr>
-                                            <th>Select</th>
-                                            <th>Plate No.</th>
-                                            <th>Type</th>
-                                            <th>Capacity (kg)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% if data.vehicles|length == 0 %}
-                                            <tr><td colspan="4" class="text-center text-muted py-3">No available vehicles.</td></tr>
-                                        {% else %}
-                                            {% for v in data.vehicles %}
-                                            <tr>
-                                                <td><input type="radio" name="vehicle_id" value="{{ v.id }}" required class="form-check-input" style="width: 1.2em; height: 1.2em;"></td>
-                                                <td class="fw-bold">{{ v.plate_number }}</td>
-                                                <td>{{ v.type }}</td>
-                                                <td>{{ v.capacity }}</td>
-                                            </tr>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div class="table-container shadow-sm border-0 h-100 mt-0">
-                            <div class="section-header" style="margin-bottom: 0; border-radius: 4px 4px 0 0; background-color: #216a94;">
-                                3. Select Available Driver
-                            </div>
-                            <div style="max-height: 400px; overflow-y: auto;">
-                                <table class="table table-hover custom-table mb-0">
-                                    <thead class="sticky-top bg-light">
-                                        <tr>
-                                            <th>Select</th>
-                                            <th>Name</th>
-                                            <th>License Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% if data.drivers|length == 0 %}
-                                            <tr><td colspan="3" class="text-center text-muted py-3">No available drivers.</td></tr>
-                                        {% else %}
-                                            {% for d in data.drivers %}
-                                            <tr>
-                                                <td><input type="radio" name="driver_id" value="{{ d.id }}" required class="form-check-input" style="width: 1.2em; height: 1.2em;"></td>
-                                                <td class="fw-bold">👤 {{ d.name }}</td>
-                                                <td>{{ d.licenses }}</td>
-                                            </tr>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover custom-table mb-0 align-middle">
+                        <thead class="sticky-top table-light">
+                            <tr>
+                                <th class="ps-4">Select</th>
+                                <th>Name</th>
+                                <th>License Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if data.drivers|length == 0 %}
+                                <tr><td colspan="3" class="text-center text-muted py-5">No available drivers.</td></tr>
+                            {% else %}
+                                {% for d in data.drivers %}
+                                <tr style="cursor: pointer;" onclick="document.getElementById('drv_{{ d.id }}').checked = true;">
+                                    <td class="ps-4"><input type="radio" id="drv_{{ d.id }}" name="driver_id" value="{{ d.id }}" required class="form-check-input" style="width: 1.2em; height: 1.2em;"></td>
+                                    <td class="fw-bold text-dark">👤 {{ d.name }}</td>
+                                    <td class="text-muted small">{{ d.licenses }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+                        </tbody>
+                    </table>
                 </div>
-
-                <div class="text-center mt-4 mb-5">
-                    <button type="submit" class="btn btn-primary btn-lg px-5 shadow" style="background-color: #0078d4; border: none;">
-                        Confirm Allocation
-                    </button>
-                </div>
-            </form>
-
+            </div>
         </div>
-    </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    </div>
+
+    <!-- Butonul Final -->
+    <div class="text-center mt-4 mb-5">
+        <button type="submit" class="btn btn-primary btn-lg px-5 shadow fw-bold rounded-3" style="background-color: #0078d4; border: none;">
+            Confirm Allocation
+        </button>
+    </div>
+</form>
+{% endblock %}
