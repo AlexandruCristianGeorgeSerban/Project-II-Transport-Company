@@ -1,125 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Invoices - Transport Company</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body class="bg-light">
+{% extends "layouts/customer_layout.html" %}
 
-<div class="dashboard-wrapper">
-    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #e9ecef; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
-        <div class="text-center mt-3 mb-4">
-            <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
-        </div>
-        <a href="{{ url_for('customer.portal') }}" class="nav-btn fw-bold">📦 My Transports</a>
-        <a href="{{ url_for('customer.invoices') }}" class="nav-btn active">💳 Invoices & Billing</a>
-        <a href="{{ url_for('customer.support') }}" class="nav-btn">🎧 Help & Support</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+{% block title %}Invoices & Billing{% endblock %}
+
+{% block page_header %}Invoices & Billing{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header text-white fw-bold" style="background-color: #216a94;">
+        💳 Billing History
     </div>
+    <div class="card-body p-0">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} m-3 shadow-sm">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-    <div class="main-content">
-        <div class="top-navbar bg-white border-bottom shadow-sm">
-            <div class="fw-bold fs-5">Invoices & Billing</div>
-            <div class="user-info">
-                <div class="user-info d-flex align-items-center">
-    
-    <div class="dropdown d-inline-block me-3">
-        </div>
-
-    <div class="user-profile border-start ps-3 ms-3">
-                        <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none d-flex align-items-center text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                            
-                            {% if session.get('profile_picture') and session.get('profile_picture') != '' %}
-                                <img src="{{ url_for('static', filename='img/avatars/' + session.get('profile_picture')) }}" 
-                                     alt="Avatar" 
-                                     style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%; border: 2px solid #007bff; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="bg-light">
+                <tr>
+                    <th>Invoice ID</th>
+                    <th>Transport Request ID</th>
+                    <th>Issue Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if data.invoices|length == 0 %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <h1 class="display-4 text-muted">🧾</h1>
+                        <p class="text-muted mt-2">You currently have no pending invoices.</p>
+                    </td>
+                </tr>
+                {% else %}
+                    {% for inv in data.invoices %}
+                    <tr>
+                        <td class="fw-bold">{{ inv.id }}</td>
+                        <td>{{ inv.request_id }}</td>
+                        <td>{{ inv.issue_date }}</td>
+                        <td class="fw-bold text-success">${{ inv.amount }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if inv.status == 'Paid' else 'warning text-dark' }}">
+                                {{ inv.status }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if inv.status == 'Pending' %}
+                            <form method="POST" action="{{ url_for('customer.pay_invoice', invoice_id=inv.id) }}" style="margin: 0;">
+                                <button type="submit" class="btn btn-sm btn-primary px-3 shadow-sm" onclick="return confirm('Confirm payment of ${{ inv.amount }} for {{ inv.id }}?');">Pay Now</button>
+                            </form>
                             {% else %}
-                                <span class="fs-3 me-2" style="line-height: 1;">👤</span>
+                            <button class="btn btn-sm btn-outline-secondary px-3" disabled>Paid</button>
                             {% endif %}
-                            
-                            <div class="d-flex flex-column justify-content-center">
-                                <span class="fw-bold" style="font-size: 1rem; line-height: 1.2;">
-                                    {{ session.get('username') }}
-                                </span>
-                                <span class="badge bg-primary mt-1" style="font-size: 0.70rem; align-self: flex-start;">
-                                    {{ session.get('role') }}
-                                </span>
-                            </div>
-                            
-                        </a>
-                    </div>
-
-</div>
-            </div>
-        </div>
-
-        <div class="content-body p-4">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} shadow-sm">{{ message }}</div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 {% endif %}
-            {% endwith %}
-
-            <div class="card shadow-sm border-0">
-                <div class="card-header text-white fw-bold" style="background-color: #216a94;">
-                    🧾 Billing History
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead class="bg-light">
-                            <tr>
-                                <th>Invoice ID</th>
-                                <th>Transport Request ID</th>
-                                <th>Issue Date</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if data.invoices|length == 0 %}
-                            <tr>
-                                <td colspan="6" class="text-center py-5">
-                                    <h1 class="display-4 text-muted">💳</h1>
-                                    <p class="text-muted mt-2">You currently have no pending invoices.</p>
-                                </td>
-                            </tr>
-                            {% else %}
-                                {% for inv in data.invoices %}
-                                <tr>
-                                    <td class="fw-bold">{{ inv.id }}</td>
-                                    <td>{{ inv.request_id }}</td>
-                                    <td>{{ inv.issue_date }}</td>
-                                    <td class="fw-bold text-success">${{ inv.amount }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if inv.status == 'Paid' else 'warning text-dark' }}">
-                                            {{ inv.status }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        {% if inv.status == 'Pending' %}
-                                        <form method="POST" action="{{ url_for('customer.pay_invoice', invoice_id=inv.id) }}" style="margin: 0;">
-                                            <button type="submit" class="btn btn-sm btn-primary px-3 shadow-sm" onclick="return confirm('Confirm payment of ${{ inv.amount }} for {{ inv.id }}?');">Pay Now</button>
-                                        </form>
-                                        {% else %}
-                                        <button class="btn btn-sm btn-outline-secondary px-3" disabled>Paid</button>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+            </tbody>
+        </table>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

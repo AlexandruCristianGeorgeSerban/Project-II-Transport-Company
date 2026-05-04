@@ -1,95 +1,64 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Chat - Transport Company</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+{% extends "layouts/customer_layout.html" %}
 
-<div class="dashboard-wrapper">
-    <!-- SIDEBAR CLIENT (Modifica link-urile daca difera de la tine) -->
-    <div class="sidebar">
-        <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 120px; margin-bottom: 20px;">
-        <a href="{{ url_for('customer.portal') }}" class="nav-btn">My Requests</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+{% block title %}Chat for Transport #{{ job_id }}{% endblock %}
+
+{% block page_header %}
+    <a href="{{ url_for('customer.portal') }}" class="btn btn-sm btn-outline-secondary me-3 fw-bold">⬅ Back</a>
+    Chat with Driver for Transport #{{ job_id }}
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mx-auto" style="max-width: 800px;">
+    <div class="card-header bg-dark text-white fw-bold py-3">
+        Conversation with Driver
     </div>
-
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-        <div class="top-navbar">
-            <div>
-                <!-- Modifica link-ul de Back sa duca unde trebuie la client -->
-                <a href="{{ url_for('customer.portal') }}" class="btn btn-sm btn-outline-secondary me-3">⬅ Back</a>
-                Chat with Driver for Transport #{{ job_id }}
+    
+    <!-- ZONA DE MESAJE -->
+    <div class="card-body" style="height: 400px; overflow-y: auto; display: flex; flex-direction: column; background-color: #f8f9fa;">
+        {% if messages|length == 0 %}
+            <div class="text-center text-muted my-auto">
+                <div class="fs-1 mb-2">💬</div>
+                No messages yet. Say hello to your driver!
             </div>
-            
-            <div class="user-info">
-                <div class="user-profile border-start ps-3 ms-3">
-                    <span class="fw-bold">👤 {{ session.get('username') }} (Customer)</span>
+        {% else %}
+            {% for msg in messages %}
+                <div class="p-2 mb-3 rounded shadow-sm" 
+                     style="max-width: 75%; clear: both; 
+                     {% if msg.sender_role == 'Customer' %}
+                        align-self: flex-end; background-color: #dcf8c6; border-bottom-right-radius: 0;
+                     {% else %}
+                        align-self: flex-start; background-color: #ffffff; border-bottom-left-radius: 0; border: 1px solid #dee2e6;
+                     {% endif %}">
+                    <small class="fw-bold text-secondary d-block" style="font-size: 0.75rem;">{{ msg.sender_role }}</small>
+                    <span style="font-size: 0.95rem;">{{ msg.message }}</span>
+                    <small class="d-block text-muted text-end mt-1" style="font-size: 0.65rem;">{{ msg.timestamp }}</small>
                 </div>
-            </div>
-        </div>
-
-        <div class="content-body">
-            <div class="card shadow-sm border-0 mx-auto" style="max-width: 800px;">
-                <div class="card-header bg-dark text-white fw-bold">
-                    Conversation with Driver
-                </div>
-                
-                <!-- ZONA DE MESAJE -->
-                <div class="card-body" style="height: 400px; overflow-y: auto; display: flex; flex-direction: column; background-color: #f8f9fa;">
-                    {% if messages|length == 0 %}
-                        <div class="text-center text-muted my-auto">
-                            No messages yet. Say hello to your driver!
-                        </div>
-                    {% else %}
-                        {% for msg in messages %}
-                            <div class="p-2 mb-3 rounded shadow-sm" 
-                                 style="max-width: 75%; clear: both; 
-                                 {% if msg.sender_role == 'Customer' %}
-                                    align-self: flex-end; background-color: #dcf8c6; border-bottom-right-radius: 0;
-                                 {% else %}
-                                    align-self: flex-start; background-color: #ffffff; border-bottom-left-radius: 0; border: 1px solid #dee2e6;
-                                 {% endif %}">
-                                <small class="fw-bold text-secondary d-block" style="font-size: 0.75rem;">{{ msg.sender_role }}</small>
-                                <span style="font-size: 0.95rem;">{{ msg.message }}</span>
-                                <small class="d-block text-muted text-end mt-1" style="font-size: 0.65rem;">{{ msg.timestamp }}</small>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                </div>
-                
-                <!-- FORMULARUL DE TRIMITERE MESAJE -->
-                <div class="card-footer bg-white">
-                    <form action="{{ url_for('customer.job_chat', job_id=job_id) }}" method="POST" class="d-flex gap-2">
-                        <input type="text" name="message" class="form-control" placeholder="Type a message..." required autocomplete="off">
-                        <button type="submit" class="btn btn-dark fw-bold px-4">Send</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+    
+    <!-- FORMULARUL DE TRIMITERE MESAJE -->
+    <div class="card-footer bg-white py-3">
+        <form action="{{ url_for('customer.job_chat', job_id=job_id) }}" method="POST" class="d-flex gap-2">
+            <input type="text" name="message" class="form-control bg-light" placeholder="Type a message..." required autocomplete="off">
+            <button type="submit" class="btn btn-dark fw-bold px-4">Send</button>
+        </form>
     </div>
 </div>
+{% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Script pentru Scroll Jos și Auto-Refresh -->
+{% block extra_js %}
 <script>
-    // 1. Dă scroll automat la ultimul mesaj
+    // Dă scroll automat la ultimul mesaj
     const chatBody = document.querySelector('.card-body');
     if(chatBody) chatBody.scrollTop = chatBody.scrollHeight;
 
-    // 2. Dă refresh automat la pagină la fiecare 5 secunde ca să aducă mesaje noi
+    // Dă refresh automat la pagină la fiecare 5 secunde ca să aducă mesaje noi
     setInterval(function() {
         var inputBox = document.querySelector('input[name="message"]');
-        
-        // Verificăm ca utilizatorul să NU fie cu mouse-ul în căsuță și să NU fi scris ceva deja
         if (document.activeElement !== inputBox && inputBox.value.trim() === '') {
             window.location.reload();
         }
     }, 5000);
 </script>
-</body>
-</html>
+{% endblock %}

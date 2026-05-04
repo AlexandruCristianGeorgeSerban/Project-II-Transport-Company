@@ -1,162 +1,75 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Transport Company</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+{% extends "layouts/admin_layout.html" %}
 
-<div class="dashboard-wrapper">
-    <div class="sidebar">
-        <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 120px; margin-bottom: 20px;">
-        <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn active">Dashboard</a>
-        <a href="{{ url_for('fleet.fleet_management') }}" class="nav-btn">Fleet Management</a>
-        <a href="{{ url_for('driver.driver_management') }}" class="nav-btn">Driver Management</a>
-        <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn">Requests</a>
-        <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn">Allocation</a>
-        <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn">Reports</a>
-        <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn">💬 Support</a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+{% block title %}Dashboard{% endblock %}
+{% block page_header %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Mesaje Flash (din Refactoring) -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} shadow-sm rounded-3">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="section-header">Summary</div>
+<div class="card-row mb-4">
+    <div class="summary-card shadow-sm border-0" style="border-left: 4px solid #f66d9b;">
+        <span>📄 Pending Requests:</span>
+        <span class="badge-count bg-pink">{{ data.counts.pending_requests }}</span>
     </div>
-
-    <div class="main-content">
-        <div class="top-navbar">
-            <div>Dashboard</div>
-            <div class="user-info">
-               <div class="user-info d-flex align-items-center">
-    <div class="dropdown d-inline-block">
-    <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.2rem;">
-        🔔
-        {% if unread_count > 0 %}
-        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
-            {{ unread_count }}
-        </span>
-        {% endif %}
-    </span>
-    
-    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
-        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
-        
-        {% if unread_count == 0 %}
-            <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
-        {% else %}
-            {% for n in notifications %}
-            <li>
-               <a class="dropdown-item py-2 border-bottom smart-notif-link" data-notif-id="{{ n.id }}" data-message="{{ n.message }}" style="white-space: normal; cursor: pointer;">
-                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
-                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
-                </a>
-            </li>
-            {% endfor %}
-        {% endif %}
-    </ul>
+    <div class="summary-card shadow-sm border-0" style="border-left: 4px solid #17a2b8;">
+        <span>🚗 Available Vehicles:</span>
+        <span class="badge-count bg-teal">{{ data.counts.available_vehicles }}</span>
+    </div>
+    <div class="summary-card shadow-sm border-0" style="border-left: 4px solid #6c757d;">
+        <span>👤 Available Drivers:</span>
+        <span class="badge-count bg-grey">{{ data.counts.available_drivers }}</span>
+    </div>
 </div>
-    
-    <div class="user-info d-flex align-items-center">
-    
-    <div class="dropdown d-inline-block me-3">
-        </div>
 
-       <!-- AICI ÎNCEPE BUTONUL CĂTRE PROFIL -->
-    <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none">
-        <div class="user-profile border-start ps-3 d-flex align-items-center" style="cursor: pointer;">
-            <!-- Verificam daca are poza in sesiune -->
-            {% if session.get('profile_picture') %}
-                <img src="{{ url_for('static', filename='img/avatars/' + session.get('profile_picture')) }}" 
-                     alt="Profile" 
-                     class="rounded-circle me-2" 
-                     style="width: 35px; height: 35px; object-fit: cover; border: 2px solid #0078d4;">
+<a href="{{ url_for('request_routes.request_management') }}" class="btn btn-success mb-3 fw-bold custom-rounded shadow-sm">
+    + Go to Requests Module
+</a>
+
+<div class="table-container shadow-sm border-0">
+    <div class="section-header text-white" style="margin-bottom: 0; border-radius: 8px 8px 0 0; background-color: #5d758b; padding: 15px;">Recent Transport Requests</div>
+    <table class="table table-striped table-hover custom-table mb-0 align-middle">
+        <thead class="table-light">
+            <tr>
+                <th class="ps-4">Request ID</th>
+                <th>Client</th>
+                <th>Pickup</th>
+                <th>Delivery</th>
+                <th>Status</th>
+                <th class="text-center">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data.recent_requests %}
+            <tr>
+                <td class="ps-4 fw-bold text-primary">{{ row.id }}</td>
+                <td class="fw-bold">{{ row.client }}</td>
+                <td>{{ row.pickup }}</td>
+                <td>{{ row.delivery }}</td>
+                <td><span class="badge bg-{{ 'warning text-dark' if row.status == 'Pending' else ('info' if row.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ row.status }}</span></td>
+                <td class="text-center">
+                    <a href="{{ url_for('request_routes.request_management') }}" class="btn btn-primary btn-sm text-white fw-bold px-3 custom-rounded">Manage</a>
+                </td>
+            </tr>
             {% else %}
-                <!-- Daca nu are poza, afisam omuletul (emoji) -->
-                <span class="me-2" style="font-size: 1.2rem;">👤</span>
-            {% endif %}
-            
-            <span class="fw-bold text-dark" style="font-size: 1.05rem;">
-                {{ session.get('username', 'Guest') }}
-            </span>
-            <span class="badge bg-primary ms-2" style="font-size: 0.75rem;">
-                {{ session.get('role', 'User') }}
-            </span>
-        </div>
-    </a>
-    <!-- AICI SE TERMINĂ BUTONUL CĂTRE PROFIL -->
-                
+            <tr><td colspan="6" class="text-center py-5 text-muted">No transport requests found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
-</div>
-            </div>
-        </div>
+{% endblock %}
 
-        <div class="content-body">
-            
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <div class="section-header">Summary</div>
-            <div class="card-row">
-                <div class="summary-card">
-                    <span>📄 Pending Requests:</span>
-                    <span class="badge-count bg-pink">{{ data.counts.pending_requests }}</span>
-                </div>
-                <div class="summary-card">
-                    <span>🚗 Available Vehicles:</span>
-                    <span class="badge-count bg-teal">{{ data.counts.available_vehicles }}</span>
-                </div>
-                <div class="summary-card">
-                    <span>👤 Available Drivers:</span>
-                    <span class="badge-count bg-grey">{{ data.counts.available_drivers }}</span>
-                </div>
-            </div>
-
-            <a href="{{ url_for('request_routes.request_management') }}" class="btn btn-success mb-2">
-                + Go to Requests Module
-            </a>
-
-            <div class="table-container">
-                <div class="section-header" style="margin-bottom: 0; border-radius: 4px 4px 0 0;">Recent Transport Requests</div>
-                <table class="table table-striped table-hover custom-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>Request ID</th>
-                            <th>Client</th>
-                            <th>Pickup</th>
-                            <th>Delivery</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in data.recent_requests %}
-                        <tr>
-                            <td>{{ row.id }}</td>
-                            <td>{{ row.client }}</td>
-                            <td>{{ row.pickup }}</td>
-                            <td>{{ row.delivery }}</td>
-                            <td><span class="badge bg-{{ 'warning' if row.status == 'Pending' else ('info' if row.status == 'Draft' else 'success') }}">{{ row.status }}</span></td>
-                            <td>
-                                <a href="{{ url_for('request_routes.request_management') }}" class="btn btn-info btn-sm text-white">Manage</a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="6" class="text-center py-3">No transport requests found.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}
 <script>
     // --- MAGIA PENTRU SMART REDIRECT DIN CLOPOȚEL (ADMIN) ---
+    // Păstrat din versiunea 'main' a coechipierului
     document.querySelectorAll('.smart-notif-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault(); 
@@ -165,7 +78,6 @@
             let notifId = this.getAttribute('data-notif-id');
             let nextUrl = "";
             
-            // Adminul merge la Suport pentru tichete sau la Requests pentru cereri noi
             if (msg.toLowerCase().includes("tichet") || msg.toLowerCase().includes("răspuns")) {
                 nextUrl = "{{ url_for('admin_support.view_tickets') }}"; 
             } else if (msg.toLowerCase().includes("cerere")) {
@@ -181,5 +93,4 @@
         });
     });
 </script>
-</body>
-</html>
+{% endblock %}

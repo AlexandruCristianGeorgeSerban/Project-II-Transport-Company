@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Driver Portal{% endblock %} - Transport Company</title>
+    
+    <!-- CSS comun -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- CSS specific (opțional, poate fi suprascris de pagina copil) -->
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-light">
+
+<!-- Buton meniu mobil -->
+<button class="mobile-toggle d-none" onclick="document.querySelector('.sidebar').classList.toggle('active')">
+    ☰ Menu
+</button>
+
+<div class="dashboard-wrapper">
+    <!-- MENIUL LATERAL COMUN PENTRU ȘOFERI -->
+    <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #0285e9; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
+    <div class="text-center mt-3 mb-4">
+        <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
+    </div>
+
+    <a href="{{ url_for('driver.portal') }}" class="nav-btn {% if request.endpoint == 'driver.portal' %}active fw-bold{% endif %}">🚚 My Jobs</a>
+    <a href="{{ url_for('profile.view_profile') }}" class="nav-btn {% if request.endpoint == 'profile.view_profile' %}active fw-bold{% endif %}">👤 Profile</a>
+    <a href="{{ url_for('driver.history') }}" class="nav-btn {% if request.endpoint == 'driver.history' %}active fw-bold{% endif %}">📋 History</a>
+    <a href="{{ url_for('driver.support') }}" class="nav-btn {% if request.endpoint == 'driver.support' %}active fw-bold{% endif %}">🎧 Support</a>
+    
+    <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+</div>
+
+    <!-- ZONA PRINCIPALĂ DE CONȚINUT -->
+    <div class="main-content p-4">
+        
+        <!-- BARA DE SUS (NAVBAR) COMUNĂ -->
+        <div class="top-navbar d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+            <div>
+                <!-- Titlul din stânga, se schimbă din fișierele copil -->
+                <h2 class="h4 mb-0 fw-bold">{% block page_header %}Dashboard{% endblock %}</h2>
+            </div>
+            
+            <div class="user-info d-flex align-items-center">
+                
+                <!-- CLOPOȚEL DE NOTIFICĂRI INTEGRAT DEFINITIV -->
+                <div class="dropdown d-inline-block mt-1 me-1">
+                    <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.4rem;">
+                        🔔
+                        {% if unread_count and unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55em; padding: 0.35em 0.5em;">
+                            {{ unread_count }}
+                        </span>
+                        {% endif %}
+                    </span>
+                    
+                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
+                        
+                        {% if not unread_count or unread_count == 0 %}
+                            <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
+                        {% else %}
+                            {% for n in notifications %}
+                            <li>
+                                <a class="dropdown-item py-2 border-bottom" style="white-space: normal;" href="#">
+                                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
+                                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- LINIE DESPĂRȚITOARE ȘI PROFIL UTILIZATOR INTEGRAT DEFINITIV -->
+                <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none text-dark" style="transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                    <!-- border-start este linia verticală de care aveai nevoie -->
+                    <div class="user-profile border-start ps-3 ms-1 d-flex align-items-center" style="cursor: pointer;">
+                        {% if session.get('profile_picture') and session.get('profile_picture') != '' %}
+                            <img src="{{ url_for('static', filename='img/avatars/' + session.get('profile_picture')) }}" 
+                                 alt="Avatar" 
+                                 style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%; border: 2px solid #007bff; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        {% else %}
+                            <span class="fs-3 me-2" style="line-height: 1;">👤</span>
+                        {% endif %}
+                        <div class="d-flex flex-column justify-content-center">
+                            <span class="fw-bold" style="font-size: 1rem; line-height: 1.2;">
+                                {{ session.get('username', 'Guest') }}
+                            </span>
+                            <span class="badge bg-primary mt-1" style="font-size: 0.70rem; align-self: flex-start;">
+                                {{ session.get('role', 'User') }}
+                            </span>
+                        </div>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+
+        <!-- AICI SE INJECTEAZĂ DOAR PARTEA DE JOS A FIECĂREI PAGINI -->
+        {% block content %}
+        {% endblock %}
+
+    </div>
+</div>
+
+<!-- JS comun -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- JS specific -->
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>
