@@ -69,7 +69,6 @@
 {% block extra_js %}
 <script>
     // --- MAGIA PENTRU SMART REDIRECT DIN CLOPOȚEL (ADMIN) ---
-    // Păstrat din versiunea 'main' a coechipierului
     document.querySelectorAll('.smart-notif-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault(); 
@@ -78,16 +77,31 @@
             let notifId = this.getAttribute('data-notif-id');
             let nextUrl = "";
             
-            if (msg.toLowerCase().includes("tichet") || msg.toLowerCase().includes("răspuns")) {
+            if (!msg) return; // Safety check
+            let lowerMsg = msg.toLowerCase();
+            
+            // 1. Tichete de suport -> Suport Admin
+            if (lowerMsg.includes("tichet") || lowerMsg.includes("răspuns") || lowerMsg.includes("suport")) {
                 nextUrl = "{{ url_for('admin_support.view_tickets') }}"; 
-            } else if (msg.toLowerCase().includes("cerere")) {
+            } 
+            // 2. Cereri noi de transport -> Request Management
+            else if (lowerMsg.includes("cerere")) {
                 nextUrl = "{{ url_for('request_routes.request_management') }}"; 
             }
+            // 3. Status vehicul (ex: Mentenanta, Defect) -> Fleet Management
+            else if (lowerMsg.includes("vehicul") || lowerMsg.includes("status")) {
+                nextUrl = "{{ url_for('fleet.fleet_management') }}";
+            }
+            // 4. Actiuni șoferi -> Driver Management
+            else if (lowerMsg.includes("șofer") || lowerMsg.includes("sofer")) {
+                nextUrl = "{{ url_for('driver.driver_management') }}";
+            }
             
+            // Marcam ca citit invizibil si te teleportăm
             fetch('/notifications/read/' + notifId)
                 .then(() => {
                     if (nextUrl) window.location.href = nextUrl;
-                    else window.location.reload();
+                    else window.location.reload(); // Refresh daca nu recunoastem textul
                 })
                 .catch(() => window.location.reload());
         });
