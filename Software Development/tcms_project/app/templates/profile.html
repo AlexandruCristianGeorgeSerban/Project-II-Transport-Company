@@ -32,7 +32,7 @@
 
     <div style="max-width: 900px; margin: 0 auto;">
         
-        <!-- SECȚIUNEA PROFIL GENERAL -->
+        
         <div class="profile-card text-center">
             <form action="{{ url_for('profile.update_profile') }}" method="POST" enctype="multipart/form-data">
                 <div class="mb-4">
@@ -90,7 +90,7 @@
             </form>
         </div>
 
-        <!-- SECȚIUNEA SECURITATE -->
+        
         <div class="profile-card security-card">
             <h5 class="fw-bold mb-4 text-success">🔒 Update Password</h5>
             <form action="{{ url_for('profile.change_password') }}" method="POST">
@@ -110,7 +110,7 @@
             </form>
         </div>
 
-        <!-- SECȚIUNEA DANGER ZONE -->
+        
         <div class="profile-card danger-card">
             <h5 class="fw-bold text-danger mb-3">⚠️ Danger Zone</h5>
             <p class="text-muted small mb-4">Deleting your account is permanent. Once confirmed, all your history and data will be removed from our servers.</p>

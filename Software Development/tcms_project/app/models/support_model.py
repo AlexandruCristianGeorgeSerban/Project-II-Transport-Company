@@ -16,7 +16,7 @@ class SupportModel:
             with sqlite3.connect(self.db_path) as connection:
                 db_cursor = connection.cursor()
                 
-                # 1. Tabelul principal (support_tickets)
+                
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS support_tickets (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +31,7 @@ class SupportModel:
                     )
                 """)
                 
-                # Încercăm să adăugăm coloanele noi în cazul în care tabelul existat deja fără ele
+               
                 columns_to_add = [
                     ("support_tickets", "client_role", "TEXT DEFAULT 'Customer'"),
                     ("support_tickets", "subject", "TEXT"),
@@ -42,9 +42,9 @@ class SupportModel:
                     try:
                         db_cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} {definition}")
                     except sqlite3.OperationalError:
-                        pass # Coloana există deja
+                        pass 
 
-                # 2. Tabelul pentru replici (ticket_replies)
+                
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS ticket_replies (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +56,7 @@ class SupportModel:
                     )
                 """)
 
-                # Încercăm să adăugăm sender_role dacă lipsește
+                
                 try:
                     db_cursor.execute("ALTER TABLE ticket_replies ADD COLUMN sender_role TEXT DEFAULT 'Unknown'")
                 except sqlite3.OperationalError:
@@ -80,7 +80,7 @@ class SupportModel:
             logging.error(f"Database creation error: {error}")
             return False
 
-    # --- FUNCTII PENTRU CHAT PRIVAT (JOB MESSAGES) ---
+    
 
     def add_job_message(self, job_id: str, sender_id: int, role: str, message: str) -> bool:
         """Adaugă un mesaj de chat forțând ora locală."""
@@ -106,7 +106,7 @@ class SupportModel:
             logging.error(f"Error fetching job messages: {e}")
             return []
 
-    # --- FUNCTII PENTRU HELPDESK TICKET SYSTEM ---
+    
 
     def insert_ticket(self, client: str, message: str) -> bool:
         """Alias pentru rutele vechi de Customer."""
@@ -163,7 +163,7 @@ class SupportModel:
                         (ticket_id, sender, message)
                     )
                 
-                # Actualizăm statusul tichetului principal
+               
                 if sender_role in ['Staff', 'Administrator']:
                     new_status = 'Answered'
                 elif sender_role == 'Driver':

@@ -21,18 +21,17 @@ def create_app() -> Flask:
     app.secret_key = "transport_company_super_secret_key"
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
     
-    # --- BLOCUL PENTRU CLOPOȚELUL DE NOTIFICĂRI ---
-    # --- BLOCUL PENTRU CLOPOȚELUL DE NOTIFICĂRI ---
+    
+    
     @app.context_processor
     def inject_notifications():
         from app.models.notification_model import NotificationModel
         if 'username' in session and 'role' in session:
-            # Acum cerem notificări trimise direct către Username, SAU către Rol!
+            
             notifs = NotificationModel().get_unread_notifications(session['username'], session['role'])
             return dict(notifications=notifs, unread_count=len(notifs))
         return dict(notifications=[], unread_count=0)
-    # ----------------------------------------------
-    # ----------------------------------------------
+    
     
     # Register the blueprints
     app.register_blueprint(guest_bp) 

@@ -15,7 +15,7 @@ class DriverPortalModel:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
-                # Căutăm cursa după ID-ul șoferului
+                
                 cursor.execute("""
                     SELECT * FROM transport_requests 
                     WHERE CAST(driver_id AS TEXT) = ? 
@@ -54,7 +54,7 @@ class DriverPortalModel:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
-                # Căutăm o comandă activă a șoferului pentru a vedea ce mașină conduce
+                
                 cursor.execute("""
                     SELECT v.* FROM vehicles v
                     JOIN transport_requests tr ON CAST(v.id AS TEXT) = CAST(tr.vehicle_id AS TEXT)

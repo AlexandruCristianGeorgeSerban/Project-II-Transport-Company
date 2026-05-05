@@ -8,11 +8,10 @@ class RequestModel:
     """Handles direct CRUD database operations for transport requests."""
 
     def create_table(self) -> bool:
-        """Creates the transport_requests table if it does not already exist."""
+        """Creates the transport_requests and negotiation_chat tables."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                # Tabela se bazează acum pe migrarea din update_db
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS transport_requests (
                         id TEXT PRIMARY KEY,
@@ -36,6 +35,28 @@ class RequestModel:
                         assigned_vehicle TEXT DEFAULT NULL
                     )
                 """)
+                
+                
+                db_cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS negotiation_chat (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        request_id TEXT NOT NULL,
+                        sender TEXT NOT NULL,
+                        message TEXT NOT NULL,
+                        timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
+                    )
+                """)
+
+                columns_to_add = [
+                    ("transport_requests", "last_modified_by", "TEXT DEFAULT 'System'"),
+                    ("transport_requests", "last_modified_at", "DATETIME DEFAULT (datetime('now', 'localtime'))")
+                ]
+                for table, col, definition in columns_to_add:
+                    try:
+                        db_cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} {definition}")
+                    except sqlite3.OperationalError:
+                        pass
+                        
                 connection.commit()
                 return True
         except sqlite3.Error as error:
@@ -43,7 +64,6 @@ class RequestModel:
             return False
 
     def insert_request(self, r_id: str, client: str, c_type: str, desc: str, weight: float, volume: float, pickup: str, delivery: str, date: str, status: str) -> bool:
-        """Inserts a new transport request securely into the database."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
@@ -57,15 +77,16 @@ class RequestModel:
             logging.error(f"Insert error: {db_error}")
             return False
 
-    def update_request(self, r_id: str, client: str, c_type: str, desc: str, weight: float, volume: float, pickup: str, delivery: str, date: str, status: str) -> bool:
-        """Updates an existing transport request securely."""
+    def update_request(self, r_id: str, client: str, c_type: str, desc: str, weight: float, volume: float, pickup: str, delivery: str, date: str, status: str, staff_username: str = 'Unknown') -> bool:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                db_cursor.execute(
-                    "UPDATE transport_requests SET client = ?, cargo_type = ?, description = ?, weight = ?, volume = ?, pickup = ?, delivery = ?, preferred_date = ?, status = ? WHERE id = ?",
-                    (client, c_type, desc, weight, volume, pickup, delivery, date, status, r_id)
-                )
+                db_cursor.execute("""
+                    UPDATE transport_requests 
+                    SET client = ?, cargo_type = ?, description = ?, weight = ?, volume = ?, pickup = ?, delivery = ?, preferred_date = ?, status = ?,
+                        last_modified_by = ?, last_modified_at = datetime('now', 'localtime')
+                    WHERE id = ?
+                """, (client, c_type, desc, weight, volume, pickup, delivery, date, status, staff_username, r_id))
                 connection.commit()
                 return True
         except sqlite3.Error as db_error:
@@ -73,7 +94,6 @@ class RequestModel:
             return False
 
     def delete_request(self, r_id: str) -> bool:
-        """Deletes a transport request record from the database."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
@@ -85,7 +105,6 @@ class RequestModel:
             return False
 
     def get_all_requests(self) -> List[Dict[str, Any]]:
-        """Retrieves the list of all submitted transport requests."""
         requests_list: List[Dict[str, Any]] = []
         try:
             with sqlite3.connect(DB_PATH) as connection:
@@ -101,47 +120,36 @@ class RequestModel:
             return requests_list
 
     def get_request_summary(self) -> Dict[str, int]:
-        """Retrieves exact counts for total, pending, and approved requests."""
         summary: Dict[str, int] = {"total": 0, "pending": 0, "approved": 0}
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                
                 db_cursor.execute("SELECT COUNT(id) FROM transport_requests")
                 summary["total"] = db_cursor.fetchone()[0]
-                
                 db_cursor.execute("SELECT COUNT(id) FROM transport_requests WHERE status = ?", ("Pending",))
                 summary["pending"] = db_cursor.fetchone()[0]
-                
                 db_cursor.execute("SELECT COUNT(id) FROM transport_requests WHERE status = ?", ("Approved",))
                 summary["approved"] = db_cursor.fetchone()[0]
-                
                 return summary
         except sqlite3.Error as database_error:
             logging.error(f"Error retrieving request summary: {database_error}")
             return summary
 
     def update_request_status_and_price(self, req_id: str, new_status: str, price: float) -> dict:
-        """Actualizează statusul și prețul ferm (price_offer) al unei cereri."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                
-                # Salvăm în price_offer, care este valoarea ce va fi folosită la factură/rapoarte
                 db_cursor.execute("""
                     UPDATE transport_requests 
                     SET status = ?, price_offer = ? 
                     WHERE id = ?
                 """, (new_status, price, req_id))
-                
                 connection.commit()
-                return {"success": True, "message": f"Oferta de {price} a fost trimisă cu succes pentru cererea #{req_id}!"}
+                return {"success": True, "message": f"Oferta de ${price} a fost trimisă cu succes!"}
         except sqlite3.Error as db_error:
-            logging.error(f"Eroare la actualizarea ofertei de preț: {db_error}")
             return {"success": False, "message": "A apărut o eroare la salvarea în baza de date."}
             
     def update_request_status(self, req_id: str, new_status: str) -> dict:
-        """Actualizează doar statusul unei cereri."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
@@ -149,5 +157,35 @@ class RequestModel:
                 connection.commit()
                 return {"success": True, "message": f"Cererea #{req_id} a fost marcată ca {new_status}."}
         except sqlite3.Error as db_error:
-            logging.error(f"Eroare la actualizarea statusului: {db_error}")
             return {"success": False, "message": "Eroare la salvarea în baza de date."}
+
+    
+    def get_request_by_id(self, r_id: str) -> Dict[str, Any]:
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                connection.row_factory = sqlite3.Row
+                row = connection.execute("SELECT * FROM transport_requests WHERE id = ?", (r_id,)).fetchone()
+                return dict(row) if row else {}
+        except sqlite3.Error:
+            return {}
+
+    def add_negotiation_message(self, r_id: str, sender: str, message: str) -> bool:
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                connection.execute("INSERT INTO negotiation_chat (request_id, sender, message) VALUES (?, ?, ?)", (r_id, sender, message))
+                connection.commit()
+                return True
+        except sqlite3.Error:
+            return False
+
+    def get_negotiation_messages(self, r_id: str) -> List[Dict[str, Any]]:
+        messages = []
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                connection.row_factory = sqlite3.Row
+                rows = connection.execute("SELECT * FROM negotiation_chat WHERE request_id = ? ORDER BY timestamp ASC", (r_id,)).fetchall()
+                for row in rows:
+                    messages.append(dict(row))
+                return messages
+        except sqlite3.Error:
+            return messages

@@ -15,7 +15,7 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Mesaje de sistem -->
+    
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -25,7 +25,7 @@
     {% endwith %}
 
     <div class="row">
-        <!-- Secțiunea Status Vehicul -->
+        
         <div class="col-12 mb-4">
             <div class="card vehicle-status-card shadow-sm border-0 custom-rounded">
                 <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        <!-- Secțiunea Curse Active -->
+        
         <div class="col-lg-12 mb-4">
             <div class="card shadow-sm border-0 custom-rounded">
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
@@ -134,7 +134,7 @@
             </div>
         </div>
 
-        <!-- Secțiunea Hartă -->
+        
         <div class="col-lg-12">
             <div class="card shadow-sm border-0 custom-rounded">
                 <div class="card-header bg-white border-bottom py-3">
@@ -196,7 +196,7 @@
         document.getElementById('map-container').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // --- MAGIA PENTRU SMART REDIRECT DIN CLOPOȚEL (din Main) ---
+    
     document.querySelectorAll('.smart-notif-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault(); 

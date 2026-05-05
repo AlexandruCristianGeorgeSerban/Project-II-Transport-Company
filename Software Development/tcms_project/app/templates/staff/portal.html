@@ -72,7 +72,7 @@
     </table>
 </div>
 
-<!-- Modal-uri pentru Manage -->
+
 {% for req in data.requests %}
     {% if req.status == 'Pending' %}
     <div class="modal fade" id="manageModal{{ req.id }}" tabindex="-1" aria-hidden="true">

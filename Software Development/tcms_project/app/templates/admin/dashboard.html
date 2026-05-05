@@ -4,7 +4,7 @@
 {% block page_header %}Dashboard{% endblock %}
 
 {% block content %}
-<!-- Mesaje Flash (din Refactoring) -->
+
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
@@ -53,11 +53,57 @@
                 <td class="fw-bold">{{ row.client }}</td>
                 <td>{{ row.pickup }}</td>
                 <td>{{ row.delivery }}</td>
-                <td><span class="badge bg-{{ 'warning text-dark' if row.status == 'Pending' else ('info' if row.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ row.status }}</span></td>
-                <td class="text-center">
-                    <a href="{{ url_for('request_routes.request_management') }}" class="btn btn-primary btn-sm text-white fw-bold px-3 custom-rounded">Manage</a>
+                <td><span class="badge bg-{{ 'warning text-dark' if row.status in ['Pending', 'Negotiation'] else ('info' if row.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ row.status }}</span></td>
+                
+                <td class="align-middle">
+                    <div class="d-flex justify-content-center gap-2">
+                        
+                        {% if row.status == 'Negotiation' %}
+                            <button type="button" class="btn btn-warning btn-sm fw-bold custom-rounded text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#negotiateModal{{ row.id }}">💬 Negotiate</button>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('request_routes.request_management') }}" class="btn btn-primary btn-sm text-white fw-bold px-3 custom-rounded">Manage</a>
+                    </div>
                 </td>
             </tr>
+
+            
+            {% if row.status == 'Negotiation' %}
+            <div class="modal fade" id="negotiateModal{{ row.id }}" tabindex="-1">
+              <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content custom-rounded border-0 shadow">
+                  <form method="POST" action="{{ url_for('request_routes.staff_negotiate', req_id=row.id) }}">
+                      <div class="modal-header bg-warning text-dark" style="border-radius: 12px 12px 0 0;">
+                        <h5 class="modal-title fw-bold">💬 Negotiation Room: #{{ row.id }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body bg-light p-4">
+                          <div class="alert alert-info py-2 small shadow-sm border-0 mb-3">
+                              <strong>Current Rejected Offer:</strong> ${{ row.price_offer }} <br>
+                              <em>Constraint Matematic: Sistemul nu te lasă să faci o ofertă nouă mai mare sau egală cu cea refuzată de client.</em>
+                          </div>
+                          
+                          <div class="row g-2">
+                              <div class="col-8">
+                                  <label class="fw-bold small">Message to Client</label>
+                                  <input type="text" class="form-control" name="message" placeholder="Type your response or counter-offer reasoning..." required>
+                              </div>
+                              <div class="col-4">
+                                  <label class="fw-bold small">New Offer ($)</label>
+                                  <input type="number" step="0.1" class="form-control" name="new_price" placeholder="Must be < {{ row.price_offer }}" required>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="modal-footer bg-white border-0" style="border-radius: 0 0 12px 12px;">
+                        <button type="button" class="btn btn-light custom-rounded" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-warning fw-bold custom-rounded px-4 shadow-sm text-dark">Send Counter-Offer</button>
+                      </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
             {% else %}
             <tr><td colspan="6" class="text-center py-5 text-muted">No transport requests found.</td></tr>
             {% endfor %}
@@ -68,7 +114,7 @@
 
 {% block extra_js %}
 <script>
-    // --- MAGIA PENTRU SMART REDIRECT DIN CLOPOȚEL (ADMIN) ---
+    
     document.querySelectorAll('.smart-notif-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault(); 
@@ -77,31 +123,31 @@
             let notifId = this.getAttribute('data-notif-id');
             let nextUrl = "";
             
-            if (!msg) return; // Safety check
+            if (!msg) return; 
             let lowerMsg = msg.toLowerCase();
             
-            // 1. Tichete de suport -> Suport Admin
+            
             if (lowerMsg.includes("tichet") || lowerMsg.includes("răspuns") || lowerMsg.includes("suport")) {
                 nextUrl = "{{ url_for('admin_support.view_tickets') }}"; 
             } 
-            // 2. Cereri noi de transport -> Request Management
+           
             else if (lowerMsg.includes("cerere")) {
                 nextUrl = "{{ url_for('request_routes.request_management') }}"; 
             }
-            // 3. Status vehicul (ex: Mentenanta, Defect) -> Fleet Management
+            
             else if (lowerMsg.includes("vehicul") || lowerMsg.includes("status")) {
                 nextUrl = "{{ url_for('fleet.fleet_management') }}";
             }
-            // 4. Actiuni șoferi -> Driver Management
+            
             else if (lowerMsg.includes("șofer") || lowerMsg.includes("sofer")) {
                 nextUrl = "{{ url_for('driver.driver_management') }}";
             }
             
-            // Marcam ca citit invizibil si te teleportăm
+            
             fetch('/notifications/read/' + notifId)
                 .then(() => {
                     if (nextUrl) window.location.href = nextUrl;
-                    else window.location.reload(); // Refresh daca nu recunoastem textul
+                    else window.location.reload(); 
                 })
                 .catch(() => window.location.reload());
         });

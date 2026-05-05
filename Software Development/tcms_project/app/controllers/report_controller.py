@@ -26,10 +26,10 @@ class ReportController:
         if not report_type or not start_date or not end_date:
             return {"success": False, "message": "Please fill in all report parameters (Type, Start Date, End Date)."}
             
-        # Determine a generic name based on type
+        
         report_name = f"{report_type} Summary"
         
-        # Determine short type
+        
         short_type = "Usage" if "Usage" in report_type else ("Activity" if "Activity" in report_type else "Jobs")
         
         result = self.model.insert_report(report_name, short_type, user)

@@ -47,7 +47,7 @@
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-2 align-items-center">
                                 
-                                <!-- BUTONUL DE CHAT (Inclus din versiunea main, vizibil doar pentru Driveri) -->
+                               
                                 {% if session.get('role') == 'Driver' %}
                                     <a href="{{ url_for('driver.job_chat', job_id=job.id) }}" class="btn btn-sm btn-primary custom-rounded shadow-sm" title="Chat with Customer">
                                         💬 Chat

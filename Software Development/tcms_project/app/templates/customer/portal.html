@@ -8,9 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <style>
-        /* Ascunde panoul alb cu instrucțiunile GPS de text */
         .leaflet-routing-container { display: none !important; } 
-        
         .welcome-banner { background: linear-gradient(135deg, #0078d4, #00b4d8); color: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .stat-card { border-radius: 12px; border: none; transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-3px); }
@@ -70,49 +68,93 @@
             <div class="card-header bg-white border-bottom py-3">
                 <h5 class="fw-bold mb-0 text-dark">Recent Activity</h5>
             </div>
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Tracking ID</th>
-                        <th>Route</th>
-                        <th>Status</th>
-                        <th>Offer</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if data.requests|length == 0 %}
-                    <tr><td colspan="5" class="text-center py-5 text-muted">You have no transport requests yet. Let's get started!</td></tr>
-                    {% else %}
-                        {% for r in data.requests %}
-                        <tr onclick="updateMap('{{ r.pickup }}', '{{ r.delivery }}', '{{ r.id }}', '{{ r.vehicle_type }}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='transparent';">
-                            <td class="fw-bold text-primary">{{ r.id }}</td>
-                            <td><span class="small text-muted">From:</span> <strong>{{ r.pickup }}</strong> <br><span class="small text-muted">To:</span> <strong>{{ r.delivery }}</strong></td>
-                            <td><span class="badge rounded-pill bg-{{ 'warning' if r.status == 'Pending' else ('info' if r.status == 'Negotiation' else 'success') }} px-3 py-2">{{ r.status }}</span></td>
-                            <td class="fw-bold text-success">${{ r.price_offer }}</td>
-                            <td>
-                                {% if r.status == 'Pending' %}
-                                    <form action="{{ url_for('customer.handle_response', req_id=r.id, action='accept') }}" method="POST" style="display:inline;">
-                                        <button type="submit" class="btn btn-sm btn-success custom-rounded shadow-sm">Accept</button>
-                                    </form>
-                                    <form action="{{ url_for('customer.handle_response', req_id=r.id, action='negotiate') }}" method="POST" style="display:inline;">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning custom-rounded mt-1 shadow-sm">Negotiate</button>
-                                    </form>
-                                {% elif r.status == 'In Transit' %}
-                                    <span class="badge bg-primary p-2 custom-rounded shadow-sm">🚚 On Route</span>
-                                    <br>
-                                    <a href="{{ url_for('customer.job_chat', job_id=r.id) }}" class="btn btn-sm btn-dark custom-rounded shadow-sm mt-1">💬 Chat Driver</a>
-                                {% elif r.status == 'Delivered' %}
-                                    <span class="badge bg-success p-2 custom-rounded shadow-sm">✅ Finished</span>
-                                {% else %}
-                                    <span class="badge bg-secondary p-2 custom-rounded shadow-sm">🔒 Locked</span>
-                                {% endif %}
-                            </td>
+            
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Tracking ID</th>
+                            <th>Route</th>
+                            <th>Status</th>
+                            <th>Offer</th>
+                            <th class="pe-3">Action</th>
                         </tr>
-                        {% endfor %}
-                    {% endif %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% if data.requests|length == 0 %}
+                        <tr><td colspan="5" class="text-center py-5 text-muted">You have no transport requests yet. Let's get started!</td></tr>
+                        {% else %}
+                            {% for r in data.requests %}
+                            <tr onclick="updateMap('{{ r.pickup }}', '{{ r.delivery }}', '{{ r.id }}', '{{ r.vehicle_type }}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='transparent';">
+                                <td class="ps-3 fw-bold text-primary">{{ r.id }}</td>
+                                <td><span class="small text-muted">From:</span> <strong>{{ r.pickup }}</strong> <br><span class="small text-muted">To:</span> <strong>{{ r.delivery }}</strong></td>
+                                <td><span class="badge rounded-pill bg-{{ 'warning text-dark' if r.status in ['Pending', 'Negotiation'] else ('info' if r.status == 'Draft' else 'success') }} px-3 py-2">{{ r.status }}</span></td>
+                                <td class="fw-bold text-success">${{ r.price_offer }}</td>
+                                
+                                <!-- ACTIONS -->
+                                <td class="pe-3">
+                                    {% if r.status == 'Pending' %}
+                                        <form action="{{ url_for('customer.handle_response', req_id=r.id, action='accept') }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-success custom-rounded shadow-sm">Accept</button>
+                                        </form>
+                                        
+                                        <button type="button" class="btn btn-sm btn-outline-warning custom-rounded mt-1 shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#clientNegotiateModal{{ r.id }}">
+                                            Negotiate
+                                        </button>
+
+                                        <!-- Modal Negociere Client -->
+                                        <div class="modal fade text-start" id="clientNegotiateModal{{ r.id }}" tabindex="-1" onclick="event.stopPropagation();">
+                                          <div class="modal-dialog modal-dialog-centered modal-lg">
+                                            <div class="modal-content custom-rounded border-0 shadow">
+                                              <form action="{{ url_for('customer.handle_response', req_id=r.id, action='negotiate') }}" method="POST">
+                                                  <div class="modal-header bg-warning text-dark">
+                                                    <h5 class="modal-title fw-bold">💬 Negotiation Chat: #{{ r.id }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                  </div>
+                                                  <div class="modal-body bg-light p-4">
+                                                      <div class="chat-box bg-white p-3 rounded shadow-sm mb-3" style="height: 250px; overflow-y: auto; border: 1px solid #dee2e6;">
+                                                          {% for msg in r.messages %}
+                                                              <div class="mb-3 {% if 'Client' in msg.sender %}text-end{% else %}text-start{% endif %}">
+                                                                  <span class="badge {% if 'Client' in msg.sender %}bg-primary{% else %}bg-secondary{% endif %} mb-1">{{ msg.sender }}</span><br>
+                                                                  <div class="p-2 rounded {% if 'Client' in msg.sender %}bg-primary text-white{% else %}bg-light border text-dark{% endif %}" style="display: inline-block; max-width: 85%;">
+                                                                      {{ msg.message }}
+                                                                  </div>
+                                                                  <div class="text-muted mt-1" style="font-size: 0.7rem;">{{ msg.timestamp }}</div>
+                                                              </div>
+                                                          {% else %}
+                                                              <div class="text-center text-muted mt-5">Explain why you refuse the ${{ r.price_offer }} offer and propose a new one.</div>
+                                                          {% endfor %}
+                                                      </div>
+                                                      <textarea class="form-control" name="negotiate_message" rows="2" placeholder="e.g., The price is a bit high, I can offer $300 for this transport." required></textarea>
+                                                  </div>
+                                                  <div class="modal-footer bg-white border-0">
+                                                    <button type="button" class="btn btn-light custom-rounded" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" class="btn btn-warning fw-bold custom-rounded px-4 shadow-sm text-dark">Send Message</button>
+                                                  </div>
+                                              </form>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        
+                                    {% elif r.status == 'Negotiation' %}
+                                        <!-- TEXT SCURTAT AICI CA SA INCAPA FRUMOS -->
+                                        <span class="badge bg-secondary p-2 custom-rounded shadow-sm">⏳ Waiting Staff</span>
+                                    {% elif r.status == 'In Transit' %}
+                                        <span class="badge bg-primary p-2 custom-rounded shadow-sm">🚚 On Route</span>
+                                        <br>
+                                        <a href="{{ url_for('customer.job_chat', job_id=r.id) }}" class="btn btn-sm btn-dark custom-rounded shadow-sm mt-1">💬 Chat Driver</a>
+                                    {% elif r.status == 'Delivered' %}
+                                        <span class="badge bg-success p-2 custom-rounded shadow-sm">✅ Finished</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary p-2 custom-rounded shadow-sm">🔒 Locked</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div> 
         </div>
         <p class="small text-muted mt-2 text-center">💡 Tip: Click on any row to view the real road route on the map.</p>
     </div>
@@ -124,7 +166,7 @@
     </div>
 </div>
 
-<!-- Modal-ul pentru request nou -->
+
 <div class="modal fade" id="requestModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content custom-rounded border-0">
@@ -291,32 +333,5 @@
         fetchLiveGPS();
         liveTrackingInterval = setInterval(fetchLiveGPS, 3000);
     }
-
-    // --- MAGIA PENTRU SMART REDIRECT DIN CLOPOȚEL (Păstrat din main) ---
-    document.querySelectorAll('.smart-notif-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault(); 
-            
-            let msg = this.getAttribute('data-message');
-            let notifId = this.getAttribute('data-notif-id');
-            let nextUrl = "";
-            
-            // Căutăm ID-ul cursei în mesaj (Ex: "cursa REQ-123")
-            let cursaMatch = msg.match(/cursa (REQ-[A-Z0-9]+)/i);
-            
-            if (cursaMatch) {
-                nextUrl = "/customer/chat/" + cursaMatch[1]; 
-            } else if (msg.toLowerCase().includes("tichet") || msg.toLowerCase().includes("suport")) {
-                nextUrl = "{{ url_for('customer.support') }}"; 
-            }
-            
-            fetch('/notifications/read/' + notifId)
-                .then(() => {
-                    if (nextUrl) window.location.href = nextUrl;
-                    else window.location.reload();
-                })
-                .catch(() => window.location.reload());
-        });
-    });
 </script>
 {% endblock %}

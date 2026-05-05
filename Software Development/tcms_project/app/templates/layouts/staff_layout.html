@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Staff Portal{% endblock %} - Transport Company</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-light">
 
 <div class="dashboard-wrapper">
-    <!-- SIDEBAR SPECIFIC STAFF -->
+    <!-- SIDEBAR STAFF REPARAT -->
     <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #0285e9; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
         <div class="text-center mt-3 mb-4">
             <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
@@ -19,9 +20,15 @@
         
         <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn {% if request.endpoint == 'dashboard.main_dashboard' %}active fw-bold{% endif %}">🏠 Dashboard</a>
         <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn {% if request.endpoint == 'allocation.allocation_management' %}active fw-bold{% endif %}">📍 Allocation</a>
-        <a href="#" class="nav-btn">🛣️ Route Optimization</a>
+        
+        <!-- BUTONUL REPARAT: Route Optimization -->
+        <a href="{{ url_for('request_routes.route_optimization') }}" class="nav-btn {% if request.endpoint == 'request_routes.route_optimization' %}active fw-bold{% endif %}">🛣️ Route Optimization</a>
+        
         <a href="{{ url_for('driver.driver_management') }}" class="nav-btn {% if request.endpoint == 'driver.driver_management' %}active fw-bold{% endif %}">👤 Drivers</a>
-        <a href="#" class="nav-btn">💳 Invoices</a>
+        
+        <!-- BUTONUL REPARAT: Invoices -->
+        <a href="{{ url_for('request_routes.staff_invoices') }}" class="nav-btn {% if request.endpoint == 'request_routes.staff_invoices' %}active fw-bold{% endif %}">💳 Invoices</a>
+        
         <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn {% if request.endpoint == 'report_routes.reports_management' %}active fw-bold{% endif %}">📊 Reports</a>
         <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn {% if request.endpoint == 'admin_support.view_tickets' %}active fw-bold{% endif %}">💬 Support</a>
         
@@ -29,14 +36,14 @@
     </div>
 
     <div class="main-content p-4">
-        <!-- NAVBAR UNIVERSAL (Păstrăm clopoțelul și profilul) -->
+        <!-- NAVBAR -->
         <div class="top-navbar d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
             <div>
                 <h2 class="h4 mb-0 fw-bold">{% block page_header %}Staff Dashboard{% endblock %}</h2>
             </div>
             
             <div class="user-info d-flex align-items-center">
-                <!-- Clopoțel Notificări -->
+                <!-- Dropdown Notificări (Design curat) -->
                 <div class="dropdown d-inline-block mt-1 me-1">
                     <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.4rem;">
                         🔔
@@ -46,16 +53,28 @@
                         </span>
                         {% endif %}
                     </span>
-                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="notifDropdown" style="width: 320px;">
-                        <li><h6 class="dropdown-header bg-light fw-bold border-bottom">Notifications</h6></li>
-                        {% if not notifications %}
-                            <li><span class="dropdown-item text-muted text-center py-3">No new notifications.</span></li>
+                    
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="notifDropdown" style="width: 380px; max-height: 450px; overflow-y: auto; border-radius: 12px; padding: 0;">
+                        <li class="sticky-top bg-light" style="z-index: 10;">
+                            <h6 class="dropdown-header text-dark fw-bold border-bottom py-3" style="font-size: 1rem;">📬 Recent Notifications</h6>
+                        </li>
+                        
+                        {% if not notifications or notifications|length == 0 %}
+                            <li><span class="dropdown-item text-muted text-center py-4">No new notifications.</span></li>
                         {% else %}
                             {% for n in notifications %}
                             <li>
-                                <a class="dropdown-item py-2 border-bottom" href="{{ url_for('notifications.read_notification', notif_id=n.id) }}">
-                                    <div class="fw-bold text-dark" style="font-size: 0.9em;">{{ n.message }}</div>
-                                    <div class="text-muted mt-1" style="font-size: 0.75em;">⏱️ {{ n.timestamp }}</div>
+                                <a class="dropdown-item py-3 border-bottom smart-notif-link" 
+                                   href="/notifications/read/{{ n.id }}" 
+                                   data-message="{{ n.message }}" 
+                                   style="white-space: normal; cursor: pointer; line-height: 1.4;">
+                                    <div class="d-flex align-items-start">
+                                        <div class="me-3 fs-4 notif-icon text-center" style="width: 30px;">📌</div>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ n.message }}</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;"><i class="fa-regular fa-clock me-1"></i> {{ n.timestamp }}</div>
+                                        </div>
+                                    </div>
                                 </a>
                             </li>
                             {% endfor %}
@@ -85,6 +104,38 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll('.smart-notif-link').forEach(link => {
+        let msg = (link.getAttribute('data-message') || "").toLowerCase();
+        let iconDiv = link.querySelector('.notif-icon');
+        
+        // Emoji logic
+        if (iconDiv) {
+            if (msg.includes("tichet") || msg.includes("suport")) iconDiv.innerHTML = "💬";
+            else if (msg.includes("livrat") || msg.includes("succes") || msg.includes("acceptat")) iconDiv.innerHTML = "✅";
+            else if (msg.includes("cerere") || msg.includes("alocat")) iconDiv.innerHTML = "🚚";
+            else if (msg.includes("factură") || msg.includes("plată")) iconDiv.innerHTML = "💳";
+            else iconDiv.innerHTML = "📌";
+        }
+
+        link.addEventListener('click', function(e) {
+            let nextUrl = "";
+            if (msg.includes("tichet")) nextUrl = "{{ url_for('admin_support.view_tickets') }}"; 
+            else if (msg.includes("cerere")) nextUrl = "{{ url_for('request_routes.request_management') }}"; 
+            else if (msg.includes("vehicul")) nextUrl = "{{ url_for('fleet.fleet_management') }}";
+            else if (msg.includes("șofer")) nextUrl = "{{ url_for('driver.driver_management') }}";
+            
+            if (nextUrl) {
+                e.preventDefault(); 
+                fetch(this.getAttribute('href')).finally(() => {
+                    window.location.href = nextUrl;
+                });
+            }
+        });
+    });
+});
+</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -34,15 +34,21 @@ def add_vehicle() -> str:
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
         
-    v_id = request.form.get('vehicle_id')
-    plate = request.form.get('plate_number')
-    v_type = request.form.get('type')
-    capacity_str = request.form.get('capacity')
-    status = request.form.get('status')
+    v_id = str(request.form.get('vehicle_id', '')).strip()
+    plate = str(request.form.get('plate_number', '')).strip()
+    v_type = str(request.form.get('type', '')).strip()
+    status = str(request.form.get('status', '')).strip()
+    
+    
+    capacity_str = str(request.form.get('capacity', '')).strip()
+    capacity_unit = request.form.get('capacity_unit', 'kg')
     
     try:
-        capacity = int(capacity_str)
-        response = fleet_logic.add_new_vehicle(v_id, plate, v_type, capacity, status)
+        raw_capacity = float(capacity_str)
+        
+        final_capacity = int(raw_capacity * 1000) if capacity_unit == 'tons' else int(raw_capacity)
+        
+        response = fleet_logic.add_new_vehicle(v_id, plate, v_type, final_capacity, status)
         
         if response.get("success") is True:
             flash(response.get("message"), "success")
@@ -76,15 +82,21 @@ def edit_vehicle() -> str:
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
         
-    v_id = request.form.get('edit_vehicle_id')
-    plate = request.form.get('edit_plate_number')
-    v_type = request.form.get('edit_type')
-    capacity_str = request.form.get('edit_capacity')
-    status = request.form.get('edit_status')
+    v_id = str(request.form.get('edit_vehicle_id', '')).strip()
+    plate = str(request.form.get('edit_plate_number', '')).strip()
+    v_type = str(request.form.get('edit_type', '')).strip()
+    status = str(request.form.get('edit_status', '')).strip()
+    
+    
+    capacity_str = str(request.form.get('edit_capacity', '')).strip()
+    capacity_unit = request.form.get('edit_capacity_unit', 'kg')
     
     try:
-        capacity = int(capacity_str)
-        response = fleet_logic.modify_vehicle(v_id, plate, v_type, capacity, status)
+        raw_capacity = float(capacity_str)
+        
+        final_capacity = int(raw_capacity * 1000) if capacity_unit == 'tons' else int(raw_capacity)
+        
+        response = fleet_logic.modify_vehicle(v_id, plate, v_type, final_capacity, status)
         
         if response.get("success") is True:
             flash(response.get("message"), "success")

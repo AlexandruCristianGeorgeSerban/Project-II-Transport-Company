@@ -23,13 +23,13 @@ def remove_diacritics(text: str) -> str:
     res = str(text)
     for ro_char, eng_char in replacements.items():
         res = res.replace(ro_char, eng_char)
-    # Trecem printr-un filtru de siguranță pentru alte caractere ciudate
+   
     return res.encode('latin-1', 'replace').decode('latin-1')
 
 def render_pdf_row(pdf, row_data, col_widths, line_height=6):
     """Randează un rând în PDF care se ajustează automat pe mai multe linii dacă textul este prea lung."""
     max_lines = 1
-    # Calculăm de câte linii este nevoie pentru textul cel mai lung din rând
+    
     for i, text in enumerate(row_data):
         text_str = str(text)
         text_width = pdf.get_string_width(text_str)
@@ -41,21 +41,21 @@ def render_pdf_row(pdf, row_data, col_widths, line_height=6):
             
     row_height = max_lines * line_height
     
-    # Dacă nu e loc pe pagină, trecem la pagina următoare
+   
     if pdf.get_y() + row_height > 275:
         pdf.add_page()
         
     x_start = pdf.get_x()
     y_start = pdf.get_y()
     
-    # Desenăm fiecare celulă cu multi_cell (care mută textul pe rândul următor automat)
+    
     for i, text in enumerate(row_data):
         pdf.set_xy(x_start, y_start)
         pdf.rect(x_start, y_start, col_widths[i], row_height)
         pdf.multi_cell(col_widths[i], line_height, str(text), border=0, align='L')
         x_start += col_widths[i]
         
-    # Punem cursorul sub rândul tocmai desenat
+    
     pdf.set_xy(pdf.l_margin, y_start + row_height)
 
 @report_bp.route('/reports', methods=['GET'])
@@ -138,13 +138,13 @@ def download_report(report_id: str, file_type: str):
                 elif 'Financial' in report['name']:
                     actual_headers = ['REQ ID', 'Client', 'Route', 'Status', 'Revenue']
                     col_widths = [35, 15, 75, 35, 30]
-                    # Selectăm explicit coloana price_offer pe poziția 5
+                    
                     cursor.execute("SELECT id, client, pickup, delivery, status, price_offer FROM transport_requests WHERE status IN ('Paid', 'In Transit', 'Accepted', 'Delivered')")
                     for row in cursor.fetchall():
                         pickup = remove_diacritics(str(row[2]))
                         delivery = remove_diacritics(str(row[3]))
                         
-                        # Formatăm prețul corect (evităm erori dacă e None sau text invalid)
+                        
                         raw_price = row[5]
                         try:
                             price_val = float(raw_price)
@@ -179,7 +179,7 @@ def download_report(report_id: str, file_type: str):
         col_widths = [190]
         actual_data = [[f"Eroare la citirea bazei de date. (Detalii: {str(e)})"]]
 
-    # --- LOGICA PDF ---
+    
     if file_type == 'pdf':
         pdf = FPDF()
         pdf.add_page()
@@ -236,8 +236,8 @@ def download_report(report_id: str, file_type: str):
     # --- LOGICA CSV ---
     elif file_type == 'csv':
         output = io.StringIO()
-        # Folosim virgula standard, dar FORȚĂM ghilimelele pentru fiecare celulă (QUOTE_ALL)
-        # Asta împiedică Excel/Numbers să mai taie textul când întâlnește spații.
+        
+       
         writer = csv.writer(output, delimiter=',', quoting=csv.QUOTE_ALL)
         
         writer.writerow(['--- REPORT METADATA ---'])
@@ -251,7 +251,7 @@ def download_report(report_id: str, file_type: str):
             writer.writerow(actual_headers)
             writer.writerows(actual_data)
         
-        # utf-8-sig previne apariția caracterelor ciudate în loc de diacritice
+       
         csv_data = output.getvalue().encode('utf-8-sig')
         
         response = make_response(csv_data)
@@ -259,7 +259,7 @@ def download_report(report_id: str, file_type: str):
         response.headers["Content-type"] = "text/csv; charset=utf-8-sig"
         return response
 
-    # --- LOGICA TXT ---
+    
     elif file_type == 'txt':
         clean_title = report['name'].replace("Summary Summary", "Summary")
         content = f"=== REPORT {report_id} ===\n"

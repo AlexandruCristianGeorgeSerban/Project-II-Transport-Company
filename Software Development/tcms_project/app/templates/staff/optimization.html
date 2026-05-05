@@ -1,0 +1,108 @@
+{% extends "layouts/staff_layout.html" %}
+
+{% block title %}Route Optimization{% endblock %}
+{% block page_header %}Fleet Tracker & Route Optimization{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #live-fleet-map { height: 65vh; width: 100%; border-radius: 12px; border: 2px solid #e9ecef; }
+        .map-container { padding: 5px; background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info shadow-sm custom-rounded d-flex align-items-center">
+            <i class="fa-solid fa-satellite-dish fs-3 me-3 text-primary"></i>
+            <div>
+                <h5 class="fw-bold mb-1">Live Fleet Satellite Tracking</h5>
+                <p class="mb-0 small">This map automatically pings all vehicles currently "In Transit" every 5 seconds. Optimization AI suggests alternate routes to avoid traffic.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="map-container position-relative">
+            <div id="live-fleet-map"></div>
+            <!-- Overlay Info -->
+            <div class="position-absolute top-0 end-0 m-3 p-3 bg-white shadow-lg custom-rounded" style="z-index: 1000; width: 250px; opacity: 0.95;">
+                <h6 class="fw-bold border-bottom pb-2 mb-2">Tracking Status</h6>
+                <div class="d-flex align-items-center mb-2">
+                    <span class="spinner-grow spinner-grow-sm text-success me-2" role="status" aria-hidden="true"></span>
+                    <span class="small fw-bold">Live Link: ACTIVE</span>
+                </div>
+                <p class="small text-muted mb-0">Total Tracked Vehicles: <span id="vehicle-count" class="fw-bold text-dark">0</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var map = L.map('live-fleet-map').setView([45.9432, 24.9668], 6); // Centered on Romania
+    
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap & CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+    }).addTo(map);
+
+    var markers = {};
+    
+    // Icon default truck
+    var truckIcon = L.icon({
+        iconUrl: '/static/img/truck.png', // Asigura-te ca ai poza asta in static/img
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20]
+    });
+
+    function fetchFleetLocations() {
+        fetch('/api/locations')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('vehicle-count').innerText = data.length;
+                
+                
+                var currentIds = new Set();
+
+                data.forEach(function(vehicle) {
+                    if (vehicle.lat && vehicle.lng) {
+                        currentIds.add(vehicle.id);
+                        var noileCoordonate = new L.LatLng(vehicle.lat, vehicle.lng);
+                        
+                        if (!markers[vehicle.id]) {
+                            
+                            markers[vehicle.id] = L.marker(noileCoordonate, {icon: truckIcon}).addTo(map);
+                            markers[vehicle.id].bindPopup("<b>Request ID:</b> #" + vehicle.id + "<br><span class='badge bg-primary'>In Transit</span>");
+                        } else {
+                            
+                            markers[vehicle.id].setLatLng(noileCoordonate);
+                        }
+                    }
+                });
+                
+                // Remove markers that are no longer in transit
+                for (var id in markers) {
+                    if (!currentIds.has(id)) {
+                        map.removeLayer(markers[id]);
+                        delete markers[id];
+                    }
+                }
+            })
+            .catch(err => console.error('Error tracking fleet:', err));
+    }
+
+    
+    fetchFleetLocations();
+    setInterval(fetchFleetLocations, 5000);
+});
+</script>
+{% endblock %}

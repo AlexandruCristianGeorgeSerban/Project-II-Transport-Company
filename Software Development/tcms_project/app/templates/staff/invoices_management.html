@@ -1,0 +1,99 @@
+{% extends "layouts/staff_layout.html" %}
+
+{% block title %}Invoice Management{% endblock %}
+{% block page_header %}Invoice Management{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} shadow-sm custom-rounded">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- SUMMARY CARDS -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-white shadow-sm border-start border-4 border-primary custom-rounded">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Total Invoiced (All Time)</h6>
+                <h2 class="fw-bold text-primary">${{ "{:,.2f}".format(summary.total_amount) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-white shadow-sm border-start border-4 border-success custom-rounded">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Total Collected (Paid)</h6>
+                <h2 class="fw-bold text-success">${{ "{:,.2f}".format(summary.paid_amount) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-white shadow-sm border-start border-4 border-danger custom-rounded">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Outstanding (Pending)</h6>
+                <h2 class="fw-bold text-danger">${{ "{:,.2f}".format(summary.pending_amount) }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- INVOICES TABLE -->
+<div class="card shadow-sm border-0 custom-rounded">
+    <div class="card-header bg-dark text-white py-3 border-0" style="border-radius: 12px 12px 0 0;">
+        <h5 class="fw-bold mb-0">📜 All Client Invoices</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Invoice ID</th>
+                    <th>Ref. Request</th>
+                    <th>Client Name</th>
+                    <th>Issue Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th class="text-center pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if invoices|length == 0 %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">No invoices generated yet. Deliver jobs to generate invoices.</td>
+                </tr>
+                {% else %}
+                    {% for inv in invoices %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-dark">{{ inv.id }}</td>
+                        <td class="text-muted small">#{{ inv.request_id }}</td>
+                        <td class="fw-bold">{{ inv.client_name }}</td>
+                        <td>{{ inv.issue_date }}</td>
+                        <td class="fw-bold text-primary">${{ "{:,.2f}".format(inv.amount) }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if inv.status == 'Paid' else 'warning text-dark' }} px-3 py-2 rounded-pill">
+                                {{ inv.status }}
+                            </span>
+                        </td>
+                        <td class="text-center pe-4">
+                            {% if inv.status != 'Paid' %}
+                                <form method="POST" action="{{ url_for('request_routes.send_invoice_reminder', invoice_id=inv.id) }}" style="margin: 0;">
+                                    <input type="hidden" name="client_name" value="{{ inv.client_name }}">
+                                    <input type="hidden" name="amount" value="{{ inv.amount }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger custom-rounded shadow-sm">
+                                        🔔 Send Reminder
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span class="text-success fw-bold small"><i class="fa-solid fa-check"></i> Settled</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

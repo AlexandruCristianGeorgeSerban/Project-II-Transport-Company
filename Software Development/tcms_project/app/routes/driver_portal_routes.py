@@ -32,8 +32,8 @@ def get_driver_jobs(user_id, username, status_type='active'):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Folosim 'driver_id' exact cum este definit în AllocationModel
-            # Căutăm fie după ID-ul din sesiune, fie după username pentru siguranță maximă
+            
+            
             if status_type == 'active':
                 query = """
                     SELECT * FROM transport_requests 
@@ -53,12 +53,10 @@ def get_driver_jobs(user_id, username, status_type='active'):
         logging.error(f"Database error in driver_routes: {e}")
     return jobs
 
-# ==========================================
-# RUTE PORTAL ȘI JOBURI ACTIVE
-# ==========================================
+
 
 @driver_bp.route('/driver/portal')
-@driver_bp.route('/active_jobs') # Ambele rute duc în același loc (portal.html)
+@driver_bp.route('/active_jobs') 
 def portal():
     if 'user_id' not in session or session.get('role') != 'Driver':
         flash("Access denied. Drivers only.", "danger")
@@ -107,9 +105,7 @@ def update_status(req_id, new_status):
         
     return redirect(url_for('driver.portal'))
 
-# ==========================================
-# RUTE CHAT ȘI SUPPORT
-# ==========================================
+
 
 @driver_bp.route('/driver/support')
 def support():
@@ -162,9 +158,6 @@ def job_chat(job_id):
                            notifications=notifications, 
                            unread_count=unread_count)
 
-# ==========================================
-# RUTE MANAGEMENT ADMIN PENTRU SOFERI
-# ==========================================
 
 @driver_bp.route('/drivers', methods=['GET'])
 def driver_management() -> str:
@@ -177,7 +170,7 @@ def driver_management() -> str:
 
 @driver_bp.route('/drivers/add', methods=['POST'])
 def add_driver() -> str:
-    # Extragem informatiile angajatului
+    
     d_id = request.form.get('driver_id')
     name = request.form.get('name')
     status = request.form.get('status')
@@ -187,14 +180,14 @@ def add_driver() -> str:
     address = request.form.get('address')
     avail = request.form.get('availability')
     
-    # NOU: Extragem datele contului de conectare
+    
     username = request.form.get('username')
     password = request.form.get('password')
     
     licenses_list = request.form.getlist('licenses')
     licenses_str = ", ".join(licenses_list)
     
-    # Trimitem tot pachetul in controller pentru salvare
+    
     resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, doc_id, address, avail, username, password)
     
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
