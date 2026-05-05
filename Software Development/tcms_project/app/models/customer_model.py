@@ -14,11 +14,19 @@ class CustomerModel:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
-                # AM REPARAT AICI: folosim estimated_price în loc de price_offer
+                
+                # REPARAT: Folosim COALESCE. Va lua 'price_offer' dacă există o ofertă de la Staff.
+                # Altfel, va pica pe 'estimated_price'-ul generat inițial automat.
                 db_cursor.execute(
-                    "SELECT id, cargo_type, weight, pickup, delivery, preferred_date, status, vehicle_type, estimated_price as price_offer FROM transport_requests WHERE client = ? ORDER BY id DESC", 
+                    """
+                    SELECT id, cargo_type, weight, pickup, delivery, preferred_date, status, vehicle_type, 
+                           COALESCE(price_offer, estimated_price) AS price_offer 
+                    FROM transport_requests 
+                    WHERE client = ? ORDER BY id DESC
+                    """, 
                     (username,)
                 )
+                
                 rows = db_cursor.fetchall()
                 for row in rows:
                     requests.append(dict(row))
@@ -32,7 +40,7 @@ class CustomerModel:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                # AM REPARAT AICI: folosim estimated_price în loc de price_offer
+                # Aici prețul intră clar în 'estimated_price' la început
                 db_cursor.execute(
                     "INSERT INTO transport_requests (id, client, cargo_type, description, weight, volume, pickup, delivery, preferred_date, status, vehicle_type, estimated_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (r_id, client, c_type, desc, weight, volume, pickup, delivery, date, status, v_type, price)
@@ -48,10 +56,26 @@ class CustomerModel:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                db_cursor.execute(
-                    "UPDATE transport_requests SET status = ? WHERE id = ? AND client = ?",
-                    (new_status, request_id, customer_name)
-                )
+                
+                if new_status == 'Accepted':
+                    # MAGIA E AICI: Dacă dă Accept, transferăm estimated_price în price_offer, 
+                    # DOAR DACĂ price_offer nu a fost deja completat (de o ofertă manuală a Staff-ului).
+                    db_cursor.execute(
+                        """
+                        UPDATE transport_requests 
+                        SET status = ?, 
+                            price_offer = COALESCE(price_offer, estimated_price) 
+                        WHERE id = ? AND client = ?
+                        """,
+                        (new_status, request_id, customer_name)
+                    )
+                else:
+                    # Dacă dă Reject sau cere Negociere, schimbăm doar statusul
+                    db_cursor.execute(
+                        "UPDATE transport_requests SET status = ? WHERE id = ? AND client = ?",
+                        (new_status, request_id, customer_name)
+                    )
+                    
                 connection.commit()
                 return True
         except sqlite3.Error as db_error:
