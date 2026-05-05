@@ -29,7 +29,7 @@ class UserModel:
                     )
                 """)
                 
-                # NOU: Adaugăm coloanele pentru Lockout, în cazul în care tabelul există deja și nu le are
+                
                 try:
                     db_cursor.execute("ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0")
                 except sqlite3.OperationalError:

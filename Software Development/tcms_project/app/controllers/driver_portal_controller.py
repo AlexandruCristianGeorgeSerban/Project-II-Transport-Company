@@ -12,10 +12,10 @@ class DriverPortalController:
         """Loads and structures all necessary data for the driver dashboard."""
         dashboard_data: Dict[str, Any] = {}
         try:
-            # 1. Preluăm cursele alocate acestui șofer
+            
             dashboard_data["my_jobs"] = self.model.get_jobs_by_driver(driver_id)
             
-            # 2. Preluăm vehiculul alocat (din prima cursă activă găsită)
+           
             dashboard_data["my_vehicle"] = self.model.get_assigned_vehicle(driver_id) 
             
             return dashboard_data
@@ -34,10 +34,10 @@ class DriverPortalController:
              with sqlite3.connect(DB_PATH) as connection:
                   db_cursor = connection.cursor()
                   
-                  # 1. Schimbăm statusul cursei
+                 
                   db_cursor.execute("UPDATE transport_requests SET status = ? WHERE id = ?", (new_status, job_id))
                   
-                  # 2. Dacă cursa este gata (Delivered), eliberăm mașina și șoferul
+                 
                   if new_status == 'Delivered':
                         db_cursor.execute("UPDATE vehicles SET status = 'Available' WHERE id IN (SELECT vehicle_id FROM transport_requests WHERE id = ?)", (job_id,))
                         db_cursor.execute("UPDATE drivers SET status = 'Available', availability = 'Available' WHERE id IN (SELECT driver_id FROM transport_requests WHERE id = ?)", (job_id,))

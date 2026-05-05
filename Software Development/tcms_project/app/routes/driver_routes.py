@@ -15,7 +15,7 @@ notif_db.create_table()
 
 DB_PATH = "instance/database.sqlite"
 
-# --- HELPER FUNCTIONS ---
+
 
 def get_header_data():
     """Aduce notificările și numărul lor pentru clopoțelul din meniul de sus."""
@@ -84,7 +84,7 @@ def get_driver_jobs(user_id, username, status_type='active'):
         logging.error(f"Database error in get_driver_jobs: {e}")
     return jobs
 
-# --- DASHBOARD & PORTAL ROUTES ---
+
 
 @driver_bp.route('/driver_portal')
 @driver_bp.route('/active_jobs') 
@@ -185,7 +185,7 @@ def update_vehicle_status():
 
     return redirect(url_for('driver.portal'))
 
-# --- GPS API FOR MAP ---
+
 
 @driver_bp.route('/api/locations')
 def api_locations():
@@ -201,7 +201,7 @@ def api_locations():
     except Exception as e:
         return jsonify([])
 
-# --- SUPPORT & CHAT ROUTES ---
+
 
 @driver_bp.route('/driver/support')
 def support():
@@ -270,7 +270,7 @@ def job_chat(job_id):
         if message:
             support_db.add_job_message(job_id, session['user_id'], 'Driver', message)
             
-            # MAGIA: Căutăm clientul acestei curse și îi trimitem notificare!
+           
             try:
                 with sqlite3.connect(DB_PATH) as conn:
                     conn.row_factory = sqlite3.Row
@@ -291,7 +291,7 @@ def job_chat(job_id):
                            notifications=notifications, 
                            unread_count=unread_count)
 
-# --- ADMIN DRIVER MANAGEMENT ROUTES ---
+
 
 @driver_bp.route('/drivers', methods=['GET'])
 def driver_management() -> str:

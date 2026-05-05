@@ -13,7 +13,7 @@
         Conversation with Customer
     </div>
     
-    <!-- ZONA DE MESAJE -->
+    
     <div class="card-body" style="height: 400px; overflow-y: auto; display: flex; flex-direction: column; background-color: #f8f9fa;">
         {% if messages|length == 0 %}
             <div class="text-center text-muted my-auto">
@@ -37,7 +37,7 @@
         {% endif %}
     </div>
     
-    <!-- FORMULARUL DE TRIMITERE MESAJE -->
+    
     <div class="card-footer bg-white py-3">
         <form action="{{ url_for('driver.job_chat', job_id=job_id) }}" method="POST" class="d-flex gap-2">
             <input type="text" name="message" class="form-control bg-light" placeholder="Type a message..." required autocomplete="off">
@@ -49,15 +49,15 @@
 
 {% block extra_js %}
 <script>
-    // Dă scroll automat la ultimul mesaj
+    
     const chatBody = document.querySelector('.card-body');
     if(chatBody) chatBody.scrollTop = chatBody.scrollHeight;
 
-    // Dă refresh automat la pagină la fiecare 5 secunde ca să aducă mesaje noi
+    
     setInterval(function() {
         var inputBox = document.querySelector('input[name="message"]');
         
-        // Verificăm ca utilizatorul să NU fie cu mouse-ul în căsuță și să NU fi scris ceva deja
+        
         if (document.activeElement !== inputBox && inputBox.value.trim() === '') {
             window.location.reload();
         }

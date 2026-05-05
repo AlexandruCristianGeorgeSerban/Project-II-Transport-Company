@@ -5,7 +5,7 @@
 {% block page_header %}Support Center{% endblock %}
 
 {% block extra_css %}
-<!-- Font-awesome pt iconite de chat -->
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     .chat-container {
@@ -36,7 +36,7 @@
 {% endwith %}
 
 <div class="row">
-    <!-- Partea Stângă: Formular Creare Tichet -->
+    
     <div class="col-md-4 mb-4">
         <div class="card shadow-sm border-0 rounded-3">
             <div class="card-header bg-primary text-white fw-bold py-3">
@@ -58,7 +58,7 @@
         </div>
     </div>
 
-    <!-- Partea Dreaptă: Istoric Tichete și Chat -->
+    
     <div class="col-md-8">
         <div class="card shadow-sm border-0 rounded-3">
             <div class="card-header bg-dark text-white fw-bold py-3">
@@ -72,7 +72,7 @@
                         <p>If you need help, open a ticket using the form on the left.</p>
                     </div>
                 {% else %}
-                    <!-- Acordeon Bootstrap pt a ascunde/arata chat-ul -->
+                    
                     <div class="accordion accordion-flush" id="ticketsAccordion">
                         {% for ticket in tickets %}
                             <div class="accordion-item">
@@ -90,12 +90,12 @@
                                     </button>
                                 </h2>
                                 
-                                <!-- Interiorul Acordeonului (Chat-ul) -->
+                                
                                 <div id="collapse{{ ticket.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ ticket.id }}" data-bs-parent="#ticketsAccordion">
                                     <div class="accordion-body bg-white border-bottom">
                                         
                                         <div class="chat-container mb-3">
-                                            <!-- Mesajul tau initial -->
+                                           
                                             <div class="chat-message driver">
                                                 <div class="message-bubble shadow-sm">
                                                     {{ ticket.message }}
@@ -103,7 +103,7 @@
                                                 <div class="message-info">You (Original Request)</div>
                                             </div>
 
-                                            <!-- Replicile -->
+                                            
                                             {% if ticket.replies %}
                                                 {% for reply in ticket.replies %}
                                                     {% if reply.sender in ['Staff', 'Administrator'] %}
@@ -125,7 +125,7 @@
                                             {% endif %}
                                         </div>
 
-                                        <!-- Formularul pentru a da Reply -->
+                                        
                                         {% if ticket.status != 'Resolved' %}
                                         <form action="{{ url_for('driver.add_ticket_reply', ticket_id=ticket.id) }}" method="POST">
                                             <div class="input-group">

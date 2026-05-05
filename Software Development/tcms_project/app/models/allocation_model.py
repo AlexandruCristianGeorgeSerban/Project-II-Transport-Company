@@ -17,7 +17,6 @@ class AllocationModel:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                # AICI AM REPARAT: Am adăugat vehicle_id, driver_id și estimated_price la crearea tabelului
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS transport_requests (
                         id TEXT PRIMARY KEY,
@@ -35,12 +34,16 @@ class AllocationModel:
                         estimated_price REAL
                     )
                 """)
+                
+                try:
+                    db_cursor.execute("ALTER TABLE transport_requests ADD COLUMN allocated_by TEXT DEFAULT 'System'")
+                except sqlite3.OperationalError:
+                    pass
                 connection.commit()
         except sqlite3.Error as error:
             logging.error(f"Error checking requests table: {error}")
 
     def get_pending_requests(self) -> List[Dict[str, Any]]:
-        """Retrieves requests that need allocation."""
         requests: List[Dict[str, Any]] = []
         try:
             with sqlite3.connect(DB_PATH) as connection:
@@ -56,7 +59,6 @@ class AllocationModel:
             return requests
 
     def get_available_vehicles(self) -> List[Dict[str, Any]]:
-        """Retrieves only vehicles that are 'Available'."""
         vehicles: List[Dict[str, Any]] = []
         try:
             with sqlite3.connect(DB_PATH) as connection:
@@ -72,7 +74,6 @@ class AllocationModel:
             return vehicles
 
     def get_available_drivers(self) -> List[Dict[str, Any]]:
-        """Retrieves only drivers who are 'Available'."""
         drivers: List[Dict[str, Any]] = []
         try:
             with sqlite3.connect(DB_PATH) as connection:
@@ -87,28 +88,24 @@ class AllocationModel:
             logging.error(f"Error fetching available drivers: {db_error}")
             return drivers
 
-    def allocate_resources(self, request_id: str, vehicle_id: str, driver_id: str) -> bool:
+    def allocate_resources(self, request_id: str, vehicle_id: str, driver_id: str, staff_username: str = "Unknown") -> bool:
         """Updates the status of the request, vehicle, and driver to reflect allocation."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
                 
-                # AICI ERA PROBLEMA! Acum salvăm efectiv și ID-ul mașinii și al șoferului la această cerere!
+                
                 db_cursor.execute("""
                     UPDATE transport_requests 
-                    SET status = 'In Transit', vehicle_id = ?, driver_id = ? 
+                    SET status = 'In Transit', vehicle_id = ?, driver_id = ?, allocated_by = ? 
                     WHERE id = ?
-                """, (vehicle_id, driver_id, request_id))
+                """, (vehicle_id, driver_id, staff_username, request_id))
                 
-                # Update vehicle status
                 db_cursor.execute("UPDATE vehicles SET status = 'In Transit' WHERE id = ?", (vehicle_id,))
-                
-                # Update driver availability
                 db_cursor.execute("UPDATE drivers SET availability = 'In Transit' WHERE id = ?", (driver_id,))
                 
                 connection.commit()
                 
-                # Trimitere notificare globala
                 NotificationModel().add_notification(
                     "All", 
                     f"🚚 Alocare finalizată! Cererea {request_id} a plecat la drum. Mașina {vehicle_id} și Șoferul {driver_id} sunt 'In Transit'."
@@ -119,7 +116,6 @@ class AllocationModel:
             return False
 
     def get_active_jobs(self) -> list:
-        """Aduce toate cererile care se afla in desfasurare."""
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
@@ -135,32 +131,21 @@ class AllocationModel:
             return []
 
     def mark_job_delivered(self, req_id: str) -> bool:
-        """Trece cursa în 'Delivered' și eliberează mașina și șoferul."""
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 cursor = conn.cursor()
-                
-                # 1. Luăm ID-urile mașinii și șoferului alocate pe această cerere
                 cursor.execute("SELECT vehicle_id, driver_id FROM transport_requests WHERE id = ?", (req_id,))
                 row = cursor.fetchone()
                 
                 if row:
                     veh_id, drv_id = row
-                    
-                    # 2. Trecem cererea în Delivered
                     cursor.execute("UPDATE transport_requests SET status = 'Delivered' WHERE id = ?", (req_id,))
-                    
-                    # 3. Eliberăm Mașina (Trece în 'Available')
                     if veh_id:
                         cursor.execute("UPDATE vehicles SET status = 'Available' WHERE id = ?", (veh_id,))
-                        
-                    # 4. Eliberăm Șoferul (Trece în 'Available')
                     if drv_id:
                         cursor.execute("UPDATE drivers SET availability = 'Available' WHERE id = ?", (drv_id,))
                         
                 conn.commit()
-                
-                # Notificare de succes!
                 NotificationModel().add_notification(
                     "All", 
                     f"🏁 Cursa {req_id} a fost LIVRATĂ cu succes! Mașina și Șoferul sunt din nou disponibili."

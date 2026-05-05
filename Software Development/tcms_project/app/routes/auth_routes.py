@@ -5,7 +5,7 @@ from app.controllers.auth_controller import AuthController
 auth_bp = Blueprint('auth', __name__)
 auth_logic = AuthController()
 
-# 1. RUTA PENTRU GUEST PAGE
+
 @auth_bp.route('/', methods=['GET'])
 def guest():
     """Renders the Guest landing page without auto-redirecting."""
@@ -22,7 +22,7 @@ def login() -> str:
         auth_result = auth_logic.authenticate_user(form_username, form_password)
         
         if auth_result.get("success") is True:
-            # NOU: Activăm durata de 60 de minute pentru această sesiune
+            
             session.permanent = True
             
             session['user_id'] = auth_result.get("user_id")
@@ -46,7 +46,7 @@ def login() -> str:
     else:
         return render_template('auth/login.html')
 
-# 3. RUTA PENTRU REGISTER
+
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register() -> str:
     """Renders the registration page and handles new account creation."""
@@ -83,7 +83,7 @@ def register() -> str:
     else:
         return render_template('auth/register.html')
 
-# 4. RUTA PENTRU LOGOUT
+
 @auth_bp.route('/logout')
 def logout() -> str:
     """Destroys the user session and redirects to login."""

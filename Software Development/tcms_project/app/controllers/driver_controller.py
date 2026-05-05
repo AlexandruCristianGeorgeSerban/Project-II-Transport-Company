@@ -28,17 +28,17 @@ class DriverController:
     def add_new_driver(self, d_id: str, first_name: str, last_name: str, status: str, licenses: str, exp: str, dob: str, doc_id: str, address: str, avail: str, username: str = None, password: str = None) -> dict:
         """Handles logic for adding a new driver and automatically creates an account."""
         
-        # Formăm numele complet pentru tabelul de 'drivers'
+        
         full_name = f"{first_name} {last_name}".strip()
         
         print(f"DEBUG: Incepem crearea soferului: {full_name}, User dorit: {username}")
         
-        # 1. Creare cont utilizator (Daca au fost completate in formular)
+       
         if username and password:
             account_created = self.user_model.register_user(
                 username=username, 
                 password=password, 
-                first_name=first_name, # Acum le avem curate, separat!
+                first_name=first_name, 
                 last_name=last_name,
                 email=None, 
                 phone_number=None,
@@ -52,7 +52,7 @@ class DriverController:
             else:
                 print(f"DEBUG: SUCCESS - Userul '{username}' a fost salvat in tabelul 'users'")
 
-        # 2. Creare dosar de angajat in baza de date 'drivers'
+        
         result = self.model.insert_driver(d_id, full_name, status, licenses, exp, dob, doc_id, address, avail)
         
         if result is True:

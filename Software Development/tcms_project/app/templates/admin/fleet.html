@@ -57,8 +57,8 @@
                     <td>{{ vehicle.capacity }}</td>
                     <td><span class="badge bg-{{ 'danger' if vehicle.status == 'Maintenance' else ('warning text-dark' if vehicle.status == 'In Transit' else 'success') }} px-3 py-2 rounded-pill">{{ vehicle.status }}</span></td>
                     <td class="d-flex justify-content-center gap-2">
-                        <button type="button" class="btn btn-info btn-sm text-white fw-bold custom-rounded" data-bs-toggle="modal" data-bs-target="#viewModal{{ vehicle.id }}">View</button>
-                        <button type="button" class="btn btn-primary btn-sm fw-bold custom-rounded" data-bs-toggle="modal" data-bs-target="#editModal{{ vehicle.id }}">Edit</button>
+                        <button type="button" class="btn btn-info btn-sm text-white fw-bold custom-rounded" data-bs-toggle="modal" data-bs-target="#viewModal{{ loop.index }}">View</button>
+                        <button type="button" class="btn btn-primary btn-sm fw-bold custom-rounded" data-bs-toggle="modal" data-bs-target="#editModal{{ loop.index }}">Edit</button>
                         <form method="POST" action="{{ url_for('fleet.delete_vehicle', vehicle_id=vehicle.id) }}" style="display:inline; margin:0;">
                             <button type="submit" class="btn btn-danger btn-sm fw-bold custom-rounded" onclick="return confirm('Delete this vehicle?');">Delete</button>
                         </form>
@@ -70,7 +70,7 @@
     </table>
 </div>
 
-<!-- Modal Add Vehicle -->
+
 <div class="modal fade" id="addVehicleModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content custom-rounded border-0">
@@ -99,10 +99,19 @@
                     <option value="Airplane">Airplane</option>
                 </select>
             </div>
+            
+            <!-- AICI AM INCLUS NOUL SELECTOR TONE/KG PENTRU ADD -->
             <div class="mb-3">
-                <label class="form-label fw-bold">Capacity (kg)</label>
-                <input type="number" class="form-control" name="capacity" min="1" required>
+                <label class="form-label fw-bold">Capacity</label>
+                <div class="input-group">
+                    <input type="number" step="0.1" class="form-control" name="capacity" min="0.1" required>
+                    <select class="form-select bg-light" name="capacity_unit" style="max-width: 100px;">
+                        <option value="kg">kg</option>
+                        <option value="tons">Tons</option>
+                    </select>
+                </div>
             </div>
+            
             <div class="mb-3">
                 <label class="form-label fw-bold">Status</label>
                 <select class="form-select" name="status" required>
@@ -123,8 +132,8 @@
 
 {% for vehicle in data.vehicles %}
 
-<!-- View Modal -->
-<div class="modal fade" id="viewModal{{ vehicle.id }}" tabindex="-1" aria-hidden="true">
+
+<div class="modal fade" id="viewModal{{ loop.index }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content custom-rounded border-0">
       <div class="modal-header" style="background-color: #17a2b8; color: white; border-radius: 12px 12px 0 0;">
@@ -147,7 +156,7 @@
 </div>
 
 <!-- Edit Modal -->
-<div class="modal fade" id="editModal{{ vehicle.id }}" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="editModal{{ loop.index }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content custom-rounded border-0">
       <form method="POST" action="{{ url_for('fleet.edit_vehicle') }}">
@@ -167,24 +176,33 @@
             <div class="mb-3">
                 <label class="form-label fw-bold">Vehicle Type</label>
                 <select class="form-select" name="edit_type" required>
-                    <option value="Truck" {% if vehicle.type == 'Truck' %}selected{% endif %}>Truck</option>
-                    <option value="Van" {% if vehicle.type == 'Van' %}selected{% endif %}>Van</option>
-                    <option value="Lorrie" {% if vehicle.type == 'Lorrie' %}selected{% endif %}>Lorrie</option>
-                    <option value="Ship" {% if vehicle.type == 'Ship' %}selected{% endif %}>Ship</option>
-                    <option value="Train" {% if vehicle.type == 'Train' %}selected{% endif %}>Train</option>
-                    <option value="Airplane" {% if vehicle.type == 'Airplane' %}selected{% endif %}>Airplane</option>
+                    <option value="Truck" {% if vehicle.type|trim == 'Truck' %}selected{% endif %}>Truck</option>
+                    <option value="Van" {% if vehicle.type|trim == 'Van' %}selected{% endif %}>Van</option>
+                    <option value="Lorrie" {% if vehicle.type|trim == 'Lorrie' %}selected{% endif %}>Lorrie</option>
+                    <option value="Ship" {% if vehicle.type|trim == 'Ship' %}selected{% endif %}>Ship</option>
+                    <option value="Train" {% if vehicle.type|trim == 'Train' %}selected{% endif %}>Train</option>
+                    <option value="Airplane" {% if vehicle.type|trim == 'Airplane' %}selected{% endif %}>Airplane</option>
                 </select>
             </div>
+            
+            
             <div class="mb-3">
-                <label class="form-label fw-bold">Capacity (kg)</label>
-                <input type="number" class="form-control" name="edit_capacity" value="{{ vehicle.capacity }}" min="1" required>
+                <label class="form-label fw-bold">Capacity</label>
+                <div class="input-group">
+                    <input type="number" step="0.1" class="form-control" name="edit_capacity" value="{{ vehicle.capacity }}" min="0.1" required>
+                    <select class="form-select bg-light" name="edit_capacity_unit" style="max-width: 100px;">
+                        <option value="kg">kg</option>
+                        <option value="tons">Tons</option>
+                    </select>
+                </div>
             </div>
+            
             <div class="mb-3">
                 <label class="form-label fw-bold">Status</label>
                 <select class="form-select" name="edit_status" required>
-                    <option value="Available" {% if vehicle.status == 'Available' %}selected{% endif %}>Available</option>
-                    <option value="In Transit" {% if vehicle.status == 'In Transit' %}selected{% endif %}>In Transit</option>
-                    <option value="Maintenance" {% if vehicle.status == 'Maintenance' %}selected{% endif %}>Maintenance</option>
+                    <option value="Available" {% if vehicle.status|trim == 'Available' %}selected{% endif %}>Available</option>
+                    <option value="In Transit" {% if vehicle.status|trim == 'In Transit' %}selected{% endif %}>In Transit</option>
+                    <option value="Maintenance" {% if vehicle.status|trim == 'Maintenance' %}selected{% endif %}>Maintenance</option>
                 </select>
             </div>
           </div>

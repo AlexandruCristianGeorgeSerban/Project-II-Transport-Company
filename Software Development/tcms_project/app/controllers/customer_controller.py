@@ -45,7 +45,7 @@ class CustomerController:
         else:
             return {"success": False, "message": "Invalid response type."}
 
-        # Actualizează statusul (prețul a rămas neschimbat în `price_offer`)
+        
         success = self.model.update_request_status(request_id, new_status, username)
         
         if success is True:

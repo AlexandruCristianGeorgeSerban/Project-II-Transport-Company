@@ -5,7 +5,7 @@
 
 {% block extra_css %}
 <style>
-    /* Păstrat din versiunea 'main': asigură scroll corect în modalele lungi */
+    
     .modal-body-scroll {
         max-height: calc(100vh - 210px);
         overflow-y: auto;
@@ -85,7 +85,7 @@
     </table>
 </div>
 
-<!-- Modal Add Driver -->
+
 <div class="modal fade" id="addDriverModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content custom-rounded border-0">
@@ -95,7 +95,7 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body bg-light p-4 modal-body-scroll">
-              <!-- Câmpurile de formular din varianta Refactoring -->
+              
               <div class="row g-3">
                   <div class="col-md-6">
                       <div class="card h-100 shadow-sm border-0">
@@ -178,7 +178,7 @@
 </div>
 
 {% for driver in data.drivers %}
-<!-- Modal Editare -->
+
 <div class="modal fade" id="editModal{{ driver.id }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content custom-rounded border-0">
@@ -263,7 +263,7 @@
   </div>
 </div>
 
-<!-- Modal Vizualizare -->
+
 <div class="modal fade" id="viewModal{{ driver.id }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content custom-rounded border-0">

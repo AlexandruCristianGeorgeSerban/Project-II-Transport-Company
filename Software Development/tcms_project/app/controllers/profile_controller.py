@@ -19,7 +19,7 @@ class ProfileController:
         try:
             pic_filename = None
             
-            # Gestionăm încărcarea imaginii dacă există
+            
             if profile_pic and profile_pic.filename != '':
                 safe_name = secure_filename(profile_pic.filename)
                 pic_filename = f"user_{user_id}_{safe_name}"
@@ -33,13 +33,12 @@ class ProfileController:
             with sqlite3.connect(DB_PATH) as conn:
                 cursor = conn.cursor()
                 
-                # Verificăm dacă noul username este deja luat de ALT user
+                
                 cursor.execute("SELECT id FROM users WHERE username = ? AND id != ?", (new_username, user_id))
                 if cursor.fetchone():
                     return {"success": False, "message": "Username already taken."}
 
-                # Executăm update-ul. Atenție: Folosim funcția COALESCE în SQLite sau verificări în Python 
-                # pentru a nu lăsa adresa 'None' să crape baza. O convertim într-un string gol dacă vine None.
+                
                 safe_phone = phone if phone else ""
                 safe_address = address if address else ""
                 safe_first = first_name if first_name else ""
@@ -47,16 +46,16 @@ class ProfileController:
                 safe_email = email if email else ""
 
 
-                # Dacă avem o imagine nouă, o salvăm în baza de date pe lângă datele textuale
+                
                 if pic_filename:
-                    # Ne asigurăm că ambele variabile (pic_filename și user_id) sunt la locul lor în execute
+                   
                     cursor.execute("""
                         UPDATE users 
                         SET username=?, email=?, first_name=?, last_name=?, phone_number=?, address=?, profile_picture=? 
                         WHERE id=?
                     """, (new_username, safe_email, safe_first, safe_last, safe_phone, safe_address, pic_filename, user_id))
                 else:
-                    # Facem update FĂRĂ să atingem imaginea
+                    
                     cursor.execute("""
                         UPDATE users 
                         SET username=?, email=?, first_name=?, last_name=?, phone_number=?, address=? 

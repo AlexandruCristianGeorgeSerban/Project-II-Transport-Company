@@ -5,7 +5,7 @@ guest_bp = Blueprint('guest', __name__)
 @guest_bp.route('/')
 def home():
     """Renders the landing page for guests with information and tutorial link."""
-    # If a user is already logged in, redirect them to their respective dashboard
+    
     if 'user_id' in session:
         role = session.get('role')
         if role == 'Customer':

@@ -42,8 +42,8 @@
                 <th>Cargo & Details</th>
                 <th>Pickup</th>
                 <th>Delivery</th>
-                <th>Preferred Date</th>
                 <th>Status</th>
+                <th>Audit Log</th>
                 <th class="text-center">Action</th>
             </tr>
         </thead>
@@ -58,33 +58,66 @@
                     <td>
                         <strong>{{ req.cargo_type }}</strong><br>
                         <small class="text-muted">
-                            {% if req.description %}
-                                {{ req.description[:40] }}{% if req.description|length > 40 %}...{% endif %}
-                            {% else %}
-                                <i>No description</i>
-                            {% endif %}
+                            {{ req.weight }} kg | {{ req.volume }} m³
                         </small>
                     </td>
                     <td>{{ req.pickup }}</td>
                     <td>{{ req.delivery }}</td>
-                    <td>{{ req.preferred_date }}</td>
                     <td><span class="badge bg-{{ 'warning text-dark' if req.status == 'Pending' else ('info' if req.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ req.status }}</span></td>
                     
-                    <!-- AICI ESTE MODIFICAREA PENTRU BUTOANE -->
+                    
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-secondary custom-rounded" data-bs-toggle="modal" data-bs-target="#auditModal{{ req.id }}">
+                            Log
+                        </button>
+
+                        <div class="modal fade" id="auditModal{{ req.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content custom-rounded border-0 shadow">
+                                    <div class="modal-header bg-dark text-white border-0">
+                                        <h5 class="modal-title fw-bold">🔍 System Audit: #{{ req.id }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body p-4">
+                                        <div class="d-flex flex-column gap-3">
+                                            <div class="p-3 bg-light rounded border-start border-4 border-info">
+                                                <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Last Modified By</small>
+                                                <span class="fw-bold text-dark">👤 {{ req.last_modified_by if req.last_modified_by else 'Original Request' }}</span>
+                                            </div>
+                                            
+                                            <div class="p-3 bg-light rounded border-start border-4 border-primary">
+                                                <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Modification Timestamp</small>
+                                                <span class="fw-bold text-dark">🕒 {{ req.last_modified_at if req.last_modified_at else 'No modifications' }}</span>
+                                            </div>
+
+                                            {% if req.allocated_by %}
+                                            <div class="p-3 bg-light rounded border-start border-4 border-success">
+                                                <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Resource Allocation Signature</small>
+                                                <span class="fw-bold text-dark">✍️ Assigned by: <strong>{{ req.allocated_by }}</strong></span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer border-0">
+                                        <button type="button" class="btn btn-secondary custom-rounded" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    
                     <td class="align-middle">
                         <div class="d-flex justify-content-center gap-2">
                             <button type="button" class="btn btn-info btn-sm text-white fw-bold custom-rounded" data-bs-toggle="modal" data-bs-target="#viewModal{{ req.id }}">View</button>
-        
                             <button type="button" class="btn btn-primary btn-sm fw-bold custom-rounded" data-bs-toggle="modal" data-bs-target="#editModal{{ req.id }}">Edit</button>
-        
-                        <form method="POST" action="{{ url_for('request_routes.delete_request', req_id=req.id) }}" style="margin:0;">
-                            <button type="submit" class="btn btn-danger btn-sm fw-bold custom-rounded" onclick="return confirm('Delete this request?');">Delete</button>
-                        </form>
+                            <form method="POST" action="{{ url_for('request_routes.delete_request', req_id=req.id) }}" style="margin:0;">
+                                <button type="submit" class="btn btn-danger btn-sm fw-bold custom-rounded" onclick="return confirm('Delete this request?');">Delete</button>
+                            </form>
                         </div>
                     </td>
                 </tr>
 
-                <!-- View Request Modal -->
+                
                 <div class="modal fade" id="viewModal{{ req.id }}" tabindex="-1" aria-hidden="true">
                   <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content custom-rounded border-0">
@@ -111,9 +144,9 @@
                   </div>
                 </div>
 
-                <!-- Edit Request Modal -->
+                
                 <div class="modal fade" id="editModal{{ req.id }}" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                  <div class="modal-dialog modal-lg">
                     <div class="modal-content custom-rounded border-0">
                       <form method="POST" action="{{ url_for('request_routes.edit_request') }}">
                           <div class="modal-header bg-primary text-white" style="border-radius: 12px 12px 0 0;">
@@ -122,76 +155,54 @@
                           </div>
                           <div class="modal-body bg-light p-4">
                               <div class="row g-3">
-                                  <div class="col-md-8">
-                                      <div class="card shadow-sm h-100 border-0">
-                                          <div class="card-body">
-                                              <div class="row mb-2">
-                                                  <div class="col-6">
-                                                      <label class="form-label fw-bold">REQ ID</label>
-                                                      <input type="text" class="form-control form-control-sm bg-light" name="edit_request_id" value="{{ req.id }}" readonly>
-                                                  </div>
-                                                  <div class="col-6">
-                                                      <label class="form-label fw-bold">Status</label>
-                                                      <select class="form-select form-select-sm" name="edit_status" required>
-                                                          <option value="Draft" {% if req.status == 'Draft' %}selected{% endif %}>Draft</option>
-                                                          <option value="Pending" {% if req.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                                          <option value="Approved" {% if req.status == 'Approved' %}selected{% endif %}>Approved</option>
-                                                      </select>
-                                                  </div>
-                                              </div>
-                                              <div class="row mb-2">
-                                                  <div class="col-4">
-                                                      <label class="form-label fw-bold">Client Name</label>
-                                                      <input type="text" class="form-control form-control-sm" name="edit_client_name" value="{{ req.client }}" required>
-                                                  </div>
-                                                  <div class="col-4">
-                                                      <label class="form-label fw-bold">Cargo Type</label>
-                                                      <select class="form-select form-select-sm" name="edit_cargo_type" required>
-                                                          <option value="General Cargo" {% if req.cargo_type == 'General Cargo' %}selected{% endif %}>General Cargo</option>
-                                                          <option value="Bulk" {% if req.cargo_type == 'Bulk' %}selected{% endif %}>Bulk</option>
-                                                          <option value="Heavy Freight" {% if req.cargo_type == 'Heavy Freight' %}selected{% endif %}>Heavy Freight</option>
-                                                          <option value="Vehicles" {% if req.cargo_type == 'Vehicles' %}selected{% endif %}>Vehicles</option>
-                                                      </select>
-                                                  </div>
-                                                  <div class="col-4">
-                                                      <label class="form-label fw-bold">Preferred Date</label>
-                                                      <input type="date" class="form-control form-control-sm" name="edit_preferred_date" value="{{ req.preferred_date }}" required>
-                                                  </div>
-                                              </div>
-                                              <div class="mb-2">
-                                                  <label class="form-label fw-bold">Merchandise Description</label>
-                                                  <textarea class="form-control form-control-sm" name="edit_description" rows="2">{{ req.description }}</textarea>
-                                              </div>
-                                              <div class="row mb-2">
-                                                  <div class="col-6">
-                                                      <label class="form-label fw-bold">Weight (kg)</label>
-                                                      <input type="number" step="0.1" class="form-control form-control-sm" name="edit_weight" value="{{ req.weight }}" required>
-                                                  </div>
-                                                  <div class="col-6">
-                                                      <label class="form-label fw-bold">Volume (m³)</label>
-                                                      <input type="number" step="0.1" class="form-control form-control-sm" name="edit_volume" value="{{ req.volume }}" required>
-                                                  </div>
-                                              </div>
-                                              <div class="row mb-2">
-                                                  <div class="col-6">
-                                                      <label class="form-label fw-bold">Pickup Address</label>
-                                                      <input type="text" class="form-control form-control-sm" name="edit_pickup" value="{{ req.pickup }}" required>
-                                                  </div>
-                                                  <div class="col-6">
-                                                      <label class="form-label fw-bold">Delivery Address</label>
-                                                      <input type="text" class="form-control form-control-sm" name="edit_delivery" value="{{ req.delivery }}" required>
-                                                  </div>
-                                              </div>
-                                          </div>
-                                      </div>
+                                  <div class="col-6">
+                                      <label class="form-label fw-bold">REQ ID</label>
+                                      <input type="text" class="form-control bg-light" name="edit_request_id" value="{{ req.id }}" readonly>
                                   </div>
-                                  <div class="col-md-4">
-                                      <div class="card shadow-sm mb-3 border-0">
-                                          <div class="card-header bg-secondary text-white">User Profile Check</div>
-                                          <div class="card-body">
-                                              <p class="small text-muted">Client verification is complete for existing requests.</p>
-                                          </div>
-                                      </div>
+                                  <div class="col-6">
+                                      <label class="form-label fw-bold">Status</label>
+                                      <select class="form-select" name="edit_status" required>
+                                          <option value="Draft" {% if req.status == 'Draft' %}selected{% endif %}>Draft</option>
+                                          <option value="Pending" {% if req.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                          <option value="Approved" {% if req.status == 'Approved' %}selected{% endif %}>Approved</option>
+                                      </select>
+                                  </div>
+                                  <div class="col-6">
+                                      <label class="form-label fw-bold">Client Name</label>
+                                      <input type="text" class="form-control" name="edit_client_name" value="{{ req.client }}" required>
+                                  </div>
+                                  <div class="col-6">
+                                      <label class="form-label fw-bold">Cargo Type</label>
+                                      <select class="form-select" name="edit_cargo_type" required>
+                                          <option value="General Cargo" {% if req.cargo_type == 'General Cargo' %}selected{% endif %}>General Cargo</option>
+                                          <option value="Bulk" {% if req.cargo_type == 'Bulk' %}selected{% endif %}>Bulk</option>
+                                          <option value="Heavy Freight" {% if req.cargo_type == 'Heavy Freight' %}selected{% endif %}>Heavy Freight</option>
+                                          <option value="Vehicles" {% if req.cargo_type == 'Vehicles' %}selected{% endif %}>Vehicles</option>
+                                      </select>
+                                  </div>
+                                  <div class="col-12">
+                                      <label class="form-label fw-bold">Merchandise Description</label>
+                                      <textarea class="form-control" name="edit_description" rows="2">{{ req.description }}</textarea>
+                                  </div>
+                                  <div class="col-6">
+                                      <label class="form-label fw-bold">Weight (kg)</label>
+                                      <input type="number" step="0.1" class="form-control" name="edit_weight" value="{{ req.weight }}" required>
+                                  </div>
+                                  <div class="col-6">
+                                      <label class="form-label fw-bold">Volume (m³)</label>
+                                      <input type="number" step="0.1" class="form-control" name="edit_volume" value="{{ req.volume }}" required>
+                                  </div>
+                                  <div class="col-6">
+                                      <label class="form-label fw-bold">Pickup Address</label>
+                                      <input type="text" class="form-control" name="edit_pickup" value="{{ req.pickup }}" required>
+                                  </div>
+                                  <div class="col-6">
+                                      <label class="form-label fw-bold">Delivery Address</label>
+                                      <input type="text" class="form-control" name="edit_delivery" value="{{ req.delivery }}" required>
+                                  </div>
+                                  <div class="col-12">
+                                      <label class="form-label fw-bold">Preferred Date</label>
+                                      <input type="date" class="form-control" name="edit_preferred_date" value="{{ req.preferred_date }}" required>
                                   </div>
                               </div>
                           </div>
@@ -210,9 +221,9 @@
     </table>
 </div>
 
-<!-- AICI AM READĂUGAT MODALUL PENTRU CREARE CERERE NOUĂ -->
+
 <div class="modal fade" id="addRequestModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content custom-rounded border-0">
       <form method="POST" action="{{ url_for('request_routes.add_request') }}">
           <div class="modal-header" style="background-color: #5d758b; color: white; border-radius: 12px 12px 0 0;">
@@ -221,108 +232,60 @@
           </div>
           <div class="modal-body bg-light p-4">
               <div class="row g-3">
-                  <div class="col-md-8">
-                      <div class="card shadow-sm h-100 border-0">
-                          <div class="card-body">
-                              <div class="row mb-2">
-                                  <div class="col-6">
-                                      <label class="form-label fw-bold">REQ ID</label>
-                                      <input type="text" class="form-control form-control-sm" name="request_id" placeholder="e.g. 1001" required>
-                                  </div>
-                                  <div class="col-6">
-                                      <label class="form-label fw-bold">Status</label>
-                                      <select class="form-select form-select-sm" name="status" required>
-                                          <option value="Draft">Draft</option>
-                                          <option value="Pending">Pending</option>
-                                          <option value="Approved">Approved</option>
-                                      </select>
-                                  </div>
-                              </div>
-                              <div class="row mb-2">
-                                  <div class="col-4">
-                                      <label class="form-label fw-bold">Client Name</label>
-                                      <input type="text" class="form-control form-control-sm" name="client_name" required>
-                                  </div>
-                                  <div class="col-4">
-                                      <label class="form-label fw-bold">Cargo Type</label>
-                                      <select class="form-select form-select-sm" name="cargo_type" required>
-                                          <option value="General Cargo">General Cargo</option>
-                                          <option value="Bulk">Bulk</option>
-                                          <option value="Heavy Freight">Heavy Freight</option>
-                                          <option value="Vehicles">Vehicles</option>
-                                      </select>
-                                  </div>
-                                  <div class="col-4">
-                                      <label class="form-label fw-bold">Preferred Date</label>
-                                      <input type="date" class="form-control form-control-sm" name="preferred_date" required>
-                                  </div>
-                              </div>
-                              <div class="mb-2">
-                                  <label class="form-label fw-bold">Merchandise/Luggage Description</label>
-                                  <textarea class="form-control form-control-sm" name="description" rows="2" placeholder="Detailed description of cargo..."></textarea>
-                              </div>
-                              <div class="row mb-2">
-                                  <div class="col-6">
-                                      <label class="form-label fw-bold">Weight (kg)</label>
-                                      <input type="number" step="0.1" class="form-control form-control-sm" name="weight" required>
-                                  </div>
-                                  <div class="col-6">
-                                      <label class="form-label fw-bold">Volume (m³)</label>
-                                      <input type="number" step="0.1" class="form-control form-control-sm" name="volume" required>
-                                  </div>
-                              </div>
-                              <div class="row mb-2">
-                                  <div class="col-6">
-                                      <label class="form-label fw-bold">Pickup Address</label>
-                                      <input type="text" class="form-control form-control-sm" name="pickup" placeholder="Full street address, City..." required>
-                                  </div>
-                                  <div class="col-6">
-                                      <label class="form-label fw-bold">Delivery Address</label>
-                                      <input type="text" class="form-control form-control-sm" name="delivery" placeholder="Full street address, City..." required>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
+                  <div class="col-6">
+                      <label class="form-label fw-bold">REQ ID</label>
+                      <input type="text" class="form-control" name="request_id" placeholder="e.g. REQ-1001" required>
                   </div>
-                  <div class="col-md-4">
-                      <div class="card shadow-sm mb-3 border-0">
-                          <div class="card-header bg-secondary text-white">User Profile Check</div>
-                          <div class="card-body">
-                              <div class="mb-2">
-                                  <label class="form-label">Client DOB (Legal Age Verification)</label>
-                                  <input type="date" class="form-control form-control-sm" name="dob_check">
-                              </div>
-                              <div class="mb-2">
-                                  <label class="form-label">Client Document ID</label>
-                                  <input type="text" class="form-control form-control-sm" placeholder="Document ID">
-                              </div>
-                          </div>
-                      </div>
-                      <div class="card shadow-sm border-0">
-                          <div class="card-header bg-secondary text-white">Age & Blocked Status</div>
-                          <div class="card-body">
-                              <div class="mb-2">
-                                  <label class="form-label">Age Check</label>
-                                  <select class="form-select form-select-sm">
-                                      <option>Verified (Over 13)</option>
-                                      <option>Not Verified</option>
-                                  </select>
-                              </div>
-                              <div class="mb-2">
-                                  <label class="form-label">Blocked Status</label>
-                                  <select class="form-select form-select-sm">
-                                      <option>Not Blocked</option>
-                                      <option>Blocked</option>
-                                  </select>
-                              </div>
-                          </div>
-                      </div>
+                  <div class="col-6">
+                      <label class="form-label fw-bold">Status</label>
+                      <select class="form-select" name="status" required>
+                          <option value="Draft">Draft</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Approved">Approved</option>
+                      </select>
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label fw-bold">Client Name</label>
+                      <input type="text" class="form-control" name="client_name" required>
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label fw-bold">Cargo Type</label>
+                      <select class="form-select" name="cargo_type" required>
+                          <option value="General Cargo">General Cargo</option>
+                          <option value="Bulk">Bulk</option>
+                          <option value="Heavy Freight">Heavy Freight</option>
+                          <option value="Vehicles">Vehicles</option>
+                      </select>
+                  </div>
+                  <div class="col-12">
+                      <label class="form-label fw-bold">Merchandise Description</label>
+                      <textarea class="form-control" name="description" rows="2" placeholder="Detailed description of cargo..."></textarea>
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label fw-bold">Weight (kg)</label>
+                      <input type="number" step="0.1" class="form-control" name="weight" required>
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label fw-bold">Volume (m³)</label>
+                      <input type="number" step="0.1" class="form-control" name="volume" required>
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label fw-bold">Pickup Address</label>
+                      <input type="text" class="form-control" name="pickup" placeholder="City..." required>
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label fw-bold">Delivery Address</label>
+                      <input type="text" class="form-control" name="delivery" placeholder="City..." required>
+                  </div>
+                  <div class="col-12">
+                      <label class="form-label fw-bold">Preferred Date</label>
+                      <input type="date" class="form-control" name="preferred_date" required>
                   </div>
               </div>
           </div>
           <div class="modal-footer bg-white" style="border-radius: 0 0 12px 12px;">
             <button type="button" class="btn btn-light custom-rounded" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary fw-bold px-4 custom-rounded shadow-sm" style="background-color: #0078d4; border:none;">Submit Transport Request</button>
+            <button type="submit" class="btn btn-primary fw-bold custom-rounded px-4 shadow-sm" style="background-color: #0078d4; border:none;">Submit Transport Request</button>
           </div>
       </form>
     </div>
