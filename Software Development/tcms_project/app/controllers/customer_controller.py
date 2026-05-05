@@ -3,7 +3,7 @@ from typing import Dict, Any
 from app.models.customer_model import CustomerModel
 from app.models.request_model import RequestModel
 from app.models.invoice_model import InvoiceModel
-from app.models.notification_model import NotificationModel  # <-- IMPORTUL NOU
+from app.models.notification_model import NotificationModel  
 
 class CustomerController:
     """Processes business logic for Customer Dashboard and Negotiations."""
@@ -31,11 +31,11 @@ class CustomerController:
     def process_customer_response(self, request_id: str, response_type: str, username: str) -> dict:
         """Handles the Accept / Reject / Negotiate workflow and notifies Staff (REQ-59, 60, 61)."""
         if response_type == 'accept':
-            new_status = 'Accepted'  # REQ-59
+            new_status = 'Accepted'  # Status care aprobă cursa
             msg = "Offer accepted! Awaiting driver allocation."
             notif_msg = f"✅ Clientul {username} a ACCEPTAT oferta pentru cererea {request_id}. Marfa este gata de alocare!"
         elif response_type == 'reject':
-            new_status = 'Rejected'  # REQ-60
+            new_status = 'Rejected'  
             msg = "Offer rejected. The request is closed."
             notif_msg = f"❌ Clientul {username} a RESPINS oferta pentru cererea {request_id}."
         elif response_type == 'negotiate':
@@ -45,10 +45,10 @@ class CustomerController:
         else:
             return {"success": False, "message": "Invalid response type."}
 
+        # Actualizează statusul (prețul a rămas neschimbat în `price_offer`)
         success = self.model.update_request_status(request_id, new_status, username)
         
         if success is True:
-            # REQ-61: The system shall notify logistics staff of the customer's decision.
             NotificationModel().add_notification("Staff", notif_msg)
             return {"success": True, "message": msg}
         else:
