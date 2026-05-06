@@ -91,18 +91,19 @@
                                 <td><span class="badge rounded-pill bg-{{ 'warning text-dark' if r.status in ['Pending', 'Negotiation'] else ('info' if r.status == 'Draft' else 'success') }} px-3 py-2">{{ r.status }}</span></td>
                                 <td class="fw-bold text-success">${{ r.price_offer }}</td>
                                 
-                                <!-- ACTIONS -->
                                 <td class="pe-3">
-                                    {% if r.status == 'Pending' %}
+                                    {% if r.status in ['Pending', 'Negotiation'] %}
+                                        
+                                        {% if r.status == 'Pending' %}
                                         <form action="{{ url_for('customer.handle_response', req_id=r.id, action='accept') }}" method="POST" style="display:inline;">
                                             <button type="submit" class="btn btn-sm btn-success custom-rounded shadow-sm">Accept</button>
                                         </form>
+                                        {% endif %}
                                         
                                         <button type="button" class="btn btn-sm btn-outline-warning custom-rounded mt-1 shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#clientNegotiateModal{{ r.id }}">
-                                            Negotiate
+                                            {% if r.status == 'Pending' %}Negotiate{% else %}💬 Open Chat{% endif %}
                                         </button>
 
-                                        <!-- Modal Negociere Client -->
                                         <div class="modal fade text-start" id="clientNegotiateModal{{ r.id }}" tabindex="-1" onclick="event.stopPropagation();">
                                           <div class="modal-dialog modal-dialog-centered modal-lg">
                                             <div class="modal-content custom-rounded border-0 shadow">
@@ -122,10 +123,16 @@
                                                                   <div class="text-muted mt-1" style="font-size: 0.7rem;">{{ msg.timestamp }}</div>
                                                               </div>
                                                           {% else %}
-                                                              <div class="text-center text-muted mt-5">Explain why you refuse the ${{ r.price_offer }} offer and propose a new one.</div>
+                                                              <div class="text-center text-muted mt-5">No previous messages.</div>
                                                           {% endfor %}
                                                       </div>
-                                                      <textarea class="form-control" name="negotiate_message" rows="2" placeholder="e.g., The price is a bit high, I can offer $300 for this transport." required></textarea>
+                                                      
+                                                      <div class="row g-2">
+                                                          <div class="col-16">
+                                                              <textarea class="form-control" name="negotiate_message" rows="2" placeholder="Send a message or propose an offer..." required></textarea>
+                                                          </div>
+                                                      </div>
+                                                      
                                                   </div>
                                                   <div class="modal-footer bg-white border-0">
                                                     <button type="button" class="btn btn-light custom-rounded" data-bs-dismiss="modal">Close</button>
@@ -136,9 +143,6 @@
                                           </div>
                                         </div>
                                         
-                                    {% elif r.status == 'Negotiation' %}
-                                        <!-- TEXT SCURTAT AICI CA SA INCAPA FRUMOS -->
-                                        <span class="badge bg-secondary p-2 custom-rounded shadow-sm">⏳ Waiting Staff</span>
                                     {% elif r.status == 'In Transit' %}
                                         <span class="badge bg-primary p-2 custom-rounded shadow-sm">🚚 On Route</span>
                                         <br>
@@ -165,7 +169,6 @@
         </div>
     </div>
 </div>
-
 
 <div class="modal fade" id="requestModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">

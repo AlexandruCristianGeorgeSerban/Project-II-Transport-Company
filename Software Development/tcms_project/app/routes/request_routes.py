@@ -73,16 +73,20 @@ def send_offer(req_id: str) -> str:
 
 @request_bp.route('/requests/negotiate/<req_id>', methods=['POST'])
 def staff_negotiate(req_id: str):
-    if session.get('role') not in ['Administrator', 'Staff']:
+    role = session.get('role')
+    if role not in ['Administrator', 'Staff']:
         return redirect(url_for('dashboard.main_dashboard'))
     
-    price = float(request.form.get('new_price', 0))
-    msg = request.form.get('message', '')
-    staff_username = session.get('username', 'Staff')
+    price_str = request.form.get('new_price')
+    price = float(price_str) if price_str and price_str.strip() else 0.0
     
-    resp = req_logic.handle_negotiation_offer(req_id, staff_username, msg, price)
+    msg = request.form.get('message', '')
+    username = session.get('username', 'Unknown')
+    
+    resp = req_logic.handle_negotiation_offer(req_id, username, msg, price, role)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
-    return redirect(url_for('request_routes.request_management'))
+    
+    return redirect(request.referrer or url_for('dashboard.main_dashboard'))
 
 # --- ROUTE OPTIMIZATION (HARTA FLOTEI) ---
 @request_bp.route('/staff/optimization')

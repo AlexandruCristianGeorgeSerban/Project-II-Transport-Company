@@ -65,24 +65,26 @@ class RequestController:
             return {"success": False, "message": "Decizie invalidă."}
 
     
-    def handle_negotiation_offer(self, req_id: str, staff_username: str, message: str, new_price: float) -> dict:
+    def handle_negotiation_offer(self, req_id: str, staff_username: str, message: str, new_price: float, role: str = "Staff") -> dict:
         req = self.model.get_request_by_id(req_id)
         if not req: return {"success": False, "message": "Request nu a fost găsit."}
-        
-       
         
         current_price = req.get('price_offer')
         if current_price is None:
             current_price = req.get('estimated_price', 0)
         
-        
         current_price = float(current_price or 0)
         
+        if new_price > 0:
+            if new_price >= current_price:
+                return {"success": False, "message": f"Eroare Matematică: Noua ofertă (${new_price}) trebuie să fie STRICT MAI MICĂ decât oferta refuzată (${current_price}). Fii rațional!"}
+            
+            final_message = f"{message} [💲 Ofertă Nouă: ${new_price}]"
+            
+            self.model.add_negotiation_message(req_id, f"{role} ({staff_username})", final_message)
+            self.model.update_request_status_and_price(req_id, "Pending", new_price)
+            return {"success": True, "message": "Ofertă nouă trimisă către client cu succes!"}
         
-        if new_price >= current_price:
-            return {"success": False, "message": f"Eroare Matematică: Noua ofertă (${new_price}) trebuie să fie STRICT MAI MICĂ decât oferta refuzată (${current_price}). Fii rațional!"}
-        
-        
-        self.model.add_negotiation_message(req_id, f"Staff ({staff_username})", f"{message} [💲 Ofertă Nouă: ${new_price}]")
-        self.model.update_request_status_and_price(req_id, "Pending", new_price)
-        return {"success": True, "message": "Ofertă nouă trimisă către client cu succes!"}
+        else:
+            self.model.add_negotiation_message(req_id, f"{role} ({staff_username})", message)
+            return {"success": True, "message": "Mesajul a fost trimis către client pe chat!"}
