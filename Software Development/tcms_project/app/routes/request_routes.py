@@ -2,6 +2,7 @@ import logging
 import sqlite3
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from app.controllers.request_controller import RequestController
+from app.models.user_model import UserModel
 
 request_bp = Blueprint('request_routes', __name__)
 req_logic = RequestController()
@@ -14,7 +15,11 @@ def request_management() -> str:
     
     view_data = req_logic.load_request_data()
     role = session.get('role', 'Staff')
-    return render_template('admin/requests.html', data=view_data, role=role)
+    
+    all_users = UserModel().get_all_users()
+    customers = [u for u in all_users if u['role'] == 'Customer']
+    
+    return render_template('admin/requests.html', data=view_data, role=role, customers=customers)
 
 @request_bp.route('/requests/add', methods=['POST'])
 def add_request() -> str:
@@ -68,16 +73,20 @@ def send_offer(req_id: str) -> str:
 
 @request_bp.route('/requests/negotiate/<req_id>', methods=['POST'])
 def staff_negotiate(req_id: str):
-    if session.get('role') not in ['Administrator', 'Staff']:
+    role = session.get('role')
+    if role not in ['Administrator', 'Staff']:
         return redirect(url_for('dashboard.main_dashboard'))
     
-    price = float(request.form.get('new_price', 0))
-    msg = request.form.get('message', '')
-    staff_username = session.get('username', 'Staff')
+    price_str = request.form.get('new_price')
+    price = float(price_str) if price_str and price_str.strip() else 0.0
     
-    resp = req_logic.handle_negotiation_offer(req_id, staff_username, msg, price)
+    msg = request.form.get('message', '')
+    username = session.get('username', 'Unknown')
+    
+    resp = req_logic.handle_negotiation_offer(req_id, username, msg, price, role)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
-    return redirect(url_for('request_routes.request_management'))
+    
+    return redirect(request.referrer or url_for('dashboard.main_dashboard'))
 
 # --- ROUTE OPTIMIZATION (HARTA FLOTEI) ---
 @request_bp.route('/staff/optimization')

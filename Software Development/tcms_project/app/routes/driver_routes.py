@@ -310,7 +310,6 @@ def add_driver() -> str:
     status = request.form.get('status')
     exp = request.form.get('experience')
     dob = request.form.get('dob')
-    doc_id = request.form.get('document_id')
     address = request.form.get('address')
     avail = request.form.get('availability')
     username = request.form.get('username')
@@ -319,7 +318,7 @@ def add_driver() -> str:
     licenses_list = request.form.getlist('licenses')
     licenses_str = ", ".join(licenses_list)
     
-    resp = driver_logic.add_new_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, doc_id, address, avail, username, password)
+    resp = driver_logic.add_new_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, address, avail, username, password)
     
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
@@ -327,18 +326,18 @@ def add_driver() -> str:
 @driver_bp.route('/drivers/edit', methods=['POST'])
 def edit_driver() -> str:
     d_id = request.form.get('edit_driver_id')
-    name = request.form.get('edit_name')
+    first_name = request.form.get('edit_first_name')
+    last_name = request.form.get('edit_last_name')
     status = request.form.get('edit_status')
     exp = request.form.get('edit_experience')
     dob = request.form.get('edit_dob')
-    doc_id = request.form.get('edit_document_id')
     address = request.form.get('edit_address')
     avail = request.form.get('edit_availability')
     
     licenses_list = request.form.getlist('edit_licenses')
     licenses_str = ", ".join(licenses_list)
     
-    resp = driver_logic.modify_driver(d_id, name, status, licenses_str, exp, dob, doc_id, address, avail)
+    resp = driver_logic.modify_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, address, avail)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 

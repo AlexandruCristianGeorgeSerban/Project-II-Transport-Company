@@ -20,7 +20,6 @@ class DriverModel:
                         licenses TEXT NOT NULL,
                         experience TEXT NOT NULL,
                         dob TEXT NOT NULL,
-                        document_id TEXT NOT NULL,
                         address TEXT NOT NULL,
                         availability TEXT NOT NULL
                     )
@@ -31,14 +30,14 @@ class DriverModel:
             logging.error(f"Database error during drivers table creation: {error}")
             return False
 
-    def insert_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, doc_id: str, address: str, avail: str) -> bool:
+    def insert_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, address: str, avail: str) -> bool:
         """Inserts a new driver record securely into the database."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
                 db_cursor.execute(
-                    "INSERT INTO drivers (id, name, status, licenses, experience, dob, document_id, address, availability) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (d_id, name, status, licenses, exp, dob, doc_id, address, avail)
+                    "INSERT INTO drivers (id, name, status, licenses, experience, dob, address, availability) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (d_id, name, status, licenses, exp, dob, address, avail)
                 )
                 connection.commit()
                 return True
@@ -46,14 +45,14 @@ class DriverModel:
             logging.error(f"Insert error: {db_error}")
             return False
 
-    def update_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, doc_id: str, address: str, avail: str) -> bool:
+    def update_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, address: str, avail: str) -> bool:
         """Updates an existing driver's data securely."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
                 db_cursor.execute(
-                    "UPDATE drivers SET name = ?, status = ?, licenses = ?, experience = ?, dob = ?, document_id = ?, address = ?, availability = ? WHERE id = ?",
-                    (name, status, licenses, exp, dob, doc_id, address, avail, d_id)
+                    "UPDATE drivers SET name = ?, status = ?, licenses = ?, experience = ?, dob = ?, address = ?, availability = ? WHERE id = ?",
+                    (name, status, licenses, exp, dob, address, avail, d_id)
                 )
                 connection.commit()
                 return True
