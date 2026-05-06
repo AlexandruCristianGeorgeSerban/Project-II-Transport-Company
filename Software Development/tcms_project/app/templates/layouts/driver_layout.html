@@ -23,7 +23,6 @@
         </div>
 
         <a href="{{ url_for('driver.portal') }}" class="nav-btn {% if request.endpoint == 'driver.portal' %}active fw-bold{% endif %}">🚚 My Jobs</a>
-        <a href="{{ url_for('profile.view_profile') }}" class="nav-btn {% if request.endpoint == 'profile.view_profile' %}active fw-bold{% endif %}">👤 Profile</a>
         <a href="{{ url_for('driver.history') }}" class="nav-btn {% if request.endpoint == 'driver.history' %}active fw-bold{% endif %}">📋 History</a>
         <a href="{{ url_for('driver.support') }}" class="nav-btn {% if request.endpoint == 'driver.support' %}active fw-bold{% endif %}">🎧 Support</a>
         
@@ -135,7 +134,8 @@ document.addEventListener("DOMContentLoaded", function() {
             let cursaMatch = msg.match(/cursa (REQ-[A-Z0-9]+)/i);
             
             if (cursaMatch) {
-                nextUrl = "/driver/chat/" + cursaMatch[1]; 
+                let idCursa = cursaMatch[1].toUpperCase();
+                nextUrl = "/driver/chat/" + idCursa; 
             } else if (msg.includes("tichet") || msg.includes("suport")) {
                 nextUrl = "{{ url_for('driver.support') }}"; 
             }

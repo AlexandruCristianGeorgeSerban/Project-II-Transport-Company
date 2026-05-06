@@ -201,13 +201,14 @@
         link.addEventListener('click', function(e) {
             e.preventDefault(); 
             
-            let msg = this.getAttribute('data-message');
+            let msg = this.getAttribute('data-message') || "";
             let notifId = this.getAttribute('data-notif-id');
             let nextUrl = "";
             
             let cursaMatch = msg.match(/cursa (REQ-[A-Z0-9]+)/i);
             if (cursaMatch) {
-                nextUrl = "/driver/chat/" + cursaMatch[1]; 
+                let idCursa = cursaMatch[1].toUpperCase();
+                nextUrl = "/driver/chat/" + idCursa;
             } 
             else if (msg.toLowerCase().includes("tichet") || msg.toLowerCase().includes("suport")) {
                 nextUrl = "/driver/support"; 

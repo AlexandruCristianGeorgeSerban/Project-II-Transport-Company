@@ -13,6 +13,7 @@ from app.routes.guest_routes import guest_bp
 from app.routes.profile_routes import profile_bp
 from datetime import timedelta 
 from app.routes.notification_routes import notification_bp
+
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
     app = Flask(__name__)

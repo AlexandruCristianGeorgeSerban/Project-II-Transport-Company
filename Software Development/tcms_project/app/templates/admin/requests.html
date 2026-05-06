@@ -65,7 +65,6 @@
                     <td>{{ req.delivery }}</td>
                     <td><span class="badge bg-{{ 'warning text-dark' if req.status == 'Pending' else ('info' if req.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ req.status }}</span></td>
                     
-                    
                     <td>
                         <button type="button" class="btn btn-sm btn-outline-secondary custom-rounded" data-bs-toggle="modal" data-bs-target="#auditModal{{ req.id }}">
                             Log
@@ -117,7 +116,6 @@
                     </td>
                 </tr>
 
-                
                 <div class="modal fade" id="viewModal{{ req.id }}" tabindex="-1" aria-hidden="true">
                   <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content custom-rounded border-0">
@@ -144,7 +142,6 @@
                   </div>
                 </div>
 
-                
                 <div class="modal fade" id="editModal{{ req.id }}" tabindex="-1" aria-hidden="true">
                   <div class="modal-dialog modal-lg">
                     <div class="modal-content custom-rounded border-0">
@@ -167,19 +164,26 @@
                                           <option value="Approved" {% if req.status == 'Approved' %}selected{% endif %}>Approved</option>
                                       </select>
                                   </div>
+                                  
                                   <div class="col-6">
-                                      <label class="form-label fw-bold">Client Name</label>
-                                      <input type="text" class="form-control" name="edit_client_name" value="{{ req.client }}" required>
+                                      <label class="form-label fw-bold">Select Client</label>
+                                      <select class="form-select" name="edit_client_name" required>
+                                          {% for c in customers %}
+                                              <option value="{{ c.username }}" {% if req.client == c.username %}selected{% endif %}>{{ c.first_name }} {{ c.last_name }} ({{ c.username }})</option>
+                                          {% endfor %}
+                                      </select>
                                   </div>
+                                  
                                   <div class="col-6">
                                       <label class="form-label fw-bold">Cargo Type</label>
                                       <select class="form-select" name="edit_cargo_type" required>
-                                          <option value="General Cargo" {% if req.cargo_type == 'General Cargo' %}selected{% endif %}>General Cargo</option>
-                                          <option value="Bulk" {% if req.cargo_type == 'Bulk' %}selected{% endif %}>Bulk</option>
-                                          <option value="Heavy Freight" {% if req.cargo_type == 'Heavy Freight' %}selected{% endif %}>Heavy Freight</option>
-                                          <option value="Vehicles" {% if req.cargo_type == 'Vehicles' %}selected{% endif %}>Vehicles</option>
+                                          <option value="General Goods" {% if req.cargo_type == 'General Goods' %}selected{% endif %}>📦 General Goods</option>
+                                          <option value="Fragile" {% if req.cargo_type == 'Fragile' %}selected{% endif %}>🍷 Fragile / Electronics</option>
+                                          <option value="Heavy Freight" {% if req.cargo_type == 'Heavy Freight' %}selected{% endif %}>🏗️ Heavy Freight / Materials</option>
+                                          <option value="Vehicles" {% if req.cargo_type == 'Vehicles' %}selected{% endif %}>🚗 Vehicles</option>
                                       </select>
                                   </div>
+                                  
                                   <div class="col-12">
                                       <label class="form-label fw-bold">Merchandise Description</label>
                                       <textarea class="form-control" name="edit_description" rows="2">{{ req.description }}</textarea>
@@ -214,13 +218,12 @@
                     </div>
                   </div>
                 </div>
-
+                
                 {% endfor %}
-            {% endif %}
+                {% endif %}
         </tbody>
     </table>
 </div>
-
 
 <div class="modal fade" id="addRequestModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -234,37 +237,55 @@
               <div class="row g-3">
                   <div class="col-6">
                       <label class="form-label fw-bold">REQ ID</label>
-                      <input type="text" class="form-control" name="request_id" placeholder="e.g. REQ-1001" required>
+                      <input type="text" class="form-control bg-light" name="request_id" id="add_req_id" readonly required>
+                      <small class="text-muted" style="font-size: 0.75rem;">System generated</small>
                   </div>
+                  
                   <div class="col-6">
                       <label class="form-label fw-bold">Status</label>
                       <select class="form-select" name="status" required>
                           <option value="Draft">Draft</option>
-                          <option value="Pending">Pending</option>
+                          <option value="Pending" selected>Pending</option>
                           <option value="Approved">Approved</option>
                       </select>
                   </div>
+                  
                   <div class="col-6">
-                      <label class="form-label fw-bold">Client Name</label>
-                      <input type="text" class="form-control" name="client_name" required>
+                      <label class="form-label fw-bold">Select Client</label>
+                      <select class="form-select" name="client_name" required>
+                          <option value="" selected disabled>Choose a customer...</option>
+                          {% for c in customers %}
+                              <option value="{{ c.username }}">{{ c.first_name }} {{ c.last_name }} ({{ c.username }})</option>
+                          {% endfor %}
+                      </select>
                   </div>
+                  
                   <div class="col-6">
                       <label class="form-label fw-bold">Cargo Type</label>
                       <select class="form-select" name="cargo_type" required>
-                          <option value="General Cargo">General Cargo</option>
-                          <option value="Bulk">Bulk</option>
-                          <option value="Heavy Freight">Heavy Freight</option>
-                          <option value="Vehicles">Vehicles</option>
+                          <option value="General Goods" selected>📦 General Goods</option>
+                          <option value="Fragile">🍷 Fragile / Electronics</option>
+                          <option value="Heavy Freight">🏗️ Heavy Freight / Materials</option>
+                          <option value="Vehicles">🚗 Vehicles</option>
                       </select>
                   </div>
+                  
                   <div class="col-12">
                       <label class="form-label fw-bold">Merchandise Description</label>
                       <textarea class="form-control" name="description" rows="2" placeholder="Detailed description of cargo..."></textarea>
                   </div>
+                  
                   <div class="col-6">
-                      <label class="form-label fw-bold">Weight (kg)</label>
-                      <input type="number" step="0.1" class="form-control" name="weight" required>
+                      <label class="form-label fw-bold">Weight</label>
+                      <div class="input-group">
+                          <input type="number" step="0.01" class="form-control" id="add_weight_input" name="weight" placeholder="0.00" required>
+                          <select class="form-select" id="add_weight_unit" style="max-width: 95px;">
+                              <option value="kg" selected>Kg</option>
+                              <option value="tons">Tons</option>
+                          </select>
+                      </div>
                   </div>
+                  
                   <div class="col-6">
                       <label class="form-label fw-bold">Volume (m³)</label>
                       <input type="number" step="0.1" class="form-control" name="volume" required>
@@ -292,4 +313,42 @@
   </div>
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Generare ID inteligent pentru form-ul de add
+    function generateReqId() {
+        const chars = 'ABCDEF0123456789';
+        let result = 'REQ-';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const reqInput = document.getElementById('add_req_id');
+        if(reqInput) reqInput.value = result;
+    }
+
+    // Atașăm generarea ID-ului la deschiderea modalului
+    const addReqModal = document.getElementById('addRequestModal');
+    if (addReqModal) {
+        addReqModal.addEventListener('show.bs.modal', function () {
+            generateReqId();
+        });
+    }
+
+    // 2. Conversia automată Kg/Tons la submit (Add Form)
+    const addForm = document.querySelector('#addRequestModal form');
+    if (addForm) {
+        addForm.addEventListener('submit', function(e) {
+            const weightInput = document.getElementById('add_weight_input');
+            const unitSelect = document.getElementById('add_weight_unit');
+            
+            if (unitSelect && weightInput && unitSelect.value === 'tons') {
+                // Dacă e pe tone, convertim valoarea din input x 1000
+                const valInKg = parseFloat(weightInput.value) * 1000;
+                weightInput.value = valInKg.toFixed(2);
+            }
+            // Formularul pleacă automat spre server cu valoarea calculată în kg!
+        });
+    }
+});
+</script>
 {% endblock %}

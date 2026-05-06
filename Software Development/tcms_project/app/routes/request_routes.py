@@ -2,6 +2,7 @@ import logging
 import sqlite3
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from app.controllers.request_controller import RequestController
+from app.models.user_model import UserModel
 
 request_bp = Blueprint('request_routes', __name__)
 req_logic = RequestController()
@@ -14,7 +15,11 @@ def request_management() -> str:
     
     view_data = req_logic.load_request_data()
     role = session.get('role', 'Staff')
-    return render_template('admin/requests.html', data=view_data, role=role)
+    
+    all_users = UserModel().get_all_users()
+    customers = [u for u in all_users if u['role'] == 'Customer']
+    
+    return render_template('admin/requests.html', data=view_data, role=role, customers=customers)
 
 @request_bp.route('/requests/add', methods=['POST'])
 def add_request() -> str:

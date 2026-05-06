@@ -2,6 +2,7 @@ import sqlite3
 import logging
 from typing import Dict, Any, Optional
 from werkzeug.security import generate_password_hash, check_password_hash
+from typing import Dict, Any, Optional, List
 
 DB_PATH: str = "instance/database.sqlite"
 
@@ -45,15 +46,15 @@ class UserModel:
             logging.error(f"Database error during users table creation: {error}")
             return False
         
-    def register_user(self, username: str, password: str, first_name: str, last_name: str, email: str, phone_number: str, date_of_birth: str, role: str = "Customer") -> bool:
+    def register_user(self, username: str, password: str, first_name: str, last_name: str, email: str, phone_number: str, date_of_birth: str, role: str = "Customer", address: str = "") -> bool:
         """Registers a new user with a hashed password and extended details."""
         try:
             hashed_pw = generate_password_hash(password)
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
                 db_cursor.execute(
-                    "INSERT INTO users (username, password_hash, role, first_name, last_name, email, phone_number, date_of_birth) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (username, hashed_pw, role, first_name, last_name, email, phone_number, date_of_birth)
+                    "INSERT INTO users (username, password_hash, role, first_name, last_name, email, phone_number, date_of_birth, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (username, hashed_pw, role, first_name, last_name, email, phone_number, date_of_birth, address)
                 )
                 connection.commit()
                 return True
@@ -96,3 +97,21 @@ class UserModel:
         except sqlite3.Error as error:
             logging.error(f"Failed to update lockout: {error}")
             return False
+        
+    def get_all_users(self) -> List[Dict[str, Any]]:
+        """Retrieves all users from the database."""
+        users_list: List[Dict[str, Any]] = []
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                connection.row_factory = sqlite3.Row
+                db_cursor = connection.cursor()
+                
+                db_cursor.execute("SELECT * FROM users")
+                rows = db_cursor.fetchall()
+                
+                for row in rows:
+                    users_list.append(dict(row))
+                return users_list
+        except sqlite3.Error as db_error:
+            logging.error(f"Error retrieving all users: {db_error}")
+            return users_list
