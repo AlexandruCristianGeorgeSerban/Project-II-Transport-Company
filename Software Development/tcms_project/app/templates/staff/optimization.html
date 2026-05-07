@@ -5,20 +5,28 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <style>
-        #live-fleet-map { height: 65vh; width: 100%; border-radius: 12px; border: 2px solid #e9ecef; }
-        .map-container { padding: 5px; background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        #live-fleet-map { height: 60vh; width: 100%; border-radius: 12px; border: 2px solid #0285e9; }
+        .map-container { padding: 5px; background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+
+        #routing-instructions-container { 
+            background: #f8f9fa; 
+            border-radius: 12px; 
+            padding: 20px; 
+            border: 1px solid #dee2e6;
+        }
     </style>
 {% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-12">
-        <div class="alert alert-info shadow-sm custom-rounded d-flex align-items-center">
-            <i class="fa-solid fa-satellite-dish fs-3 me-3 text-primary"></i>
+        <div class="alert alert-primary shadow-sm custom-rounded d-flex align-items-center">
+            <i class="fa-solid fa-microchip fs-3 me-3"></i>
             <div>
-                <h5 class="fw-bold mb-1">Live Fleet Satellite Tracking</h5>
-                <p class="mb-0 small">This map automatically pings all vehicles currently "In Transit" every 5 seconds. Optimization AI suggests alternate routes to avoid traffic.</p>
+                <h5 class="fw-bold mb-1">Interactive Dispatched Route Control</h5>
+                <p class="mb-0 small"><b>Drag the blue line</b> to detour around areas. Click on a waypoint on the map to delete it (Remove). Use the buttons to Undo or Save.</p>
             </div>
         </div>
     </div>
@@ -28,79 +36,245 @@
     <div class="col-md-12">
         <div class="map-container position-relative">
             <div id="live-fleet-map"></div>
-            <!-- Overlay Info -->
-            <div class="position-absolute top-0 end-0 m-3 p-3 bg-white shadow-lg custom-rounded" style="z-index: 1000; width: 250px; opacity: 0.95;">
-                <h6 class="fw-bold border-bottom pb-2 mb-2">Tracking Status</h6>
-                <div class="d-flex align-items-center mb-2">
-                    <span class="spinner-grow spinner-grow-sm text-success me-2" role="status" aria-hidden="true"></span>
-                    <span class="small fw-bold">Live Link: ACTIVE</span>
+            
+            <div class="position-absolute top-0 end-0 m-3 p-3 bg-white shadow-lg custom-rounded" style="z-index: 1000; width: 240px; opacity: 0.98; border: 1px solid #0285e9;">
+                <h6 class="fw-bold border-bottom pb-2 mb-2">Navigation Control</h6>
+                <p class="small text-muted mb-2">Tracking Request: <span id="active-req-id" class="fw-bold text-primary">None</span></p>
+                
+                <div id="control-buttons" class="d-none">
+                    <button class="btn btn-sm btn-success w-100 mb-2 fw-bold" onclick="saveCurrentRoute()">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Route
+                    </button>
+                    <button class="btn btn-sm btn-info w-100 mb-2 fw-bold text-dark" onclick="undoLastWaypoint()">
+                        <i class="fa-solid fa-reply me-1"></i> Undo Last Move
+                    </button>
+                    <button class="btn btn-sm btn-warning w-100 mb-2 fw-bold text-dark" onclick="resetCurrentRoute()">
+                        <i class="fa-solid fa-rotate-left me-1"></i> Reset Route
+                    </button>
+                    <button id="closeRouteBtn" class="btn btn-sm btn-outline-danger w-100 fw-bold">
+                        <i class="fa-solid fa-xmark me-1"></i> Close View
+                    </button>
                 </div>
-                <p class="small text-muted mb-0">Total Tracked Vehicles: <span id="vehicle-count" class="fw-bold text-dark">0</span></p>
+                
+                <p class="small text-muted mt-3 mb-0 border-top pt-2">Vehicles In Transit: <span id="vehicle-count" class="fw-bold text-dark">0</span></p>
             </div>
         </div>
+    </div>
+</div>
+
+<div id="routing-panel" class="d-none mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-list-check me-2 text-primary"></i>Route Instructions & Waypoints</h5>
+        <span class="badge bg-info text-dark">Auto-updating Start Point (GPS Locked)</span>
+    </div>
+    <div id="routing-instructions-container">
+        <div id="itinerary-content" class="text-muted small">Loading optimized route instructions...</div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    var map = L.map('live-fleet-map').setView([45.9432, 24.9668], 6); // Centered on Romania
-    
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap & CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(map);
+    var map = L.map('live-fleet-map').setView([45.9432, 24.9668], 6);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
     var markers = {};
+    var vehicleDataStorage = {};
+    var currentRouteControl = null;
+    var activeReqId = null; 
     
-    // Icon default truck
+    // SISTEM UNDO/REDO
+    var waypointHistory = [];
+    var isUndoAction = false;
+
     var truckIcon = L.icon({
-        iconUrl: '/static/img/truck.png', // Asigura-te ca ai poza asta in static/img
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
+        iconUrl: '/static/img/truck.png', 
+        iconSize: [42, 42],
+        iconAnchor: [21, 21],
         popupAnchor: [0, -20]
     });
 
+    async function getCoordinates(city) {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}, Romania`);
+            const data = await response.json();
+            return data && data.length > 0 ? L.latLng(data[0].lat, data[0].lon) : null;
+        } catch(e) { return null; }
+    }
+
+    window.saveCurrentRoute = function() {
+        if (!currentRouteControl || !activeReqId) return;
+        
+        const wps = currentRouteControl.getWaypoints().map(w => w.latLng).filter(l => l != null);
+        const routeData = JSON.stringify(wps);
+
+        fetch("{{ url_for('fleet.save_route_api') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ req_id: activeReqId, route: routeData })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) alert("Route saved to CLOUD for REQ #" + activeReqId);
+            else alert("Error saving route.");
+        });
+    };
+
+    window.resetCurrentRoute = async function() {
+        if (!activeReqId) return;
+        if (confirm("Are you sure you want to reset this route to default? Custom waypoints will be lost.")) {
+            localStorage.removeItem('saved_route_' + activeReqId);
+            await window.drawOptimizedRoute(activeReqId);
+        }
+    };
+
+    // FUNCȚIE: ȘTERGE UN SINGUR PUNCT (La click pe marker)
+    window.removeWaypoint = function(index) {
+        if (!currentRouteControl) return;
+        let wps = currentRouteControl.getWaypoints();
+        wps.splice(index, 1); // Scoatem punctul din array
+        currentRouteControl.setWaypoints(wps); // Rescriem ruta
+        map.closePopup();
+    };
+
+    // FUNCȚIE: UNDO
+    window.undoLastWaypoint = function() {
+        if (waypointHistory.length > 1) {
+            waypointHistory.pop(); // Aruncăm starea curentă greșită
+            let previousState = waypointHistory[waypointHistory.length - 1]; // O luăm pe cea de dinainte
+            isUndoAction = true;
+            currentRouteControl.setWaypoints(previousState);
+        } else {
+            alert("No more actions to undo.");
+        }
+    };
+
+    window.drawOptimizedRoute = async function(reqId) {
+        let vehicle = vehicleDataStorage[reqId];
+        if(!vehicle) return;
+
+        activeReqId = reqId;
+        waypointHistory = []; 
+        document.getElementById('active-req-id').innerText = "#" + reqId;
+        document.getElementById('control-buttons').classList.remove('d-none');
+        document.getElementById('routing-panel').classList.remove('d-none');
+
+        if (currentRouteControl) { map.removeControl(currentRouteControl); }
+
+        let startPoint = L.latLng(vehicle.lat, vehicle.lng);
+        let waypoints = [startPoint];
+
+        // --- LOAD DIN BAZA DE DATE (vehicle.saved_route vine din API-ul nostru) ---
+        if (vehicle.saved_route) {
+            const savedWps = JSON.parse(vehicle.saved_route);
+            // Reconstruim punctele, dar forțăm start-ul să fie poziția GPS actuală
+            for(let i=1; i<savedWps.length; i++) {
+                if(savedWps[i]) waypoints.push(L.latLng(savedWps[i].lat, savedWps[i].lng));
+            }
+        } else {
+            let destPoint = await getCoordinates(vehicle.delivery);
+            if(destPoint) waypoints.push(destPoint);
+        }
+
+        currentRouteControl = L.Routing.control({
+            waypoints: waypoints,
+            routeWhileDragging: true, 
+            addWaypoints: true,
+            show: false,
+            createMarker: function(i, wp, n) {
+                const isStart = (i === 0);
+                const isEnd = (i === n - 1);
+                let marker = L.marker(wp.latLng, { draggable: !isStart, opacity: isStart ? 0 : 1 });
+
+                if (isStart) marker.bindPopup("<b>Vehicle GPS Position</b>");
+                else if (isEnd) marker.bindPopup("<b>Destination</b>");
+                else {
+                    marker.bindPopup(`<div class='text-center'><b>Waypoint</b><br><button class='btn btn-sm btn-danger mt-2 w-100' onclick='removeWaypoint(${i})'>Remove</button></div>`);
+                }
+                return marker;
+            },
+            lineOptions: { styles: [{color: '#0285e9', opacity: 0.8, weight: 6}] }
+        }).addTo(map);
+
+        currentRouteControl.on('routeselected', function(e) {
+            updateInstructions(e.route); // Funcție separată pentru a curăța codul
+            if (!isUndoAction) {
+                let currentWps = currentRouteControl.getWaypoints().map(w => w.latLng).filter(l => l != null);
+                waypointHistory.push(currentWps);
+            }
+            isUndoAction = false;
+        });
+
+        map.fitBounds(L.latLngBounds(waypoints).pad(0.2));
+    };
+
+    function updateInstructions(route) {
+        let html = `<div class="alert alert-secondary py-2 mb-2 d-flex justify-content-between">
+                        <span><b>Distance:</b> ${(route.summary.totalDistance / 1000).toFixed(1)} km</span>
+                        <span><b>Time:</b> ${Math.round(route.summary.totalTime / 60)} min</span>
+                    </div>`;
+        html += `<div class="list-group list-group-flush">`;
+        route.instructions.forEach((inst, idx) => {
+            html += `<div class="list-group-item py-1 small">${idx + 1}. ${inst.text} <span class="float-end text-muted">${Math.round(inst.distance)}m</span></div>`;
+        });
+        html += `</div>`;
+        document.getElementById('itinerary-content').innerHTML = html;
+    }
+
+    document.getElementById('closeRouteBtn').addEventListener('click', function() {
+        if (currentRouteControl) { map.removeControl(currentRouteControl); currentRouteControl = null; }
+        activeReqId = null;
+        document.getElementById('active-req-id').innerText = "None";
+        document.getElementById('itinerary-content').innerHTML = "";
+        document.getElementById('routing-panel').classList.add('d-none');
+        document.getElementById('control-buttons').classList.add('d-none');
+        map.setView([45.9432, 24.9668], 6);
+    });
+
     function fetchFleetLocations() {
-        fetch('/api/locations')
-            .then(response => response.json())
+        fetch("{{ url_for('fleet.live_fleet_api') }}")
+            .then(res => res.json())
             .then(data => {
                 document.getElementById('vehicle-count').innerText = data.length;
-                
-                
                 var currentIds = new Set();
 
-                data.forEach(function(vehicle) {
-                    if (vehicle.lat && vehicle.lng) {
-                        currentIds.add(vehicle.id);
-                        var noileCoordonate = new L.LatLng(vehicle.lat, vehicle.lng);
+                data.forEach(v => {
+                    if (v.lat && v.lng) {
+                        currentIds.add(v.id);
+                        vehicleDataStorage[v.id] = v;
+                        let pos = new L.LatLng(v.lat, v.lng);
                         
-                        if (!markers[vehicle.id]) {
-                            
-                            markers[vehicle.id] = L.marker(noileCoordonate, {icon: truckIcon}).addTo(map);
-                            markers[vehicle.id].bindPopup("<b>Request ID:</b> #" + vehicle.id + "<br><span class='badge bg-primary'>In Transit</span>");
+                        if (activeReqId === v.id && currentRouteControl) {
+                            let currentWps = currentRouteControl.getWaypoints();
+                            if(currentWps.length > 0) {
+                                currentWps[0].latLng = pos;
+                                currentRouteControl.setWaypoints(currentWps);
+                            }
+                        }
+
+                        if (!markers[v.id]) {
+                            markers[v.id] = L.marker(pos, {icon: truckIcon}).addTo(map)
+                                .bindPopup(`<div class='text-center'><b>REQ #${v.id}</b><br><p class='small m-1'>${v.pickup} &rarr; ${v.delivery}</p><button class='btn btn-xs btn-primary mt-1 w-100 fw-bold' onclick="drawOptimizedRoute('${v.id}')">View & Edit Route</button></div>`);
                         } else {
-                            
-                            markers[vehicle.id].setLatLng(noileCoordonate);
+                            markers[v.id].setLatLng(pos);
                         }
                     }
                 });
-                
-                // Remove markers that are no longer in transit
+
                 for (var id in markers) {
                     if (!currentIds.has(id)) {
                         map.removeLayer(markers[id]);
                         delete markers[id];
+                        delete vehicleDataStorage[id];
                     }
                 }
-            })
-            .catch(err => console.error('Error tracking fleet:', err));
+            });
     }
 
-    
     fetchFleetLocations();
     setInterval(fetchFleetLocations, 5000);
 });

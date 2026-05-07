@@ -125,7 +125,8 @@ def api_locations():
         with sqlite3.connect("instance/database.sqlite") as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT id, current_lat, current_lng FROM transport_requests WHERE status = 'In Transit'")
+            
+            cursor.execute("SELECT id, current_lat, current_lng, pickup, delivery FROM transport_requests WHERE status = 'In Transit'")
             jobs = cursor.fetchall()
             
             locations = []
@@ -133,7 +134,9 @@ def api_locations():
                 locations.append({
                     "id": job['id'],
                     "lat": job['current_lat'],
-                    "lng": job['current_lng']
+                    "lng": job['current_lng'],
+                    "pickup": job['pickup'],
+                    "delivery": job['delivery']
                 })
             return jsonify(locations)
     except Exception as e:
