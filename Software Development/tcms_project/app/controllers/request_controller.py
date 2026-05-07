@@ -1,33 +1,31 @@
 import logging
 from typing import Dict, Any
 from app.models.request_model import RequestModel
+from app.controllers.log_controller import LogController
 
 class RequestController:
-    """Processes business logic and formats data for Transport Requests."""
-
     def __init__(self) -> None:
         self.model = RequestModel()
         self.model.create_table()
+        self.logger = LogController()
 
     def load_request_data(self) -> Dict[str, Any]:
         req_data: Dict[str, Any] = {}
         try:
             req_data["summary"] = self.model.get_request_summary()
             reqs = self.model.get_all_requests()
-            
-           
             for r in reqs:
                 r["messages"] = self.model.get_negotiation_messages(r["id"])
-                
             req_data["requests"] = reqs
             return req_data
         except Exception as logic_error:
             logging.error(f"Error processing request data: {logic_error}")
             return {"summary": {"total": 0, "pending": 0, "approved": 0}, "requests": []}
 
-    def add_new_request(self, r_id: str, client: str, c_type: str, desc: str, weight: float, volume: float, pickup: str, delivery: str, date: str, status: str) -> dict:
+    def add_new_request(self, r_id: str, client: str, c_type: str, desc: str, weight: float, volume: float, pickup: str, delivery: str, date: str, status: str, modified_by: str = "System") -> dict:
         result = self.model.insert_request(r_id, client, c_type, desc, weight, volume, pickup, delivery, date, status)
         if result is True:
+            self.logger.log_action("CREATE", "Request", r_id, modified_by, f"Created new request for {client}. Cargo: {c_type}")
             return {"success": True, "message": f"Request {r_id} created successfully!"}
         else:
             return {"success": False, "message": "Error: Request ID might already exist."}
@@ -35,17 +33,20 @@ class RequestController:
     def modify_request(self, r_id: str, client: str, c_type: str, desc: str, weight: float, volume: float, pickup: str, delivery: str, date: str, status: str, staff_username: str = 'Unknown') -> dict:
         result = self.model.update_request(r_id, client, c_type, desc, weight, volume, pickup, delivery, date, status, staff_username)
         if result is True:
+            log_details = f"Client: {client} | Cargo: {c_type} | Status: {status} | Route: {pickup} -> {delivery}"
+            self.logger.log_action("UPDATE", "Request", r_id, staff_username, log_details)
             return {"success": True, "message": f"Request {r_id} updated successfully!"}
         else:
             return {"success": False, "message": "Error updating request."}
 
-    def remove_request(self, r_id: str) -> dict:
+    def remove_request(self, r_id: str, modified_by: str = "System") -> dict:
         result = self.model.delete_request(r_id)
         if result is True:
+            self.logger.log_action("DELETE", "Request", r_id, modified_by, "Deleted transport request")
             return {"success": True, "message": "Request deleted successfully!"}
         else:
             return {"success": False, "message": "Error deleting request."}
-        
+                    
     def send_price_offer(self, req_id: str, price: str) -> dict:
         try:
             price_val = float(price)

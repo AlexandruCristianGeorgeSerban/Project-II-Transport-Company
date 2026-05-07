@@ -13,6 +13,7 @@ from app.routes.guest_routes import guest_bp
 from app.routes.profile_routes import profile_bp
 from datetime import timedelta 
 from app.routes.notification_routes import notification_bp
+from app.routes.log_routes import log_bp
 
 def create_app() -> Flask:
     """Initialize the core application, register blueprints, and setup DB."""
@@ -47,6 +48,7 @@ def create_app() -> Flask:
     app.register_blueprint(admin_support_bp)
     app.register_blueprint(profile_bp)
     app.register_blueprint(notification_bp)
+    app.register_blueprint(log_bp)
     
     # Initialize the database table for users
     user_db = UserModel()

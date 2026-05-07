@@ -95,15 +95,17 @@ class FleetModel:
             logging.error(f"Error retrieving vehicle list: {db_error}")
             return vehicles
     
-    def update_vehicle(self, v_id: str, plate: str, v_type: str, capacity: int, status: str) -> bool:
-        """Updates an existing vehicle's data securely."""
+    def update_vehicle(self, v_id: str, plate: str, v_type: str, capacity: float, status: str, modified_by: str = "System") -> bool:
+        """Updates an existing vehicle's data securely and adds the fingerprint."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                db_cursor.execute(
-                    "UPDATE vehicles SET plate_number = ?, type = ?, capacity = ?, status = ? WHERE id = ?",
-                    (plate, v_type, capacity, status, v_id)
-                )
+                db_cursor.execute("""
+                    UPDATE vehicles 
+                    SET plate_number = ?, type = ?, capacity = ?, status = ?,
+                        last_modified_by = ?, last_modified_at = datetime('now', 'localtime')
+                    WHERE id = ?
+                """, (plate, v_type, capacity, status, modified_by, v_id))
                 connection.commit()
                 return True
         except sqlite3.Error as db_error:

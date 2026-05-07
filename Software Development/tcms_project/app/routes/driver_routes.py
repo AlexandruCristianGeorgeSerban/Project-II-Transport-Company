@@ -291,8 +291,6 @@ def job_chat(job_id):
                            notifications=notifications, 
                            unread_count=unread_count)
 
-
-
 @driver_bp.route('/drivers', methods=['GET'])
 def driver_management() -> str:
     if 'user_id' not in session:
@@ -318,7 +316,9 @@ def add_driver() -> str:
     licenses_list = request.form.getlist('licenses')
     licenses_str = ", ".join(licenses_list)
     
-    resp = driver_logic.add_new_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, address, avail, username, password)
+    modified_by = session.get('username', 'System')
+    
+    resp = driver_logic.add_new_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, address, avail, username, password, modified_by)
     
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
@@ -337,12 +337,18 @@ def edit_driver() -> str:
     licenses_list = request.form.getlist('edit_licenses')
     licenses_str = ", ".join(licenses_list)
     
-    resp = driver_logic.modify_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, address, avail)
+    modified_by = session.get('username', 'System')
+    
+    resp = driver_logic.modify_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, address, avail, modified_by)
+    
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 
 @driver_bp.route('/drivers/delete/<driver_id>', methods=['POST'])
 def delete_driver(driver_id: str) -> str:
-    resp = driver_logic.remove_driver(driver_id)
+    modified_by = session.get('username', 'System')
+    
+    resp = driver_logic.remove_driver(driver_id, modified_by)
+    
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))

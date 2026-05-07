@@ -28,9 +28,18 @@
     </div>
 </div>
 
-<button type="button" class="btn btn-success mb-3 fw-bold custom-rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
-    + Add New Vehicle
-</button>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <button type="button" class="btn btn-success fw-bold custom-rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+            + Add New Vehicle
+        </button>
+    </div>
+    
+    <div class="input-group shadow-sm custom-rounded" style="max-width: 350px;">
+        <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+        <input type="text" id="tableSearchInput" class="form-control border-start-0 ps-0" placeholder="Search ID, plate, type, status...">
+    </div>
+</div>
 
 <div class="table-container shadow-sm border-0">
     <div class="section-header text-white" style="margin-bottom: 0; border-radius: 8px 8px 0 0; background-color: #5d758b; padding: 15px;">Registered Fleet</div>
@@ -50,7 +59,7 @@
             <tr><td colspan="6" class="text-center py-5 text-muted">No vehicles in the database.</td></tr>
             {% else %}
                 {% for vehicle in data.vehicles %}
-                <tr>
+                <tr class="searchable-row">
                     <td class="ps-4 fw-bold text-muted">{{ vehicle.id }}</td>
                     <td class="fw-bold">{{ vehicle.plate_number }}</td>
                     <td>{{ vehicle.type }}</td>
@@ -69,7 +78,6 @@
         </tbody>
     </table>
 </div>
-
 
 <div class="modal fade" id="addVehicleModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -100,7 +108,6 @@
                 </select>
             </div>
             
-            <!-- AICI AM INCLUS NOUL SELECTOR TONE/KG PENTRU ADD -->
             <div class="mb-3">
                 <label class="form-label fw-bold">Capacity</label>
                 <div class="input-group">
@@ -132,7 +139,6 @@
 
 {% for vehicle in data.vehicles %}
 
-
 <div class="modal fade" id="viewModal{{ loop.index }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content custom-rounded border-0">
@@ -155,7 +161,6 @@
   </div>
 </div>
 
-<!-- Edit Modal -->
 <div class="modal fade" id="editModal{{ loop.index }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content custom-rounded border-0">
@@ -184,7 +189,6 @@
                     <option value="Airplane" {% if vehicle.type|trim == 'Airplane' %}selected{% endif %}>Airplane</option>
                 </select>
             </div>
-            
             
             <div class="mb-3">
                 <label class="form-label fw-bold">Capacity</label>
@@ -216,4 +220,28 @@
 </div>
 
 {% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Logica pentru Motorul de Căutare (Live Search REQ-72)
+    const searchInput = document.getElementById('tableSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll('.searchable-row');
+            
+            rows.forEach(row => {
+                let text = row.innerText.toLowerCase();
+                if (text.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

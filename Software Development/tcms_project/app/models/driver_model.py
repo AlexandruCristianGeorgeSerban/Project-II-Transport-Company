@@ -45,15 +45,16 @@ class DriverModel:
             logging.error(f"Insert error: {db_error}")
             return False
 
-    def update_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, address: str, avail: str) -> bool:
-        """Updates an existing driver's data securely."""
+    def update_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, address: str, avail: str, modified_by: str) -> bool:
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                db_cursor.execute(
-                    "UPDATE drivers SET name = ?, status = ?, licenses = ?, experience = ?, dob = ?, address = ?, availability = ? WHERE id = ?",
-                    (name, status, licenses, exp, dob, address, avail, d_id)
-                )
+                db_cursor.execute("""
+                    UPDATE drivers 
+                    SET name = ?, status = ?, licenses = ?, experience = ?, dob = ?, address = ?, availability = ?,
+                        last_modified_by = ?, last_modified_at = datetime('now', 'localtime')
+                    WHERE id = ?
+                """, (name, status, licenses, exp, dob, address, avail, modified_by, d_id))
                 connection.commit()
                 return True
         except sqlite3.Error as db_error:

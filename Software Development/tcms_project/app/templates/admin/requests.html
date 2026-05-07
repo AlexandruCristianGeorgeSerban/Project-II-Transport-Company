@@ -28,9 +28,18 @@
     </div>
 </div>
 
-<button type="button" class="btn btn-success mb-3 fw-bold custom-rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#addRequestModal">
-    + Create New Transport Request
-</button>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <button type="button" class="btn btn-success fw-bold custom-rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#addRequestModal">
+            + Create New Transport Request
+        </button>
+    </div>
+    
+    <div class="input-group shadow-sm custom-rounded" style="max-width: 350px;">
+        <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+        <input type="text" id="tableSearchInput" class="form-control border-start-0 ps-0" placeholder="Search ID, client, cargo, status...">
+    </div>
+</div>
 
 <div class="table-container shadow-sm border-0">
     <div class="section-header text-white" style="margin-bottom: 0; border-radius: 8px 8px 0 0; background-color: #5d758b; padding: 15px;">Submitted Request Status</div>
@@ -43,16 +52,15 @@
                 <th>Pickup</th>
                 <th>Delivery</th>
                 <th>Status</th>
-                <th>Audit Log</th>
                 <th class="text-center">Action</th>
             </tr>
         </thead>
         <tbody>
             {% if data.requests|length == 0 %}
-            <tr><td colspan="8" class="text-center py-5 text-muted">No transport requests found.</td></tr>
+            <tr><td colspan="7" class="text-center py-5 text-muted">No transport requests found.</td></tr>
             {% else %}
                 {% for req in data.requests %}
-                <tr>
+                <tr class="searchable-row">
                     <td class="ps-4 fw-bold text-primary">{{ req.id }}</td>
                     <td class="fw-bold">{{ req.client }}</td>
                     <td>
@@ -64,46 +72,6 @@
                     <td>{{ req.pickup }}</td>
                     <td>{{ req.delivery }}</td>
                     <td><span class="badge bg-{{ 'warning text-dark' if req.status == 'Pending' else ('info' if req.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ req.status }}</span></td>
-                    
-                    <td>
-                        <button type="button" class="btn btn-sm btn-outline-secondary custom-rounded" data-bs-toggle="modal" data-bs-target="#auditModal{{ req.id }}">
-                            Log
-                        </button>
-
-                        <div class="modal fade" id="auditModal{{ req.id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content custom-rounded border-0 shadow">
-                                    <div class="modal-header bg-dark text-white border-0">
-                                        <h5 class="modal-title fw-bold">🔍 System Audit: #{{ req.id }}</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body p-4">
-                                        <div class="d-flex flex-column gap-3">
-                                            <div class="p-3 bg-light rounded border-start border-4 border-info">
-                                                <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Last Modified By</small>
-                                                <span class="fw-bold text-dark">👤 {{ req.last_modified_by if req.last_modified_by else 'Original Request' }}</span>
-                                            </div>
-                                            
-                                            <div class="p-3 bg-light rounded border-start border-4 border-primary">
-                                                <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Modification Timestamp</small>
-                                                <span class="fw-bold text-dark">🕒 {{ req.last_modified_at if req.last_modified_at else 'No modifications' }}</span>
-                                            </div>
-
-                                            {% if req.allocated_by %}
-                                            <div class="p-3 bg-light rounded border-start border-4 border-success">
-                                                <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Resource Allocation Signature</small>
-                                                <span class="fw-bold text-dark">✍️ Assigned by: <strong>{{ req.allocated_by }}</strong></span>
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer border-0">
-                                        <button type="button" class="btn btn-secondary custom-rounded" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
                     
                     <td class="align-middle">
                         <div class="d-flex justify-content-center gap-2">
@@ -326,7 +294,6 @@ document.addEventListener("DOMContentLoaded", function() {
         if(reqInput) reqInput.value = result;
     }
 
-    // Atașăm generarea ID-ului la deschiderea modalului
     const addReqModal = document.getElementById('addRequestModal');
     if (addReqModal) {
         addReqModal.addEventListener('show.bs.modal', function () {
@@ -342,11 +309,27 @@ document.addEventListener("DOMContentLoaded", function() {
             const unitSelect = document.getElementById('add_weight_unit');
             
             if (unitSelect && weightInput && unitSelect.value === 'tons') {
-                // Dacă e pe tone, convertim valoarea din input x 1000
                 const valInKg = parseFloat(weightInput.value) * 1000;
                 weightInput.value = valInKg.toFixed(2);
             }
-            // Formularul pleacă automat spre server cu valoarea calculată în kg!
+        });
+    }
+
+    // 3. Logica pentru Motorul de Căutare (Live Search REQ-72)
+    const searchInput = document.getElementById('tableSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll('.searchable-row');
+            
+            rows.forEach(row => {
+                let text = row.innerText.toLowerCase();
+                if (text.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         });
     }
 });

@@ -5,18 +5,24 @@ DB_PATH = "instance/database.sqlite"
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
+def ensure_column(cursor, table_name, column_name, column_definition):
+    """Verifică dacă o coloană există. Dacă nu, o adaugă în siguranță."""
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    existing_columns = [col[1] for col in cursor.fetchall()]
+    if column_name not in existing_columns:
+        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
+        logging.info(f"  -> Coloana '{column_name}' a fost adăugată cu succes în tabelul '{table_name}'.")
+
 def safe_migrate():
     logging.info(f"Conectare la baza de date {DB_PATH}...")
     
     try:
         with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
-            
-            # Dezactivăm cheile străine temporar pentru a permite redenumiri și stocări sigure
             cursor.execute("PRAGMA foreign_keys = OFF")
             
             # ==========================================
-            # 1. MIGRĂM TABELUL 'users' (SIGUR - PĂSTREAZĂ DATELE)
+            # 1. MIGRĂM TABELUL 'users'
             # ==========================================
             logging.info("Verificare/Migrare tabel 'users'...")
             cursor.execute("""
@@ -39,20 +45,17 @@ def safe_migrate():
             
             cursor.execute("PRAGMA table_info(users)")
             existing_columns = [col[1] for col in cursor.fetchall()]
-            
             if existing_columns:
                 target_columns = ['id', 'username', 'password_hash', 'role', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'profile_picture', 'failed_attempts', 'lockout_until']
                 transfer_columns = [col for col in target_columns if col in existing_columns]
                 col_names = ", ".join(transfer_columns)
-                
                 if col_names:
                     cursor.execute(f"INSERT OR IGNORE INTO users_new ({col_names}) SELECT {col_names} FROM users")
                 cursor.execute("DROP TABLE users")
-                
             cursor.execute("ALTER TABLE users_new RENAME TO users")
 
             # ==========================================
-            # 2. MIGRĂM TABELUL 'transport_requests' (SIGUR - PĂSTREAZĂ DATELE)
+            # 2. MIGRĂM TABELUL 'transport_requests'
             # ==========================================
             logging.info("Verificare/Migrare tabel 'transport_requests'...")
             cursor.execute("""
@@ -73,20 +76,19 @@ def safe_migrate():
                     estimated_price REAL,
                     price_offer REAL, 
                     current_lat REAL, 
-                    current_lng REAL
+                    current_lng REAL,
+                    last_modified_by TEXT DEFAULT 'System',
+                    last_modified_at DATETIME DEFAULT NULL
                 )
             """)
-            
             cursor.execute("PRAGMA table_info(transport_requests)")
             tr_existing_columns = [col[1] for col in cursor.fetchall()]
-            
             if tr_existing_columns:
                 tr_target_columns = [
                     'id', 'client', 'cargo_type', 'description', 'weight', 'volume', 'pickup', 'delivery', 
                     'preferred_date', 'status', 'vehicle_id', 'driver_id', 'vehicle_type', 'estimated_price', 
-                    'price_offer', 'current_lat', 'current_lng'
+                    'price_offer', 'current_lat', 'current_lng', 'last_modified_by', 'last_modified_at'
                 ]
-                
                 mapping = {c: c for c in tr_target_columns if c in tr_existing_columns}
                 if 'assigned_driver' in tr_existing_columns and 'driver_id' not in tr_existing_columns: 
                     mapping['driver_id'] = 'assigned_driver'
@@ -95,19 +97,15 @@ def safe_migrate():
                 
                 insert_cols = ", ".join(mapping.keys())
                 select_cols = ", ".join(mapping.values())
-                
                 if insert_cols:
                     cursor.execute(f"INSERT OR IGNORE INTO transport_requests_new ({insert_cols}) SELECT {select_cols} FROM transport_requests")
                 cursor.execute("DROP TABLE transport_requests")
-                
             cursor.execute("ALTER TABLE transport_requests_new RENAME TO transport_requests")
 
             # ==========================================
-            # 3. MIGRĂM ȘI REPARĂM TABELUL 'drivers' (ELIMINĂM document_id SIGUR)
+            # 3. MIGRĂM TABELUL 'drivers'
             # ==========================================
-            logging.info("Verificare/Migrare tabel 'drivers' (fără document_id)...")
-            
-            # Creăm noul tabel FĂRĂ coloana document_id
+            logging.info("Verificare/Migrare tabel 'drivers'...")
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS drivers_new (
                     id TEXT PRIMARY KEY,
@@ -117,31 +115,24 @@ def safe_migrate():
                     experience TEXT,
                     dob TEXT,
                     address TEXT,
-                    availability TEXT DEFAULT 'Available'
+                    availability TEXT DEFAULT 'Available',
+                    last_modified_by TEXT DEFAULT 'System',
+                    last_modified_at DATETIME DEFAULT NULL
                 )
             """)
-            
             cursor.execute("PRAGMA table_info(drivers)")
             drv_existing_columns = [col[1] for col in cursor.fetchall()]
-            
-            # Dacă tabelul vechi are date în el, le transferăm
             if drv_existing_columns:
-                # LISTA NOUĂ ȚINTĂ - am scos 'document_id' de aici
-                drv_target_columns = ['id', 'name', 'status', 'licenses', 'experience', 'dob', 'address', 'availability']
+                drv_target_columns = ['id', 'name', 'status', 'licenses', 'experience', 'dob', 'address', 'availability', 'last_modified_by', 'last_modified_at']
                 transfer_columns = [col for col in drv_target_columns if col in drv_existing_columns]
                 col_names = ", ".join(transfer_columns)
-                
                 if col_names:
-                    # Datele se copiază, ignorând complet coloana document_id veche
                     cursor.execute(f"INSERT OR IGNORE INTO drivers_new ({col_names}) SELECT {col_names} FROM drivers")
-                
-                # Ștergem tabelul vechi DOAR DUPĂ ce datele s-au copiat cu succes în drivers_new
                 cursor.execute("DROP TABLE drivers")
-                
             cursor.execute("ALTER TABLE drivers_new RENAME TO drivers")
 
             # ==========================================
-            # 4. ASIGURĂM TABELUL 'vehicles' (SIGUR)
+            # 4. ASIGURĂM TABELUL 'vehicles'
             # ==========================================
             logging.info("Verificare tabel 'vehicles'...")
             cursor.execute("""
@@ -154,10 +145,34 @@ def safe_migrate():
                 )
             """)
 
-            # Reactivăm cheile străine
+            # ==========================================
+            # 5. ADAUGĂM COLOANELE LIPSĂ ÎN CAZ CĂ TABELELE EXISTAU DEJA
+            # ==========================================
+            logging.info("Asigurare coloane de Fingerprint (CF_14) cu Safe Check...")
+            for table in ['transport_requests', 'drivers', 'vehicles']:
+                ensure_column(cursor, table, 'last_modified_by', "TEXT DEFAULT 'System'")
+                # Aici am înlocuit funcția problematică cu un simplu DEFAULT NULL!
+                ensure_column(cursor, table, 'last_modified_at', "DATETIME DEFAULT NULL")
+
+            # ==========================================
+            # 6. CREĂM TABELUL PENTRU PAGINA DE LOGURI CENTRALIZATĂ
+            # ==========================================
+            logging.info("Creare tabel system_logs...")
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS system_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    action_type TEXT NOT NULL,    
+                    target_entity TEXT NOT NULL,  
+                    target_id TEXT,               
+                    performed_by TEXT NOT NULL,   
+                    details TEXT,                 
+                    timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
+                )
+            """)
+
             cursor.execute("PRAGMA foreign_keys = ON")
             conn.commit()
-            logging.info("🎉 Baza de date a fost actualizată securizat, fără pierderi de date!")
+            logging.info("🎉 Baza de date a fost actualizată securizat! Gata pentru pagina de loguri.")
 
     except Exception as e:
         logging.error(f"Eroare fatală la migrarea bazei de date: {e}")
