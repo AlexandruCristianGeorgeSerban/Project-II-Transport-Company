@@ -55,7 +55,7 @@ def safe_migrate():
             cursor.execute("ALTER TABLE users_new RENAME TO users")
 
             # ==========================================
-            # 2. MIGRĂM TABELUL 'transport_requests'
+            # 2. MIGRĂM TABELUL 'transport_requests' (INCLUSIV saved_route)
             # ==========================================
             logging.info("Verificare/Migrare tabel 'transport_requests'...")
             cursor.execute("""
@@ -78,7 +78,8 @@ def safe_migrate():
                     current_lat REAL, 
                     current_lng REAL,
                     last_modified_by TEXT DEFAULT 'System',
-                    last_modified_at DATETIME DEFAULT NULL
+                    last_modified_at DATETIME DEFAULT NULL,
+                    saved_route TEXT
                 )
             """)
             cursor.execute("PRAGMA table_info(transport_requests)")
@@ -87,7 +88,7 @@ def safe_migrate():
                 tr_target_columns = [
                     'id', 'client', 'cargo_type', 'description', 'weight', 'volume', 'pickup', 'delivery', 
                     'preferred_date', 'status', 'vehicle_id', 'driver_id', 'vehicle_type', 'estimated_price', 
-                    'price_offer', 'current_lat', 'current_lng', 'last_modified_by', 'last_modified_at'
+                    'price_offer', 'current_lat', 'current_lng', 'last_modified_by', 'last_modified_at', 'saved_route'
                 ]
                 mapping = {c: c for c in tr_target_columns if c in tr_existing_columns}
                 if 'assigned_driver' in tr_existing_columns and 'driver_id' not in tr_existing_columns: 
@@ -146,13 +147,15 @@ def safe_migrate():
             """)
 
             # ==========================================
-            # 5. ADAUGĂM COLOANELE LIPSĂ ÎN CAZ CĂ TABELELE EXISTAU DEJA
+            # 5. ASIGURARE COLOANE INDIVIDUALE (INCLUSIV saved_route)
             # ==========================================
-            logging.info("Asigurare coloane de Fingerprint (CF_14) cu Safe Check...")
+            logging.info("Asigurare coloane specifice cu Safe Check...")
             for table in ['transport_requests', 'drivers', 'vehicles']:
                 ensure_column(cursor, table, 'last_modified_by', "TEXT DEFAULT 'System'")
-                # Aici am înlocuit funcția problematică cu un simplu DEFAULT NULL!
                 ensure_column(cursor, table, 'last_modified_at', "DATETIME DEFAULT NULL")
+            
+            # Adăugăm coloana pentru rută dacă nu a intrat la migrarea de la pasul 2
+            ensure_column(cursor, 'transport_requests', 'saved_route', "TEXT")
 
             # ==========================================
             # 6. CREĂM TABELUL PENTRU PAGINA DE LOGURI CENTRALIZATĂ
@@ -172,7 +175,7 @@ def safe_migrate():
 
             cursor.execute("PRAGMA foreign_keys = ON")
             conn.commit()
-            logging.info("🎉 Baza de date a fost actualizată securizat! Gata pentru pagina de loguri.")
+            logging.info("🎉 Baza de date a fost actualizată securizat! Gata pentru Cloud Saving.")
 
     except Exception as e:
         logging.error(f"Eroare fatală la migrarea bazei de date: {e}")
