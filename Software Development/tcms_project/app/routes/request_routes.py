@@ -34,7 +34,8 @@ def add_request() -> str:
     date = request.form.get('preferred_date')
     status = request.form.get('status')
     
-    resp = req_logic.add_new_request(r_id, client, c_type, desc, weight, volume, pickup, delivery, date, status)
+    modified_by = session.get('username', 'System')
+    resp = req_logic.add_new_request(r_id, client, c_type, desc, weight, volume, pickup, delivery, date, status, modified_by)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('request_routes.request_management'))
 
@@ -58,7 +59,8 @@ def edit_request() -> str:
 
 @request_bp.route('/requests/delete/<req_id>', methods=['POST'])
 def delete_request(req_id: str) -> str:
-    resp = req_logic.remove_request(req_id)
+    modified_by = session.get('username', 'System')
+    resp = req_logic.remove_request(req_id, modified_by)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('request_routes.request_management'))
 

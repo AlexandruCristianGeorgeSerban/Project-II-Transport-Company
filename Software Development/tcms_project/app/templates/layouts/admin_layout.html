@@ -30,7 +30,9 @@
         <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn {% if request.endpoint == 'report_routes.reports_management' %}active fw-bold{% endif %}">📊 Reports</a>
         <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn {% if request.endpoint == 'admin_support.view_tickets' %}active fw-bold{% endif %}">💬 Support</a>
         
-        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
+        <a href="{{ url_for('logs.view_logs') }}" class="nav-btn {% if request.endpoint == 'logs.view_logs' %}active fw-bold{% endif %} border-top mt-3 pt-3">📜 System Logs</a>
+        
+        <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-2 text-danger fw-bold">🚪 Log Out</a>
     </div>
 
     <div class="main-content p-4">

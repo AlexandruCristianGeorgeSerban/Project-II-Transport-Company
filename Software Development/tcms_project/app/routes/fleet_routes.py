@@ -30,81 +30,42 @@ def fleet_management() -> str:
 
 @fleet_bp.route('/fleet/add', methods=['POST'])
 def add_vehicle() -> str:
-    """Handles the form submission to add a new vehicle."""
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
-        
-    v_id = str(request.form.get('vehicle_id', '')).strip()
-    plate = str(request.form.get('plate_number', '')).strip()
-    v_type = str(request.form.get('type', '')).strip()
-    status = str(request.form.get('status', '')).strip()
-    
-    
-    capacity_str = str(request.form.get('capacity', '')).strip()
-    capacity_unit = request.form.get('capacity_unit', 'kg')
-    
-    try:
-        raw_capacity = float(capacity_str)
-        
-        final_capacity = int(raw_capacity * 1000) if capacity_unit == 'tons' else int(raw_capacity)
-        
-        response = fleet_logic.add_new_vehicle(v_id, plate, v_type, final_capacity, status)
-        
-        if response.get("success") is True:
-            flash(response.get("message"), "success")
-        else:
-            flash(response.get("message"), "danger")
-            
-    except ValueError as val_error:
-        logging.error(f"Capacity casting error: {val_error}")
-        flash("Capacity must be a valid number.", "danger")
-        
-    return redirect(url_for('fleet.fleet_management'))
+    v_id = request.form.get('vehicle_id')
+    plate = request.form.get('plate_number')
+    v_type = request.form.get('type')
+    capacity = float(request.form.get('capacity', 0.0))
+    cap_unit = request.form.get('capacity_unit')
+    status = request.form.get('status')
 
-@fleet_bp.route('/fleet/delete/<vehicle_id>', methods=['POST'])
-def delete_vehicle(vehicle_id: str) -> str:
-    """Handles the deletion of a specific vehicle."""
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
-        
-    response = fleet_logic.remove_vehicle(vehicle_id)
+    final_capacity = capacity * 1000 if cap_unit == 'tons' else capacity
     
-    if response.get("success") is True:
-        flash(response.get("message"), "success")
-    else:
-        flash(response.get("message"), "danger")
-        
+    modified_by = session.get('username', 'System')
+
+    response = fleet_logic.add_new_vehicle(v_id, plate, v_type, final_capacity, status, modified_by)
+    flash(response.get("message"), "success" if response.get("success") else "danger")
     return redirect(url_for('fleet.fleet_management'))
 
 @fleet_bp.route('/fleet/edit', methods=['POST'])
 def edit_vehicle() -> str:
-    """Handles the form submission to edit an existing vehicle."""
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
-        
-    v_id = str(request.form.get('edit_vehicle_id', '')).strip()
-    plate = str(request.form.get('edit_plate_number', '')).strip()
-    v_type = str(request.form.get('edit_type', '')).strip()
-    status = str(request.form.get('edit_status', '')).strip()
+    v_id = request.form.get('edit_vehicle_id')
+    plate = request.form.get('edit_plate_number')
+    v_type = request.form.get('edit_type')
+    capacity = float(request.form.get('edit_capacity', 0.0))
+    cap_unit = request.form.get('edit_capacity_unit')
+    status = request.form.get('edit_status')
+
+    final_capacity = capacity * 1000 if cap_unit == 'tons' else capacity
     
+    modified_by = session.get('username', 'System')
+
+    response = fleet_logic.modify_vehicle(v_id, plate, v_type, final_capacity, status, modified_by)
+    flash(response.get("message"), "success" if response.get("success") else "danger")
+    return redirect(url_for('fleet.fleet_management'))
+
+@fleet_bp.route('/fleet/delete/<vehicle_id>', methods=['POST'])
+def delete_vehicle(vehicle_id: str) -> str:
+    modified_by = session.get('username', 'System')
     
-    capacity_str = str(request.form.get('edit_capacity', '')).strip()
-    capacity_unit = request.form.get('edit_capacity_unit', 'kg')
-    
-    try:
-        raw_capacity = float(capacity_str)
-        
-        final_capacity = int(raw_capacity * 1000) if capacity_unit == 'tons' else int(raw_capacity)
-        
-        response = fleet_logic.modify_vehicle(v_id, plate, v_type, final_capacity, status)
-        
-        if response.get("success") is True:
-            flash(response.get("message"), "success")
-        else:
-            flash(response.get("message"), "danger")
-            
-    except ValueError as val_error:
-        logging.error(f"Capacity casting error: {val_error}")
-        flash("Capacity must be a valid number.", "danger")
-        
+    response = fleet_logic.remove_vehicle(vehicle_id, modified_by)
+    flash(response.get("message"), "success" if response.get("success") else "danger")
     return redirect(url_for('fleet.fleet_management'))

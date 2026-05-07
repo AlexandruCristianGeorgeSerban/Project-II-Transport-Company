@@ -37,11 +37,20 @@
     </div>
 </div>
 
-{% if role != 'Staff' %}
-<button type="button" class="btn btn-success mb-3 fw-bold custom-rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#addDriverModal">
-    + Add New Driver
-</button>
-{% endif %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        {% if role != 'Staff' %}
+        <button type="button" class="btn btn-success fw-bold custom-rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#addDriverModal">
+            + Add New Driver
+        </button>
+        {% endif %}
+    </div>
+    
+    <div class="input-group shadow-sm custom-rounded" style="max-width: 350px;">
+        <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+        <input type="text" id="tableSearchInput" class="form-control border-start-0 ps-0" placeholder="Search name, ID, status, license...">
+    </div>
+</div>
 
 <div class="table-container shadow-sm border-0">
     <div class="section-header text-white" style="margin-bottom: 0; border-radius: 8px 8px 0 0; background-color: #5d758b; padding: 15px;">Registered Drivers</div>
@@ -61,7 +70,7 @@
             <tr><td colspan="6" class="text-center py-5 text-muted">No drivers found.</td></tr>
             {% else %}
                 {% for driver in data.drivers %}
-                <tr>
+                <tr class="searchable-row">
                     <td class="ps-4 fw-bold text-muted">{{ driver.id }}</td>
                     <td class="fw-bold text-dark">👤 {{ driver.name }}</td>
                     <td>{{ driver.licenses }}</td>
@@ -210,6 +219,7 @@
                       <i class="fas fa-info-circle"></i> As Staff, you can only modify the Status and Availability of a driver.
                   </div>
               {% endif %}
+              
               <div class="row g-3">
                   <div class="col-md-6">
                       <div class="card h-100 shadow-sm border-0">
@@ -217,12 +227,12 @@
                           <div class="card-body">
                               <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">First Name</label>
-                                        <input type="text" class="form-control form-control-sm {% if role == 'Staff' %}bg-light{% endif %}" name="edit_first_name" value="{{ driver.name.split(' ')[0] }}" {% if role == 'Staff' %}readonly{% else %}required{% endif %}>
+                                        <label class="form-label text-muted small fw-bold">First Name</label>
+                                        <input type="text" class="form-control form-control-sm bg-light" name="edit_first_name" value="{{ driver.name.split(' ')[0] }}" readonly>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Last Name</label>
-                                        <input type="text" class="form-control form-control-sm {% if role == 'Staff' %}bg-light{% endif %}" name="edit_last_name" value="{{ driver.name.split(' ')[1:]|join(' ') }}" {% if role == 'Staff' %}readonly{% else %}required{% endif %}>
+                                        <label class="form-label text-muted small fw-bold">Last Name</label>
+                                        <input type="text" class="form-control form-control-sm bg-light" name="edit_last_name" value="{{ driver.name.split(' ')[1:]|join(' ') }}" readonly>
                                     </div>
                               </div>
                               <div class="mb-3">
@@ -267,16 +277,16 @@
                           <div class="card-header bg-secondary text-white">Personal Data & Availability</div>
                           <div class="card-body">
                               <div class="mb-2">
-                                  <label class="form-label">Date of Birth</label>
-                                  <input type="date" class="form-control form-control-sm {% if role == 'Staff' %}bg-light{% endif %}" name="edit_dob" value="{{ driver.dob }}" {% if role == 'Staff' %}readonly{% else %}required{% endif %}>
+                                  <label class="form-label text-muted small fw-bold">Date of Birth</label>
+                                  <input type="date" class="form-control form-control-sm bg-light" name="edit_dob" value="{{ driver.dob }}" readonly>
                               </div>
                               <div class="mb-2">
-                                  <label class="form-label">Full Address</label>
-                                  <input type="text" class="form-control form-control-sm {% if role == 'Staff' %}bg-light{% endif %}" name="edit_address" value="{{ driver.address }}" {% if role == 'Staff' %}readonly{% else %}required{% endif %}>
+                                  <label class="form-label text-muted small fw-bold">Full Address</label>
+                                  <input type="text" class="form-control form-control-sm bg-light" name="edit_address" value="{{ driver.address }}" readonly>
                               </div>
-                              <div class="mb-2">
-                                  <label class="form-label">Current Availability</label>
-                                  <select class="form-select form-select-sm" name="edit_availability" required>
+                              <div class="mb-2 mt-4">
+                                  <label class="form-label fw-bold">Current Availability</label>
+                                  <select class="form-select form-select-sm border-primary" name="edit_availability" required>
                                       <option value="Available" {% if driver.availability == 'Available' %}selected{% endif %}>Available</option>
                                       <option value="In Transit" {% if driver.availability == 'In Transit' %}selected{% endif %}>In Transit</option>
                                       <option value="On Leave" {% if driver.availability == 'On Leave' %}selected{% endif %}>On Leave</option>
@@ -321,10 +331,10 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    // 1. Logica pentru ID-ul Auto-Generat
     const addDriverModal = document.getElementById('addDriverModal');
     if (addDriverModal) {
         addDriverModal.addEventListener('show.bs.modal', function () {
-            // Generează un ID de forma DRV-1234
             const chars = '0123456789';
             let result = 'DRV-';
             for (let i = 0; i < 4; i++) {
@@ -332,6 +342,24 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             const drvInput = document.getElementById('add_driver_id');
             if(drvInput) drvInput.value = result;
+        });
+    }
+
+    // 2. Logica pentru Motorul de Căutare (Live Search REQ-72)
+    const searchInput = document.getElementById('tableSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll('.searchable-row');
+            
+            rows.forEach(row => {
+                let text = row.innerText.toLowerCase();
+                if (text.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         });
     }
 });
