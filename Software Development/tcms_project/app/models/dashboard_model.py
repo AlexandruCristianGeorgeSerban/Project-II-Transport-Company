@@ -19,20 +19,17 @@ class DashboardModel:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
                 
-                
                 try:
                     db_cursor.execute("SELECT COUNT(id) FROM transport_requests WHERE status = 'Pending'")
                     counts["pending_requests"] = db_cursor.fetchone()[0]
                 except sqlite3.OperationalError:
                     pass
                 
-               
                 try:
                     db_cursor.execute("SELECT COUNT(id) FROM vehicles WHERE status = 'Available'")
                     counts["available_vehicles"] = db_cursor.fetchone()[0]
                 except sqlite3.OperationalError:
                     pass
-                
                 
                 try:
                     db_cursor.execute("SELECT COUNT(id) FROM drivers WHERE availability = 'Available'")
@@ -52,7 +49,6 @@ class DashboardModel:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
-                
                 
                 db_cursor.execute("""
                     SELECT id, client, pickup, delivery, status, cargo_type, weight, estimated_price as price 
@@ -75,15 +71,12 @@ class DashboardModel:
             "pending_invoices": 0
         }
         try:
-           
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                
                 
                 db_cursor.execute("SELECT COUNT(id) FROM transport_requests WHERE status = 'Pending'")
                 pending_reqs = db_cursor.fetchone()
                 summary["pending_allocations"] = pending_reqs[0] if pending_reqs else 0
-                
                 
                 summary["unread_tickets"] = 3
                 summary["pending_invoices"] = 1
@@ -95,11 +88,46 @@ class DashboardModel:
         
     def get_todays_schedule(self) -> List[Dict[str, Any]]:
         """Retrieves today's schedule for the staff member."""
-        
-       
         return [
             {"time": "10:00 AM", "task": "Allocate Driver to TRK-001", "status": "Pending"},
             {"time": "11:30 AM", "task": "Review Support Ticket #ST-402", "status": "In Progress"},
             {"time": "02:00 PM", "task": "Issue Invoice for SC Logistica SRL", "status": "Pending"},
             {"time": "04:00 PM", "task": "Check Fleet Maintenance Logs", "status": "Completed"}
         ]
+
+    # --- NOU: PENTRU CALENDAR ---
+    def get_driver_schedules(self) -> List[Dict[str, Any]]:
+        """Extrage cursele active și programate pentru a fi afișate în Calendar."""
+        events = []
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                connection.row_factory = sqlite3.Row
+                cursor = connection.cursor()
+                
+                # Extragem cererile care NU sunt anulate sau in pending
+                cursor.execute("""
+                    SELECT id, client, pickup, delivery, preferred_date, status
+                    FROM transport_requests
+                    WHERE status NOT IN ('Pending', 'Canceled', 'Rejected', 'Negotiation')
+                """)
+                
+                for row in cursor.fetchall():
+                    # Setam culorile pe calendar in functie de status
+                    color = "#f39c12"  # Portocaliu (Approved / Awaiting Allocation)
+                    if row['status'] == 'In Transit':
+                        color = "#0078d4" # Albastru
+                    elif row['status'] == 'Delivered':
+                        color = "#28a745" # Verde
+                    
+                    events.append({
+                        "title": f"REQ: {row['id']} | {row['client']}",
+                        "start": row['preferred_date'],
+                        "color": color,
+                        "extendedProps": {
+                            "route": f"{row['pickup']} ➔ {row['delivery']}",
+                            "status": row['status']
+                        }
+                    })
+        except sqlite3.Error as e:
+            logging.error(f"Error fetching calendar schedules: {e}")
+        return events
