@@ -48,18 +48,30 @@ class AllocationController:
             return {"requests": [], "vehicles": [], "drivers": []}
 
     def process_allocation(self, req_id: str, veh_id: str, drv_id: str, staff_username: str = "Unknown") -> dict:
+        """Handles the allocation confirmation and checks strict constraints (REQ-46)."""
         if not req_id or not veh_id or not drv_id:
             return {"success": False, "message": "Please select a Request, a Vehicle, and a Driver!"}
 
         try:
-            # Validări Capacitate și Licențe
+            # --- VALIDĂRI CONSTRÂNGERI ---
             constraints = self.model.get_allocation_constraints(req_id, veh_id, drv_id)
+            
+            # 1. Validare Capacitate Vehicul (REQ-46)
             if constraints and "weight" in constraints and "capacity" in constraints:
                 if constraints["weight"] > constraints["capacity"]:
-                    return {"success": False, "message": f"❌ Eroare: Capacitatea mașinii ({constraints['capacity']}) e prea mică pt greutatea mărfii ({constraints['weight']})!"}
+                    return {
+                        "success": False, 
+                        "message": f"❌ Eroare REQ-46: Capacitatea mașinii ({constraints['capacity']}kg) este mai mică decât greutatea mărfii ({constraints['weight']}kg)!"
+                    }
+                    
+            # 2. Validare Permis Șofer
             if constraints and "driver_licenses" in constraints and "vehicle_type" in constraints:
                 if not check_license_compatibility(constraints["driver_licenses"], constraints["vehicle_type"]):
-                    return {"success": False, "message": f"❌ Eroare Permis: Șoferul nu are licența necesară!"}
+                    return {
+                        "success": False,
+                        "message": f"❌ Eroare Permis: Șoferul nu are licența necesară pentru a conduce un {constraints['vehicle_type']}!"
+                    }
+            # ----------------------------------
         except Exception:
             pass
 
@@ -85,7 +97,6 @@ class AllocationController:
             with sqlite3.connect("instance/database.sqlite") as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                # 🔴 REPARAȚIE CRITICĂ: Extragem tot rândul, inclusiv preturile negociate!
                 cursor.execute("SELECT * FROM transport_requests WHERE id = ?", (req_id,))
                 req_data = cursor.fetchone()
         except Exception as e:
@@ -96,7 +107,7 @@ class AllocationController:
 
         client_name = req_data['client']
         
-        # 🔴 LOGICĂ NOUĂ PREȚ: Ia oferta dacă există, dacă nu ia estimarea, dacă nu pune 0.0
+        # LOGICĂ PREȚ: Ia oferta dacă există, dacă nu ia estimarea, dacă nu pune 0.0
         amount = 0.0
         try:
             keys = req_data.keys()
@@ -114,7 +125,6 @@ class AllocationController:
             inv_id = f"INV-{str(uuid.uuid4().hex)[:6].upper()}"
             issue_date = datetime.now().strftime("%Y-%m-%d")
             
-            # Acum avem un număr real la "amount" mereu, deci factura SE VA CREA!
             success_inv = inv_model.insert_invoice(inv_id, req_id, client_name, amount, issue_date)
 
             notif_model = NotificationModel()

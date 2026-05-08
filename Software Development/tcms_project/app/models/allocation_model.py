@@ -88,6 +88,7 @@ class AllocationModel:
             logging.error(f"Error fetching available drivers: {db_error}")
             return drivers
 
+    # --- PENTRU REQ-46 (Extragerea datelor pentru validare) ---
     def get_allocation_constraints(self, req_id: str, veh_id: str, drv_id: str) -> dict:
         """Fetches weight, capacity, and licenses to validate constraints before allocation."""
         data = {"weight": 0.0, "capacity": 0.0, "vehicle_type": "", "driver_licenses": ""}
@@ -116,6 +117,7 @@ class AllocationModel:
         except (sqlite3.Error, ValueError) as e:
             logging.error(f"Constraint fetch error: {e}")
         return data
+    # ---------------------------------------------------------------
 
     def allocate_resources(self, request_id: str, vehicle_id: str, driver_id: str, staff_username: str = "Unknown") -> bool:
         """Updates the status of the request, vehicle, and driver to reflect allocation."""
@@ -149,7 +151,6 @@ class AllocationModel:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                # 🔴 LOGICĂ NOUĂ: Facem JOIN ca să aducem Numele Șoferului și Numărul de Înmatriculare!
                 cursor.execute("""
                     SELECT tr.id, tr.client, tr.cargo_type, tr.pickup, tr.delivery, 
                            tr.estimated_price, tr.price_offer, tr.status, 
