@@ -51,10 +51,29 @@ class AllocationController:
             return {"requests": [], "vehicles": [], "drivers": []}
 
     def process_allocation(self, req_id: str, veh_id: str, drv_id: str, staff_username: str = "Unknown") -> dict:
-        """Handles the allocation confirmation and fingerprinting."""
+        """Handles the allocation confirmation and checks strict constraints (REQ-46)."""
         if not req_id or not veh_id or not drv_id:
             return {"success": False, "message": "Please select a Request, a Vehicle, and a Driver!"}
             
+        # --- NOU: VALIDĂRI CONSTRÂNGERI ---
+        constraints = self.model.get_allocation_constraints(req_id, veh_id, drv_id)
+        
+        # 1. Validare Capacitate Vehicul (REQ-46)
+        if constraints["weight"] > constraints["capacity"]:
+            return {
+                "success": False, 
+                "message": f"❌ Eroare REQ-46: Capacitatea mașinii ({constraints['capacity']}) este mai mică decât greutatea mărfii ({constraints['weight']})!"
+            }
+            
+        # 2. Validare Permis Șofer
+        if not check_license_compatibility(constraints["driver_licenses"], constraints["vehicle_type"]):
+            return {
+                "success": False,
+                "message": f"❌ Eroare Permis: Șoferul nu are licența necesară pentru a conduce un {constraints['vehicle_type']}!"
+            }
+        # ----------------------------------
+
+        # Dacă trece de ambele bariere de mai sus, se salvează în DB
         result = self.model.allocate_resources(req_id, veh_id, drv_id, staff_username)
         
         if result is True:
