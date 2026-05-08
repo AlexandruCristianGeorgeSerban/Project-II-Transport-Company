@@ -88,7 +88,7 @@ class AllocationModel:
             logging.error(f"Error fetching available drivers: {db_error}")
             return drivers
 
-    # --- PENTRU REQ-46 (Extragerea datelor pentru validare) ---
+    # --- NOU: PENTRU REQ-46 (Extragerea datelor pentru validare) ---
     def get_allocation_constraints(self, req_id: str, veh_id: str, drv_id: str) -> dict:
         """Fetches weight, capacity, and licenses to validate constraints before allocation."""
         data = {"weight": 0.0, "capacity": 0.0, "vehicle_type": "", "driver_licenses": ""}

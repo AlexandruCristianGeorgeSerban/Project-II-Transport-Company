@@ -56,25 +56,25 @@ class AllocationController:
             # --- VALIDĂRI CONSTRÂNGERI ---
             constraints = self.model.get_allocation_constraints(req_id, veh_id, drv_id)
             
-            # 1. Validare Capacitate Vehicul (REQ-46)
-            if constraints and "weight" in constraints and "capacity" in constraints:
-                if constraints["weight"] > constraints["capacity"]:
-                    return {
-                        "success": False, 
-                        "message": f"❌ Eroare REQ-46: Capacitatea mașinii ({constraints['capacity']}kg) este mai mică decât greutatea mărfii ({constraints['weight']}kg)!"
-                    }
-                    
-            # 2. Validare Permis Șofer
-            if constraints and "driver_licenses" in constraints and "vehicle_type" in constraints:
-                if not check_license_compatibility(constraints["driver_licenses"], constraints["vehicle_type"]):
-                    return {
-                        "success": False,
-                        "message": f"❌ Eroare Permis: Șoferul nu are licența necesară pentru a conduce un {constraints['vehicle_type']}!"
-                    }
-            # ----------------------------------
-        except Exception:
-            pass
+        # --- NOU: VALIDĂRI CONSTRÂNGERI ---
+        constraints = self.model.get_allocation_constraints(req_id, veh_id, drv_id)
+        
+        # 1. Validare Capacitate Vehicul (REQ-46)
+        if constraints["weight"] > constraints["capacity"]:
+            return {
+                "success": False, 
+                "message": f"❌ Eroare REQ-46: Capacitatea mașinii ({constraints['capacity']}) este mai mică decât greutatea mărfii ({constraints['weight']})!"
+            }
+            
+        # 2. Validare Permis Șofer
+        if not check_license_compatibility(constraints["driver_licenses"], constraints["vehicle_type"]):
+            return {
+                "success": False,
+                "message": f"❌ Eroare Permis: Șoferul nu are licența necesară pentru a conduce un {constraints['vehicle_type']}!"
+            }
+        # ----------------------------------
 
+        # Dacă trece de ambele bariere de mai sus, se salvează în DB
         result = self.model.allocate_resources(req_id, veh_id, drv_id, staff_username)
         if result is True:
             return {"success": True, "message": f"Successfully allocated Vehicle {veh_id} and Driver {drv_id} to Request {req_id}!"}
