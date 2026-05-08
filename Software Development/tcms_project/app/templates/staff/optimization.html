@@ -91,12 +91,25 @@ document.addEventListener("DOMContentLoaded", function() {
     var waypointHistory = [];
     var isUndoAction = false;
 
-    var truckIcon = L.icon({
-        iconUrl: '/static/img/truck.png', 
-        iconSize: [42, 42],
-        iconAnchor: [21, 21],
-        popupAnchor: [0, -20]
-    });
+    // FUNCȚIA CARE ALEGE ICONIȚA CORECTĂ
+    function getDynamicVehicleIcon(vehicleType) {
+        let iconName = 'truck.png'; 
+        if(vehicleType) {
+            let type = vehicleType.toLowerCase();
+            if (type.includes('truck')) iconName = 'truck.png';
+            else if (type.includes('van')) iconName = 'van.png';
+            else if (type.includes('lorrie') || type.includes('lorry')) iconName = 'lorrie.png';
+            else if (type.includes('ship')) iconName = 'ship.png';
+            else if (type.includes('train')) iconName = 'train.png';
+            else if (type.includes('airplane') || type.includes('air')) iconName = 'airplane.png';
+        }
+        return L.icon({ 
+            iconUrl: '/static/img/' + iconName, 
+            iconSize: [42, 42], 
+            iconAnchor: [21, 21], 
+            popupAnchor: [0, -20] 
+        });
+    }
 
     async function getCoordinates(city) {
         try {
@@ -132,20 +145,18 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     };
 
-    // FUNCȚIE: ȘTERGE UN SINGUR PUNCT (La click pe marker)
     window.removeWaypoint = function(index) {
         if (!currentRouteControl) return;
         let wps = currentRouteControl.getWaypoints();
-        wps.splice(index, 1); // Scoatem punctul din array
-        currentRouteControl.setWaypoints(wps); // Rescriem ruta
+        wps.splice(index, 1); 
+        currentRouteControl.setWaypoints(wps); 
         map.closePopup();
     };
 
-    // FUNCȚIE: UNDO
     window.undoLastWaypoint = function() {
         if (waypointHistory.length > 1) {
-            waypointHistory.pop(); // Aruncăm starea curentă greșită
-            let previousState = waypointHistory[waypointHistory.length - 1]; // O luăm pe cea de dinainte
+            waypointHistory.pop(); 
+            let previousState = waypointHistory[waypointHistory.length - 1]; 
             isUndoAction = true;
             currentRouteControl.setWaypoints(previousState);
         } else {
@@ -168,10 +179,8 @@ document.addEventListener("DOMContentLoaded", function() {
         let startPoint = L.latLng(vehicle.lat, vehicle.lng);
         let waypoints = [startPoint];
 
-        // --- LOAD DIN BAZA DE DATE (vehicle.saved_route vine din API-ul nostru) ---
         if (vehicle.saved_route) {
             const savedWps = JSON.parse(vehicle.saved_route);
-            // Reconstruim punctele, dar forțăm start-ul să fie poziția GPS actuală
             for(let i=1; i<savedWps.length; i++) {
                 if(savedWps[i]) waypoints.push(L.latLng(savedWps[i].lat, savedWps[i].lng));
             }
@@ -201,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }).addTo(map);
 
         currentRouteControl.on('routeselected', function(e) {
-            updateInstructions(e.route); // Funcție separată pentru a curăța codul
+            updateInstructions(e.route); 
             if (!isUndoAction) {
                 let currentWps = currentRouteControl.getWaypoints().map(w => w.latLng).filter(l => l != null);
                 waypointHistory.push(currentWps);
@@ -239,14 +248,32 @@ document.addEventListener("DOMContentLoaded", function() {
         fetch("{{ url_for('fleet.live_fleet_api') }}")
             .then(res => res.json())
             .then(data => {
-                document.getElementById('vehicle-count').innerText = data.length;
                 var currentIds = new Set();
+                let visibleCount = 0; // Contor nou care adună doar vehiculele care chiar apar
+                let coordTracker = {}; // Memorie pentru a verifica suprapunerile
 
                 data.forEach(v => {
                     if (v.lat && v.lng) {
+                        visibleCount++;
                         currentIds.add(v.id);
                         vehicleDataStorage[v.id] = v;
-                        let pos = new L.LatLng(v.lat, v.lng);
+                        
+                        // Sistemul Anti-Overlap
+                        // Verificam daca mai avem ceva pe FIX aceleasi coordonate
+                        let coordKey = `${v.lat.toFixed(3)},${v.lng.toFixed(3)}`;
+                        if (!coordTracker[coordKey]) coordTracker[coordKey] = 0;
+                        
+                        let offsetMultiplier = coordTracker[coordKey];
+                        coordTracker[coordKey]++; // Crestem numarul de masini in acel punct
+                        
+                        // Deplasam putin in diagonala fiecare masina suplimentara din acelasi oras
+                        let latOffset = offsetMultiplier * 0.02; // Aprox 2km pe harta
+                        let lngOffset = offsetMultiplier * 0.02;
+
+                        let pos = new L.LatLng(v.lat + latOffset, v.lng + lngOffset);
+                        
+                        // Setăm dinamic iconița în funcție de tipul vehiculului
+                        let customIcon = getDynamicVehicleIcon(v.vehicle_type);
                         
                         if (activeReqId === v.id && currentRouteControl) {
                             let currentWps = currentRouteControl.getWaypoints();
@@ -257,13 +284,17 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
 
                         if (!markers[v.id]) {
-                            markers[v.id] = L.marker(pos, {icon: truckIcon}).addTo(map)
+                            markers[v.id] = L.marker(pos, {icon: customIcon}).addTo(map)
                                 .bindPopup(`<div class='text-center'><b>REQ #${v.id}</b><br><p class='small m-1'>${v.pickup} &rarr; ${v.delivery}</p><button class='btn btn-xs btn-primary mt-1 w-100 fw-bold' onclick="drawOptimizedRoute('${v.id}')">View & Edit Route</button></div>`);
                         } else {
-                            markers[v.id].setLatLng(pos);
+                            markers[v.id].setLatLng(pos); // Mutam la noua pozitie offsetata daca e cazul
+                            markers[v.id].setIcon(customIcon);
                         }
                     }
                 });
+
+                // Acum numarul de vehicule e 100% real!
+                document.getElementById('vehicle-count').innerText = visibleCount;
 
                 for (var id in markers) {
                     if (!currentIds.has(id)) {
@@ -278,5 +309,5 @@ document.addEventListener("DOMContentLoaded", function() {
     fetchFleetLocations();
     setInterval(fetchFleetLocations, 5000);
 });
-</script>
+</script>   
 {% endblock %}

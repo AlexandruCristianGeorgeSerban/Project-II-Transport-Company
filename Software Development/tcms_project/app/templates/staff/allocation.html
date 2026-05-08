@@ -14,7 +14,6 @@
 
 <form method="POST" action="{{ url_for('allocation.confirm_allocation') }}">
     
-    
     <div class="card shadow-sm mb-3 border-0" style="flex-grow: 0; height: auto; border-radius: 8px;">
         <div class="card-header text-white fw-bold" style="background-color: #5d758b; border-radius: 8px 8px 0 0;">
             1. Select Pending Request
@@ -29,10 +28,7 @@
         </div>
     </div>
 
-    
     <div class="row g-4">
-        
-        
         <div class="col-md-6">
             <div class="table-container shadow-sm border-0 h-100 mt-0">
                 <div class="section-header text-white" style="margin-bottom: 0; border-radius: 8px 8px 0 0; background-color: #216a94; padding: 15px;">
@@ -67,7 +63,6 @@
             </div>
         </div>
 
-        
         <div class="col-md-6">
             <div class="table-container shadow-sm border-0 h-100 mt-0">
                 <div class="section-header text-white" style="margin-bottom: 0; border-radius: 8px 8px 0 0; background-color: #216a94; padding: 15px;">
@@ -99,14 +94,119 @@
                 </div>
             </div>
         </div>
-
     </div>
 
-    
-    <div class="text-center mt-4 mb-5">
+    <div class="text-center mt-4 mb-4">
         <button type="submit" class="btn btn-primary btn-lg px-5 shadow fw-bold rounded-3" style="background-color: #0078d4; border: none;">
             Confirm Allocation
         </button>
     </div>
 </form>
+
+<div class="card shadow-sm border-0 mb-5" style="border-radius: 8px;">
+    <div class="card-header text-white fw-bold d-flex justify-content-between align-items-center" style="background-color: #2b4b6b; border-radius: 8px 8px 0 0;">
+        <span><i class="fa-solid fa-project-diagram me-2"></i> Live Operational Network Graph</span>
+        <button type="button" class="btn btn-sm btn-light text-dark fw-bold" onclick="refreshNetwork()"><i class="fa-solid fa-sync"></i> Re-Align Graph</button>
+    </div>
+    <div class="card-body p-0 position-relative">
+        <div id="mynetwork" style="width: 100%; height: 500px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;"></div>
+        
+        <div class="position-absolute bottom-0 start-0 m-3 p-2 bg-white shadow-sm border rounded" style="font-size: 0.8rem; opacity: 0.9;">
+            <div class="fw-bold mb-1 border-bottom pb-1">Legend</div>
+            <div><span style="display:inline-block; width:12px; height:12px; background:#6f42c1; border-radius:3px; margin-right:5px;"></span> Customer</div>
+            <div><span style="display:inline-block; width:12px; height:12px; background:#ffc107; border-radius:3px; margin-right:5px;"></span> Auto Request</div>
+            <div><span style="display:inline-block; width:12px; height:12px; background:#fd7e14; border-radius:3px; margin-right:5px;"></span> Manual Request</div>
+            <div><span style="display:inline-block; width:12px; height:12px; background:#0078d4; border-radius:3px; margin-right:5px;"></span> Vehicle</div>
+            <div><span style="display:inline-block; width:12px; height:12px; background:#28a745; border-radius:3px; margin-right:5px;"></span> Driver</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+<script>
+    var network = null;
+
+    function refreshNetwork() {
+        fetch('/api/network_data')
+            .then(response => response.json())
+            .then(data => {
+                var container = document.getElementById('mynetwork');
+                
+                var options = {
+                    nodes: {
+                        shape: 'box',
+                        margin: { top: 12, bottom: 12, left: 20, right: 20 },
+                        font: { size: 14, face: 'Segoe UI, Tahoma, sans-serif', bold: true },
+                        borderWidth: 0,
+                        borderRadius: 8,
+                        shadow: { enabled: true, color: 'rgba(0,0,0,0.15)', size: 10, x: 2, y: 4 }
+                    },
+                    edges: {
+                        width: 2.5,
+                        font: { align: 'middle', size: 11, color: '#495057', background: '#f8f9fa', strokeWidth: 0 },
+                        color: { color: '#adb5bd', highlight: '#0078d4' },
+                        arrows: { to: { enabled: true, scaleFactor: 0.7 } },
+                        smooth: { 
+                            type: 'cubicBezier', 
+                            forceDirection: 'horizontal', 
+                            roundness: 0.5 
+                        }
+                    },
+                    groups: {
+                        customer: { color: { background: '#6f42c1' }, font: { color: '#ffffff' } },
+                        request: { color: { background: '#ffc107' }, font: { color: '#212529' } },
+                        request_admin: { color: { background: '#fd7e14' }, font: { color: '#ffffff' } },
+                        vehicle: { color: { background: '#0078d4' }, font: { color: '#ffffff' } },
+                        driver: { color: { background: '#28a745' }, font: { color: '#ffffff' } }
+                    },
+                    layout: {
+                        hierarchical: {
+                            enabled: true,
+                            direction: 'LR',
+                            sortMethod: 'directed',
+                            nodeSpacing: 100,
+                            levelSeparation: 280
+                        }
+                    },
+                    physics: {
+                        enabled: true, // Îl lăsăm pornit DOAR pentru calculul inițial
+                        hierarchicalRepulsion: {
+                            nodeDistance: 150,
+                            avoidOverlap: 1
+                        },
+                        stabilization: {
+                            enabled: true,
+                            iterations: 1000 // Îi dăm timp să „gândească” așezarea înainte de afișare
+                        }
+                    },
+                    interaction: {
+                        hover: true,
+                        zoomView: true,
+                        dragView: true,
+                        dragNodes: true // Permite mutarea lor manuală
+                    }
+                };
+
+                if (network !== null) { network.destroy(); }
+                network = new vis.Network(container, data, options);
+                
+                // SOLUȚIA PENTRU „CLĂTINAT”:
+                // Imediat ce graful s-a stabilizat (s-a așezat singur), oprim motorul de fizică.
+                // Astfel, când tragi de ele, nu mai există nicio forță care să le tragă înapoi.
+                network.once("stabilizationIterationsDone", function() {
+                    network.setOptions({ physics: false });
+                    network.fit(); // Ajustează camera pe tot graful
+                    console.log("Fizica a fost oprită. Acum poți muta nodurile liber.");
+                });
+            })
+            .catch(error => console.error('Error fetching network data:', error));
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        refreshNetwork();
+    });
+</script>
 {% endblock %}

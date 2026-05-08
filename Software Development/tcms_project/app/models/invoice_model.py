@@ -29,13 +29,14 @@ class InvoiceModel:
             return False
 
     def get_client_invoices(self, client_name: str) -> List[Dict[str, Any]]:
-        """Retrieves all invoices for a specific client."""
+        """Retrieves all invoices for a specific client (Case-Insensitive)."""
         invoices: List[Dict[str, Any]] = []
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
-                db_cursor.execute("SELECT * FROM invoices WHERE client_name = ? ORDER BY issue_date DESC", (client_name,))
+                # 🔴 REPARAȚIE CRITICĂ: Căutăm clientul flexibil (fără majuscule sau spații greșite)
+                db_cursor.execute("SELECT * FROM invoices WHERE LOWER(TRIM(client_name)) = LOWER(TRIM(?)) ORDER BY issue_date DESC", (client_name,))
                 rows = db_cursor.fetchall()
                 for row in rows:
                     invoices.append(dict(row))
@@ -44,6 +45,31 @@ class InvoiceModel:
         except sqlite3.Error as db_error:
             logging.error(f"Error fetching invoices: {db_error}")
             return invoices
+
+    def get_all_invoices(self) -> List[Dict[str, Any]]:
+        """Aduce TOATE facturile din sistem (Folosit de panoul de Staff/Admin)."""
+        invoices: List[Dict[str, Any]] = []
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                connection.row_factory = sqlite3.Row
+                db_cursor = connection.cursor()
+                db_cursor.execute("SELECT * FROM invoices ORDER BY issue_date DESC")
+                rows = db_cursor.fetchall()
+                for row in rows:
+                    invoices.append(dict(row))
+                return invoices
+        except sqlite3.Error:
+            return invoices
+
+    def get_invoice_by_id(self, invoice_id: str) -> Dict[str, Any]:
+        """Aduce o factură specifică după ID."""
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                connection.row_factory = sqlite3.Row
+                row = connection.execute("SELECT * FROM invoices WHERE id = ?", (invoice_id,)).fetchone()
+                return dict(row) if row else {}
+        except sqlite3.Error:
+            return {}
 
     def mark_as_paid(self, invoice_id: str) -> bool:
         """Updates the invoice status to Paid."""
@@ -58,13 +84,13 @@ class InvoiceModel:
             return False
 
     def insert_invoice(self, invoice_id: str, request_id: str, client_name: str, amount: float, issue_date: str) -> bool:
-        """Inserts a real, new invoice into the database (used by Staff/System)."""
+        """Inserts a real, new invoice into the database."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
                 db_cursor.execute(
                     "INSERT INTO invoices (id, request_id, client_name, amount, issue_date, status) VALUES (?, ?, ?, ?, ?, 'Pending')",
-                    (invoice_id, request_id, client_name, amount, issue_date)
+                    (invoice_id, request_id, client_name, float(amount), issue_date)
                 )
                 connection.commit()
                 return True

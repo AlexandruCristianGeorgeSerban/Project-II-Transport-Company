@@ -14,7 +14,11 @@ driver_logic = DriverController()
 driver_portal_logic = DriverPortalController()
 support_db = SupportModel() 
 notif_db = NotificationModel()
-notif_db.create_table()
+
+try:
+    notif_db.create_table()
+except:
+    pass
 
 DB_PATH = "instance/database.sqlite"
 
@@ -63,82 +67,34 @@ def get_header_data():
         unread_count = 0
     return notifications, unread_count
 
-def get_driver_jobs(user_id, username, status_type='active'):
-    jobs = []
-    try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            search_ids = {str(user_id), str(username)}
-            cursor.execute("PRAGMA table_info(drivers)")
-            d_cols = [c[1] for c in cursor.fetchall()]
-            
-            if 'username' in d_cols:
-                cursor.execute("SELECT id, name FROM drivers WHERE username = ?", (username,))
-                for r in cursor.fetchall():
-                    search_ids.add(str(r['id']))
-                    search_ids.add(str(r['name']))
-            if 'user_id' in d_cols:
-                cursor.execute("SELECT id, name FROM drivers WHERE user_id = ?", (user_id,))
-                for r in cursor.fetchall():
-                    search_ids.add(str(r['id']))
-                    search_ids.add(str(r['name']))
-            cursor.execute("SELECT name FROM drivers WHERE id = ?", (user_id,))
-            for r in cursor.fetchall():
-                search_ids.add(str(r['name']))
-
-            valid_ids = list(search_ids)
-            placeholders = ','.join(['?'] * len(valid_ids))
-            status_filter = "IN ('Accepted', 'In Transit')" if status_type == 'active' else "== 'Delivered'"
-            query = f"SELECT * FROM transport_requests WHERE CAST(driver_id AS TEXT) IN ({placeholders}) AND status {status_filter}"
-            cursor.execute(query, valid_ids)
-            jobs = [dict(row) for row in cursor.fetchall()]
-
-            if not jobs and status_type == 'active':
-                cursor.execute("SELECT * FROM transport_requests WHERE status IN ('Accepted', 'In Transit')")
-                all_active = [dict(row) for row in cursor.fetchall()]
-                u_name_low = str(username).lower()
-                for j in all_active:
-                    if u_name_low in str(j.get('vehicle_id', '')).lower() or u_name_low in str(j.get('driver_id', '')).lower():
-                        if j not in jobs: jobs.append(j)
-    except Exception as e:
-        logging.error(f"Database error in get_driver_jobs: {e}")
-    return jobs
+# ========================================================
+# DRIVER PORTAL & HISTORY ROUTES
+# ========================================================
 
 @driver_bp.route('/driver_portal')
-@driver_bp.route('/active_jobs') 
 def portal():
     if 'user_id' not in session or session.get('role') != 'Driver':
         flash("Access denied. Drivers only.", "danger")
         return redirect(url_for('auth.login'))
         
-    user_id = session.get('user_id')
     username = session.get('username')
     notifications, unread_count = get_header_data()
-    data = {'my_jobs': [], 'my_vehicle': None}
-    active_jobs = get_driver_jobs(user_id, username, 'active')
-    data['my_jobs'] = active_jobs
     
-    if active_jobs and len(active_jobs) > 0:
-        veh_id = active_jobs[0].get('vehicle_id')
-        if veh_id:
-            try:
-                with sqlite3.connect(DB_PATH) as conn:
-                    conn.row_factory = sqlite3.Row
-                    veh = conn.execute("SELECT * FROM vehicles WHERE id = ? OR plate_number = ?", (str(veh_id), str(veh_id))).fetchone()
-                    if veh: data['my_vehicle'] = dict(veh)
-            except Exception as e:
-                logging.error(f"Eroare extragere vehicul: {e}")
+    # MAGIC: Controller-ul se ocupa de toata logica anti-fail!
+    data = driver_portal_logic.load_dashboard_data(username)
     
     return render_template('driver/portal.html', data=data, notifications=notifications, unread_count=unread_count)
 
 @driver_bp.route('/driver/history')
 def history():
-    if 'user_id' not in session or session.get('role') != 'Driver': return redirect(url_for('auth.login'))
-    user_id = session.get('user_id')
+    if 'user_id' not in session or session.get('role') != 'Driver': 
+        return redirect(url_for('auth.login'))
+        
     username = session.get('username')
     notifications, unread_count = get_header_data()
-    jobs = get_driver_jobs(user_id, username, 'history')
+    
+    # Aduce absolut toate cursele care sunt "Delivered" pentru soferul tau
+    jobs = driver_portal_logic.load_history_data(username)
     return render_template('driver/history.html', jobs=jobs, notifications=notifications, unread_count=unread_count)
 
 @driver_bp.route('/driver_portal/update_status/<job_id>/<new_status>', methods=['POST'])
@@ -162,27 +118,18 @@ def update_vehicle_status():
             connection.execute("UPDATE vehicles SET status = ? WHERE id = ?", (new_status, vehicle_id))
             connection.commit()
             
-        active_jobs = get_driver_jobs(session.get('user_id'), driver_name, 'active')
         alert_icon = "🟢" if new_status == 'Active' else "⚠️"
         admin_msg = f"{alert_icon} Șoferul {driver_name} a schimbat statusul vehiculului în: {new_status}."
         notif_db.add_notification('Administrator', admin_msg)
         notif_db.add_notification('Staff', admin_msg)
-        for job in active_jobs:
-            client_username = str(job['client']).strip() 
-            notif_db.add_notification(client_username, f"{alert_icon} Update pentru cursa {job['id']}: Vehiculul a raportat statusul '{new_status}'.")
         flash(f"Statusul mașinii a fost actualizat la: {new_status}.", "success")
     except Exception as e:
         flash(f"Eroare la actualizarea statusului: {e}", "danger")
     return redirect(url_for('driver.portal'))
 
-@driver_bp.route('/api/locations')
-def api_locations():
-    try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.row_factory = sqlite3.Row
-            jobs = conn.cursor().execute("SELECT id, current_lat, current_lng FROM transport_requests WHERE status = 'In Transit'").fetchall()
-            return jsonify([{"id": j['id'], "lat": j['current_lat'], "lng": j['current_lng']} for j in jobs])
-    except Exception: return jsonify([])
+# ========================================================
+# SUPPORT & CHAT ROUTES
+# ========================================================
 
 @driver_bp.route('/driver/support')
 def support():
@@ -240,6 +187,10 @@ def job_chat(job_id):
     messages = support_db.get_job_messages(job_id)
     return render_template('driver/job_chat.html', job_id=job_id, messages=messages, notifications=notifications, unread_count=unread_count, username=username)
 
+# ========================================================
+# ADMIN: DRIVERS MANAGEMENT ROUTES
+# ========================================================
+
 @driver_bp.route('/drivers', methods=['GET'])
 def driver_management() -> str:
     if 'user_id' not in session: return redirect(url_for('auth.login'))
@@ -288,7 +239,6 @@ def delete_driver(driver_id: str) -> str:
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 
-# --- EXPORT DRIVERS DATA ---
 @driver_bp.route('/drivers/export/<file_type>')
 def export_drivers(file_type: str):
     if 'user_id' not in session: return redirect(url_for('auth.login'))

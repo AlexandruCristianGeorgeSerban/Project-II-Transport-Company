@@ -88,20 +88,29 @@
                             <tr onclick="updateMap('{{ r.pickup }}', '{{ r.delivery }}', '{{ r.id }}', '{{ r.vehicle_type }}')" style="cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='transparent';">
                                 <td class="ps-3 fw-bold text-primary">{{ r.id }}</td>
                                 <td><span class="small text-muted">From:</span> <strong>{{ r.pickup }}</strong> <br><span class="small text-muted">To:</span> <strong>{{ r.delivery }}</strong></td>
-                                <td><span class="badge rounded-pill bg-{{ 'warning text-dark' if r.status in ['Pending', 'Negotiation'] else ('info' if r.status == 'Draft' else 'success') }} px-3 py-2">{{ r.status }}</span></td>
-                                <td class="fw-bold text-success">${{ r.price_offer }}</td>
+                                <td>
+                                    <span class="badge rounded-pill bg-{{ 'warning text-dark' if r.status in ['Pending', 'Negotiation'] else ('info' if r.status == 'Draft' else 'success') }} px-3 py-2">
+                                        {{ r.status }}
+                                    </span>
+                                    {% if r.is_expired %}
+                                        <br><span class="badge bg-danger mt-1" style="font-size: 0.7rem;">Expired</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-bold {% if r.is_expired %}text-danger text-decoration-line-through{% else %}text-success{% endif %}">${{ r.price_offer }}</td>
                                 
                                 <td class="pe-3">
                                     {% if r.status in ['Pending', 'Negotiation'] %}
                                         
                                         {% if r.status == 'Pending' %}
-                                        <form action="{{ url_for('customer.handle_response', req_id=r.id, action='accept') }}" method="POST" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-success custom-rounded shadow-sm">Accept</button>
-                                        </form>
+                                            {% if not r.is_expired %}
+                                                <form action="{{ url_for('customer.handle_response', req_id=r.id, action='accept') }}" method="POST" style="display:inline;">
+                                                    <button type="submit" class="btn btn-sm btn-success custom-rounded shadow-sm">Accept</button>
+                                                </form>
+                                            {% endif %}
                                         {% endif %}
                                         
                                         <button type="button" class="btn btn-sm btn-outline-warning custom-rounded mt-1 shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#clientNegotiateModal{{ r.id }}">
-                                            {% if r.status == 'Pending' %}Negotiate{% else %}💬 Open Chat{% endif %}
+                                            {% if r.is_expired %}Request New Offer{% elif r.status == 'Pending' %}Negotiate{% else %}💬 Open Chat{% endif %}
                                         </button>
 
                                         <div class="modal fade text-start" id="clientNegotiateModal{{ r.id }}" tabindex="-1" onclick="event.stopPropagation();">

@@ -118,7 +118,6 @@ def edit_vehicle() -> str:
         
     return redirect(url_for('fleet.fleet_management'))
 
-# --- EXPORT FLEET DATA ---
 @fleet_bp.route('/fleet/export/<file_type>')
 def export_fleet(file_type: str):
     if 'user_id' not in session: return redirect(url_for('auth.login'))
@@ -180,11 +179,24 @@ def live_fleet_api():
         with sqlite3.connect("instance/database.sqlite") as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT id, current_lat, current_lng, pickup, delivery, saved_route FROM transport_requests WHERE status = 'In Transit'")
+            # Preluam acum si vehicle_type din baza de date
+            cursor.execute("SELECT id, current_lat, current_lng, pickup, delivery, saved_route, vehicle_type FROM transport_requests WHERE status = 'In Transit'")
             jobs = cursor.fetchall()
-            locations = [{"id": j['id'], "lat": j['current_lat'], "lng": j['current_lng'], "pickup": j['pickup'], "delivery": j['delivery'], "saved_route": j['saved_route']} for j in jobs]
+            
+            locations = []
+            for j in jobs:
+                locations.append({
+                    "id": j['id'],
+                    "lat": j['current_lat'],
+                    "lng": j['current_lng'],
+                    "pickup": j['pickup'],
+                    "delivery": j['delivery'],
+                    "saved_route": j['saved_route'],
+                    "vehicle_type": j['vehicle_type'] # Trimitem tipul pentru randarea hartii
+                })
             return jsonify(locations)
-    except Exception:
+    except Exception as e:
+        logging.error(f"Eroare API Live Fleet: {e}")
         return jsonify([])
 
 @fleet_bp.route('/api/save_route', methods=['POST'])

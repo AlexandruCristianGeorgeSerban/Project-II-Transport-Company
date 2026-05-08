@@ -88,12 +88,40 @@ class AllocationModel:
             logging.error(f"Error fetching available drivers: {db_error}")
             return drivers
 
+    def get_allocation_constraints(self, req_id: str, veh_id: str, drv_id: str) -> dict:
+        """Fetches weight, capacity, and licenses to validate constraints before allocation."""
+        data = {"weight": 0.0, "capacity": 0.0, "vehicle_type": "", "driver_licenses": ""}
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                # Extragem greutatea cererii (Cargo Weight)
+                cursor.execute("SELECT weight FROM transport_requests WHERE id = ?", (req_id,))
+                req = cursor.fetchone()
+                if req: data["weight"] = float(req["weight"])
+                
+                # Extragem capacitatea si tipul masinii (Vehicle Capacity)
+                cursor.execute("SELECT capacity, type FROM vehicles WHERE id = ?", (veh_id,))
+                veh = cursor.fetchone()
+                if veh: 
+                    data["capacity"] = float(veh["capacity"])
+                    data["vehicle_type"] = veh["type"]
+                    
+                # Extragem permisele soferului
+                cursor.execute("SELECT licenses FROM drivers WHERE id = ?", (drv_id,))
+                drv = cursor.fetchone()
+                if drv: data["driver_licenses"] = drv["licenses"]
+                
+        except (sqlite3.Error, ValueError) as e:
+            logging.error(f"Constraint fetch error: {e}")
+        return data
+
     def allocate_resources(self, request_id: str, vehicle_id: str, driver_id: str, staff_username: str = "Unknown") -> bool:
         """Updates the status of the request, vehicle, and driver to reflect allocation."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
-                
                 
                 db_cursor.execute("""
                     UPDATE transport_requests 
@@ -116,14 +144,21 @@ class AllocationModel:
             return False
 
     def get_active_jobs(self) -> list:
+        """Aduce informații detaliate (JOIN) pentru dispeceratul Staff-ului."""
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
+                # 🔴 LOGICĂ NOUĂ: Facem JOIN ca să aducem Numele Șoferului și Numărul de Înmatriculare!
                 cursor.execute("""
-                    SELECT id, client, cargo_type, pickup, delivery, estimated_price, vehicle_id, driver_id, status
-                    FROM transport_requests
-                    WHERE status = 'In Transit'
+                    SELECT tr.id, tr.client, tr.cargo_type, tr.pickup, tr.delivery, 
+                           tr.estimated_price, tr.price_offer, tr.status, 
+                           tr.vehicle_id, v.plate_number, 
+                           tr.driver_id, d.name AS driver_name
+                    FROM transport_requests tr
+                    LEFT JOIN vehicles v ON CAST(tr.vehicle_id AS TEXT) = CAST(v.id AS TEXT)
+                    LEFT JOIN drivers d ON CAST(tr.driver_id AS TEXT) = CAST(d.id AS TEXT)
+                    WHERE tr.status = 'In Transit'
                 """)
                 return [dict(row) for row in cursor.fetchall()]
         except sqlite3.Error as e:
