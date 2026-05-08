@@ -5,10 +5,7 @@
 
 {% block extra_css %}
 <style>
-    .modal-body-scroll {
-        max-height: calc(100vh - 210px);
-        overflow-y: auto;
-    }
+    .modal-body-scroll { max-height: calc(100vh - 210px); overflow-y: auto; }
 </style>
 {% endblock %}
 
@@ -38,12 +35,22 @@
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
+    <div class="d-flex gap-2">
         {% if role != 'Staff' %}
         <button type="button" class="btn btn-success fw-bold custom-rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#addDriverModal">
             + Add New Driver
         </button>
         {% endif %}
+        <div class="dropdown">
+            <button class="btn btn-outline-dark fw-bold custom-rounded shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                📥 Export Drivers
+            </button>
+            <ul class="dropdown-menu shadow">
+                <li><a class="dropdown-item" href="{{ url_for('driver.export_drivers', file_type='pdf') }}">📄 Export as PDF</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('driver.export_drivers', file_type='csv') }}">📊 Export as CSV (Excel)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('driver.export_drivers', file_type='txt') }}">📝 Export as TXT</a></li>
+            </ul>
+        </div>
     </div>
     
     <div class="input-group shadow-sm custom-rounded" style="max-width: 350px;">
@@ -79,7 +86,6 @@
                     <td class="d-flex justify-content-center gap-2">
                         <button type="button" class="btn btn-info btn-sm text-white fw-bold custom-rounded" data-bs-toggle="modal" data-bs-target="#viewModal{{ driver.id }}">View</button>
                         <button type="button" class="btn btn-primary btn-sm fw-bold custom-rounded" data-bs-toggle="modal" data-bs-target="#editModal{{ driver.id }}">Edit</button>
-                        
                         {% if role != 'Staff' %}
                         <form method="POST" action="{{ url_for('driver.delete_driver', driver_id=driver.id) }}" style="display:inline; margin:0;">
                             <button type="submit" class="btn btn-danger btn-sm fw-bold custom-rounded" onclick="return confirm('Delete this driver?');">Delete</button>
@@ -331,7 +337,6 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // 1. Logica pentru ID-ul Auto-Generat
     const addDriverModal = document.getElementById('addDriverModal');
     if (addDriverModal) {
         addDriverModal.addEventListener('show.bs.modal', function () {
@@ -345,7 +350,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // 2. Logica pentru Motorul de Căutare (Live Search REQ-72)
     const searchInput = document.getElementById('tableSearchInput');
     if (searchInput) {
         searchInput.addEventListener('keyup', function() {
@@ -354,11 +358,7 @@ document.addEventListener("DOMContentLoaded", function() {
             
             rows.forEach(row => {
                 let text = row.innerText.toLowerCase();
-                if (text.includes(filter)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = text.includes(filter) ? '' : 'none';
             });
         });
     }
