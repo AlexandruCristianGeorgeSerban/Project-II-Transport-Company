@@ -30,6 +30,7 @@ def check_license_compatibility(driver_licenses: str, vehicle_type: str) -> bool
             return True 
     return False
 
+
 class AllocationController:
     """Processes business logic for resource allocation."""
 
@@ -56,30 +57,31 @@ class AllocationController:
             # --- VALIDĂRI CONSTRÂNGERI ---
             constraints = self.model.get_allocation_constraints(req_id, veh_id, drv_id)
             
-        # --- NOU: VALIDĂRI CONSTRÂNGERI ---
-        constraints = self.model.get_allocation_constraints(req_id, veh_id, drv_id)
-        
-        # 1. Validare Capacitate Vehicul (REQ-46)
-        if constraints["weight"] > constraints["capacity"]:
-            return {
-                "success": False, 
-                "message": f"❌ Eroare REQ-46: Capacitatea mașinii ({constraints['capacity']}) este mai mică decât greutatea mărfii ({constraints['weight']})!"
-            }
-            
-        # 2. Validare Permis Șofer
-        if not check_license_compatibility(constraints["driver_licenses"], constraints["vehicle_type"]):
-            return {
-                "success": False,
-                "message": f"❌ Eroare Permis: Șoferul nu are licența necesară pentru a conduce un {constraints['vehicle_type']}!"
-            }
-        # ----------------------------------
+            # 1. Validare Capacitate Vehicul (REQ-46)
+            if constraints["weight"] > constraints["capacity"]:
+                return {
+                    "success": False, 
+                    "message": f"❌ Eroare REQ-46: Capacitatea mașinii ({constraints['capacity']}) este mai mică decât greutatea mărfii ({constraints['weight']})!"
+                }
+                
+            # 2. Validare Permis Șofer
+            if not check_license_compatibility(constraints["driver_licenses"], constraints["vehicle_type"]):
+                return {
+                    "success": False,
+                    "message": f"❌ Eroare Permis: Șoferul nu are licența necesară pentru a conduce un {constraints['vehicle_type']}!"
+                }
+            # ----------------------------------
 
-        # Dacă trece de ambele bariere de mai sus, se salvează în DB
-        result = self.model.allocate_resources(req_id, veh_id, drv_id, staff_username)
-        if result is True:
-            return {"success": True, "message": f"Successfully allocated Vehicle {veh_id} and Driver {drv_id} to Request {req_id}!"}
-        else:
-            return {"success": False, "message": "An error occurred during allocation."}
+            # Dacă trece de ambele bariere de mai sus, se salvează în DB
+            result = self.model.allocate_resources(req_id, veh_id, drv_id, staff_username)
+            if result is True:
+                return {"success": True, "message": f"Successfully allocated Vehicle {veh_id} and Driver {drv_id} to Request {req_id}!"}
+            else:
+                return {"success": False, "message": "An error occurred during allocation."}
+                
+        except Exception as e:
+            logging.error(f"Eroare la procesarea alocării: {e}")
+            return {"success": False, "message": "A apărut o eroare internă la alocare."}
         
     def load_active_jobs(self, role: str = 'Staff', driver_id: str = None) -> dict:
         try:
