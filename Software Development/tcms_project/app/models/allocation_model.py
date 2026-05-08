@@ -146,14 +146,20 @@ class AllocationModel:
             return False
 
     def get_active_jobs(self) -> list:
+        """Aduce informații detaliate (JOIN) pentru dispeceratul Staff-ului."""
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT id, client, cargo_type, pickup, delivery, estimated_price, vehicle_id, driver_id, status
-                    FROM transport_requests
-                    WHERE status = 'In Transit'
+                    SELECT tr.id, tr.client, tr.cargo_type, tr.pickup, tr.delivery, 
+                           tr.estimated_price, tr.price_offer, tr.status, 
+                           tr.vehicle_id, v.plate_number, 
+                           tr.driver_id, d.name AS driver_name
+                    FROM transport_requests tr
+                    LEFT JOIN vehicles v ON CAST(tr.vehicle_id AS TEXT) = CAST(v.id AS TEXT)
+                    LEFT JOIN drivers d ON CAST(tr.driver_id AS TEXT) = CAST(d.id AS TEXT)
+                    WHERE tr.status = 'In Transit'
                 """)
                 return [dict(row) for row in cursor.fetchall()]
         except sqlite3.Error as e:

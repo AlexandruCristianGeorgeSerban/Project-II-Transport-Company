@@ -1,72 +1,104 @@
-{% extends "layouts/admin_layout.html" if session.get('role') == 'Administrator' else ("layouts/driver_layout.html" if session.get('role') == 'Driver' else "layouts/staff_layout.html") %}
+{% extends "layouts/admin_layout.html" if session.get('role') == 'Administrator' else "layouts/staff_layout.html" %}
 
-{% block title %}Active Jobs{% endblock %}
-{% block page_header %}Active Jobs & Deliveries{% endblock %}
+{% block title %}Operational Dispatch{% endblock %}
+{% block page_header %}Fleet Operations Center{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dispatch-card { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .stat-box { background: #f8f9fa; border-radius: 10px; padding: 15px; border-left: 5px solid #216a94; }
+    .custom-rounded { border-radius: 12px !important; }
+    .plate-badge { background-color: #ffc107; color: black; border: 1px solid #e0a800; font-family: monospace; font-size: 0.9rem; letter-spacing: 1px; padding: 5px 10px;}
+</style>
+{% endblock %}
 
 {% block content %}
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
-            <div class="alert alert-{{ category }} shadow-sm rounded-3">{{ message }}</div>
+            <div class="alert alert-{{ category }} shadow-sm custom-rounded">{{ message }}</div>
         {% endfor %}
     {% endif %}
 {% endwith %}
 
-<div class="card shadow-sm border-0 custom-rounded">
-    <div class="card-header text-white fw-bold py-3" style="background-color: #216a94; border-radius: 12px 12px 0 0;">
-        🚛 Jobs Currently In Transit
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stat-box d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="text-muted mb-1">Vehicles on Route</h6>
+                <h3 class="fw-bold text-dark mb-0">{{ data.jobs|length }}</h3>
+            </div>
+            <i class="fa-solid fa-truck-fast fs-1 text-primary opacity-50"></i>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="alert alert-info border-0 shadow-sm custom-rounded d-flex align-items-center mb-0 h-100">
+            <i class="fa-solid fa-circle-info fs-3 me-3"></i>
+            <div>
+                <strong>Operational Note:</strong> This center allows staff to monitor live operations. The <em>Force Close</em> action should only be used if the driver is unable to mark the delivery via their own portal.
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card dispatch-card">
+    <div class="card-header text-white fw-bold py-3 d-flex justify-content-between align-items-center" style="background-color: #2c3e50; border-radius: 12px 12px 0 0;">
+        <span>📡 Live Dispatch Registry</span>
     </div>
     <div class="card-body p-0">
-        <table class="table table-hover mb-0 align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th class="ps-4">Request ID</th>
-                    <th>Client</th>
-                    <th>Route</th>
-                    <th>Vehicle Assigned</th>
-                    <th>Driver Assigned</th>
-                    <th class="text-center">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if data.jobs|length == 0 %}
-                <tr>
-                    <td colspan="6" class="text-center py-5 text-muted">
-                        <h4 class="fs-1 opacity-50 mb-3">🚚</h4>
-                        No active jobs on the road right now.
-                    </td>
-                </tr>
-                {% else %}
-                    {% for job in data.jobs %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
                     <tr>
-                        <td class="ps-4 fw-bold text-primary">#{{ job.id }}</td>
-                        <td class="fw-bold">{{ job.client }}</td>
-                        <td><small>{{ job.pickup }} <br>➔ {{ job.delivery }}</small></td>
-                        <td><span class="badge bg-info text-dark px-3 py-2 rounded-pill">{{ job.vehicle_id }}</span></td>
-                        <td><span class="badge bg-secondary px-3 py-2 rounded-pill">{{ job.driver_id }}</span></td>
-                        <td class="text-center">
-                            <div class="d-flex justify-content-center gap-2 align-items-center">
-                                
-                               
-                                {% if session.get('role') == 'Driver' %}
-                                    <a href="{{ url_for('driver.job_chat', job_id=job.id) }}" class="btn btn-sm btn-primary custom-rounded shadow-sm" title="Chat with Customer">
-                                        💬 Chat
-                                    </a>
-                                {% endif %}
-                                
-                                <!-- BUTONUL DE DELIVERED -->
-                                <form method="POST" action="{{ url_for('allocation.deliver_job', req_id=job.id) }}" style="margin: 0;">
-                                    <button type="submit" class="btn btn-sm btn-success px-3 fw-bold shadow-sm custom-rounded" onclick="return confirm('Confirm delivery? This will free the vehicle and send the invoice to the client.');">
-                                        ✅ Mark as Delivered
-                                    </button>
-                                </form>
-                            </div>
+                        <th class="ps-4">Req ID</th>
+                        <th>Client & Route</th>
+                        <th>Driver Info</th>
+                        <th>Assigned Vehicle</th>
+                        <th class="text-center pe-4">Administrative Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if data.jobs|length == 0 %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <h4 class="fs-1 opacity-25 mb-3">🛣️</h4>
+                            All quiet on the road. No active jobs.
                         </td>
                     </tr>
-                    {% endfor %}
-                {% endif %}
-            </tbody>
-        </table>
+                    {% else %}
+                        {% for job in data.jobs %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-primary">#{{ job.id[:8] }}...</td>
+                            <td>
+                                <div class="fw-bold text-dark">{{ job.client }}</div>
+                                <small class="text-muted"><i class="fa-solid fa-location-dot text-danger"></i> {{ job.pickup }} ➔ <i class="fa-solid fa-flag-checkered text-success"></i> {{ job.delivery }}</small>
+                            </td>
+                            <td>
+                                <div class="fw-bold"><i class="fa-solid fa-id-card text-muted me-1"></i> {{ job.driver_name or "Unknown Driver" }}</div>
+                                <span class="badge bg-secondary" style="font-size: 0.65rem;">{{ job.driver_id }}</span>
+                            </td>
+                            <td>
+                                {% if job.plate_number %}
+                                    <span class="badge plate-badge shadow-sm rounded-1">{{ job.plate_number }}</span>
+                                {% else %}
+                                    <span class="badge bg-dark rounded-1">{{ job.vehicle_id }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center pe-4">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <form method="POST" action="{{ url_for('allocation.deliver_job', req_id=job.id) }}" style="margin: 0;">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger px-3 shadow-sm custom-rounded" onclick="return confirm('⚠️ WARNING: You are forcing this job to close as an Administrator. Invoice will be generated automatically. Are you sure?');">
+                                            <i class="fa-solid fa-power-off me-1"></i> Force Close
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

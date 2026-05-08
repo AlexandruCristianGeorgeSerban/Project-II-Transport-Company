@@ -36,7 +36,6 @@ class RequestModel:
                     )
                 """)
                 
-                
                 db_cursor.execute("""
                     CREATE TABLE IF NOT EXISTS negotiation_chat (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,9 +46,11 @@ class RequestModel:
                     )
                 """)
 
+                # Adaugam noile coloane de securitate & amprenta
                 columns_to_add = [
                     ("transport_requests", "last_modified_by", "TEXT DEFAULT 'System'"),
-                    ("transport_requests", "last_modified_at", "DATETIME DEFAULT (datetime('now', 'localtime'))")
+                    ("transport_requests", "last_modified_at", "DATETIME DEFAULT (datetime('now', 'localtime'))"),
+                    ("transport_requests", "offer_expires_at", "DATETIME DEFAULT NULL")
                 ]
                 for table, col, definition in columns_to_add:
                     try:
@@ -141,13 +142,13 @@ class RequestModel:
                 db_cursor = connection.cursor()
                 db_cursor.execute("""
                     UPDATE transport_requests 
-                    SET status = ?, price_offer = ? 
+                    SET status = ?, price_offer = ?, offer_expires_at = datetime('now', 'localtime', '+24 hours')
                     WHERE id = ?
                 """, (new_status, price, req_id))
                 connection.commit()
-                return {"success": True, "message": f"Oferta de ${price} a fost trimisă cu succes!"}
+                return {"success": True, "message": f"Oferta de ${price} a fost trimisă. Expiră în 24 de ore!"}
         except sqlite3.Error as db_error:
-            return {"success": False, "message": "A apărut o eroare la salvarea în baza de date."}
+            return {"success": False, "message": "A apărut o eroare la salvarea ofertei."}
             
     def update_request_status(self, req_id: str, new_status: str) -> dict:
         try:
@@ -159,7 +160,6 @@ class RequestModel:
         except sqlite3.Error as db_error:
             return {"success": False, "message": "Eroare la salvarea în baza de date."}
 
-    
     def get_request_by_id(self, r_id: str) -> Dict[str, Any]:
         try:
             with sqlite3.connect(DB_PATH) as connection:
