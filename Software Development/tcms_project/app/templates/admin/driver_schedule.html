@@ -1,0 +1,228 @@
+{% extends "layouts/admin_layout.html" if role == 'Administrator' else "layouts/staff_layout.html" %}
+{% block title %}Driver Schedule{% endblock %}
+{% block page_header %}📅 Driver & Job Schedule Timeline{% endblock %}
+
+{% block extra_css %}
+<style>
+    
+    .calendar-container { 
+        background: #ffffff; 
+        padding: 30px; 
+        border-radius: 16px; 
+        box-shadow: 0 8px 30px rgba(0,0,0,0.06); 
+        border: 1px solid #f0f2f5;
+    }
+    
+    .fc-event { 
+        cursor: pointer; 
+        border-radius: 6px; 
+        padding: 6px 8px; 
+        border: none; 
+        font-weight: 700; 
+        font-size: 0.85rem;
+        transition: all 0.2s ease-in-out;
+        margin-bottom: 4px !important;
+    }
+    .fc-event:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        filter: brightness(1.05);
+    }
+
+    
+    .fc-toolbar-title {
+        font-weight: 800 !important;
+        color: #1e293b;
+        font-size: 1.8rem !important;
+    }
+    .fc-button-primary { 
+        background-color: #0078d4 !important; 
+        border-color: #0078d4 !important; 
+        text-transform: uppercase !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px;
+        border-radius: 8px !important;
+        padding: 8px 18px !important;
+    }
+    .fc-button-primary:hover { 
+        background-color: #005a9e !important; 
+        box-shadow: 0 2px 10px rgba(0, 120, 212, 0.4);
+    }
+    .fc-button-active {
+        background-color: #0f172a !important; 
+        border-color: #0f172a !important;
+    }
+
+    
+    .fc-col-header-cell {
+        background-color: #f8fafc !important;
+        border-bottom: 3px solid #0078d4 !important;
+    }
+    .fc-col-header-cell-cushion {
+        color: #0f172a !important;
+        font-weight: 800 !important;
+        font-size: 1.05rem;
+        padding: 12px 0 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Numerele zilelor din luna (1, 2, 3...) */
+    .fc-daygrid-day-top {
+        justify-content: center !important; 
+        padding-top: 8px;
+    }
+    .fc-daygrid-day-number {
+        background: #f1f5f9;
+        color: #334155;
+        font-weight: 800;
+        font-size: 1.05rem;
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        text-decoration: none !important;
+        transition: background 0.2s, color 0.2s;
+    }
+    .fc-daygrid-day-number:hover {
+        background: #0078d4;
+        color: white;
+    }
+
+    /* Ziua Curentă (Today) accentuată */
+    .fc-day-today {
+        background-color: #f0f7ff !important;
+    }
+    .fc-day-today .fc-daygrid-day-number {
+        background: #0078d4 !important;
+        color: white !important;
+        box-shadow: 0 2px 8px rgba(0, 120, 212, 0.4);
+    }
+
+    
+    .fc-multimonth-month {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden; /* Mentine marginile rotunjite pt titlu */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        margin-bottom: 15px;
+    }
+    .fc-multimonth-title {
+        background: #0078d4;
+        color: #ffffff !important;
+        font-size: 1.2rem !important;
+        font-weight: 800 !important;
+        padding: 12px 0 !important;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        text-align: center;
+        margin-bottom: 0 !important;
+    }
+
+    
+    .fc-theme-standard .fc-scrollgrid {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-12 text-end">
+        <span class="badge px-3 py-2 shadow-sm" style="background-color: #f39c12; font-size: 0.85rem;">⏳ Awaiting Allocation</span>
+        <span class="badge px-3 py-2 ms-2 shadow-sm" style="background-color: #0078d4; font-size: 0.85rem;">🚚 In Transit</span>
+        <span class="badge px-3 py-2 ms-2 shadow-sm" style="background-color: #28a745; font-size: 0.85rem;">✅ Delivered</span>
+    </div>
+</div>
+
+<div class="calendar-container">
+    <div id='calendar'></div>
+</div>
+
+<div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+      <div class="modal-header bg-dark text-white" style="border-radius: 12px 12px 0 0;">
+        <h5 class="modal-title fw-bold" id="eventTitle">Job Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body bg-light p-4">
+        <p class="mb-3" style="font-size: 1.1rem;"><strong>📍 Route:</strong> <span id="eventRoute" class="text-primary fw-bold"></span></p>
+        <p class="mb-3" style="font-size: 1.1rem;"><strong>📌 Status:</strong> <span id="eventStatus" class="badge px-3 py-2 shadow-sm"></span></p>
+        <p class="mb-0" style="font-size: 1.1rem;"><strong>📅 Date:</strong> <span id="eventDate" class="text-muted fw-bold"></span></p>
+      </div>
+      <div class="modal-footer bg-white" style="border-radius: 0 0 12px 12px;">
+        <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Close</button>
+        <a href="{{ url_for('allocation.allocation_management') }}" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm">Go to Allocations ➔</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        
+        var myEvents = {{ events | tojson | safe }};
+
+        // Setăm automat toate evenimentele pe "toată ziua"
+        myEvents = myEvents.map(event => {
+            return { ...event, allDay: true };
+        });
+
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            // Se deschide direct pe Week View
+            initialView: 'dayGridWeek',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                // Ordinea din dreapta: Week, Month, Year
+                right: 'dayGridWeek,dayGridMonth,multiMonthYear'
+            },
+            buttonText: {
+                week: 'Week',
+                month: 'Month',
+                multiMonthYear: 'Year'
+            },
+            views: {
+                multiMonthYear: {
+                    multiMonthMaxColumns: 3 // 3 coloane de luni pentru un aspect echilibrat
+                }
+            },
+            events: myEvents,
+            height: 780,
+            eventDisplay: 'block',
+            dayMaxEvents: 4, 
+            fixedWeekCount: false,
+            
+            eventClick: function(info) {
+                document.getElementById('eventTitle').innerText = info.event.title;
+                document.getElementById('eventRoute').innerText = info.event.extendedProps.route;
+                
+                let statusBadge = document.getElementById('eventStatus');
+                statusBadge.innerText = info.event.extendedProps.status;
+                statusBadge.style.backgroundColor = info.event.backgroundColor;
+                
+                let eventDate = new Date(info.event.startStr);
+                document.getElementById('eventDate').innerText = eventDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+                
+                var myModal = new bootstrap.Modal(document.getElementById('eventModal'));
+                myModal.show();
+            }
+        });
+        
+        calendar.render();
+    });
+</script>
+{% endblock %}

@@ -27,6 +27,9 @@
         <a href="{{ url_for('driver.driver_management') }}" class="nav-btn {% if request.endpoint == 'driver.driver_management' %}active fw-bold{% endif %}">👤 Driver Management</a>
         <a href="{{ url_for('request_routes.request_management') }}" class="nav-btn {% if request.endpoint == 'request_routes.request_management' %}active fw-bold{% endif %}">📋 Requests</a>
         <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn {% if request.endpoint == 'allocation.allocation_management' %}active fw-bold{% endif %}">📍 Allocation</a>
+        
+        <a href="{{ url_for('dashboard.driver_schedule') }}" class="nav-btn {% if request.endpoint == 'dashboard.driver_schedule' %}active fw-bold{% endif %}">📅 Schedule</a>
+        
         <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn {% if request.endpoint == 'report_routes.reports_management' %}active fw-bold{% endif %}">📊 Reports</a>
         <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn {% if request.endpoint == 'admin_support.view_tickets' %}active fw-bold{% endif %}">💬 Support</a>
         
