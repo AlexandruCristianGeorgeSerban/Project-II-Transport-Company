@@ -29,7 +29,8 @@ class DriverController:
             driver_data["drivers"] = []
             return driver_data
 
-    def add_new_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, address: str, avail: str, username: str = None, password: str = None, modified_by: str = "System") -> dict:
+    # 🔴 Aici am reparat! Am adăugat 'email: str = None' în listă, exact la locul potrivit
+    def add_new_driver(self, d_id: str, name: str, status: str, licenses: str, exp: str, dob: str, address: str, avail: str, email: str = None, username: str = None, password: str = None, modified_by: str = "System") -> dict:
         """Handles logic for adding a new driver and automatically creates an account."""
         
         full_name = str(name).strip() if name else "Unknown"
@@ -40,12 +41,13 @@ class DriverController:
             first_name = name_parts[0]
             last_name = name_parts[1] if len(name_parts) > 1 else ""
             
+            # Trimitem datele (inclusiv email-ul) spre baza de date de login
             account_created = self.user_model.register_user(
                 username=username, 
                 password=password, 
                 first_name=first_name, 
                 last_name=last_name,
-                email=None, 
+                email=email, 
                 phone_number=None,
                 date_of_birth=dob,
                 role="Driver",
@@ -53,9 +55,9 @@ class DriverController:
             )
             
             if not account_created:
-                return {"success": False, "message": f"Error: The username '{username}' is already taken."}
+                return {"success": False, "message": f"Error: The username '{username}' or email '{email}' is already taken."}
 
-        # Salvăm numele întreg exact cum a fost scris
+        # Salvăm numele întreg exact cum a fost scris în logistică
         result = self.model.insert_driver(d_id, full_name, status, licenses, exp, dob, address, avail)
         
         if result is True:
@@ -110,7 +112,7 @@ class DriverController:
                                 target_username = u[0]
                                 break
                 
-                # Avem username-ul? BAM! Îl ștergem din tabelul users.
+                # Avem username-ul? Îl ștergem din tabelul users.
                 if target_username:
                     cursor.execute("DELETE FROM users WHERE username = ?", (target_username,))
                     conn.commit()
