@@ -1,4 +1,4 @@
-{% extends "layouts/admin_layout.html" %}
+{% extends "layouts/admin_layout.html" if session.get('role') == 'Administrator' else "layouts/staff_layout.html" %}
 
 {% block title %}Requests{% endblock %}
 {% block page_header %}Transport Requests{% endblock %}
@@ -71,7 +71,7 @@
                     </td>
                     <td>{{ req.pickup }}</td>
                     <td>{{ req.delivery }}</td>
-                    <td><span class="badge bg-{{ 'warning text-dark' if req.status == 'Pending' else ('info' if req.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ req.status }}</span></td>
+                    <td><span class="badge bg-{{ 'warning text-dark' if req.status in ['Pending', 'Negotiation'] else ('info' if req.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ req.status }}</span></td>
                     
                     <td class="align-middle">
                         <div class="d-flex justify-content-center gap-2">
@@ -100,7 +100,12 @@
                             <p><strong>Pickup:</strong> {{ req.pickup }}</p>
                             <p><strong>Delivery:</strong> {{ req.delivery }}</p>
                             <p><strong>Preferred Date:</strong> {{ req.preferred_date }}</p>
-                            <p class="mb-0"><strong>Status:</strong> <span class="badge bg-{{ 'warning text-dark' if req.status == 'Pending' else ('info' if req.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ req.status }}</span></p>
+                            <p class="mb-2"><strong>Status:</strong> <span class="badge bg-{{ 'warning text-dark' if req.status in ['Pending', 'Negotiation'] else ('info' if req.status == 'Draft' else 'success') }} px-3 py-2 rounded-pill">{{ req.status }}</span></p>
+                            
+                            <div class="alert alert-info py-2 mb-0 mt-3 border-0 shadow-sm">
+                                <strong>System Estimated Price:</strong> ${{ req.estimated_price if req.estimated_price else 'N/A' }} <br>
+                                <strong>Current Active Offer:</strong> ${{ req.price_offer if req.price_offer else 'None' }}
+                            </div>
                         </div>
                       </div>
                       <div class="modal-footer bg-white" style="border-radius: 0 0 12px 12px;">
@@ -119,6 +124,12 @@
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                           </div>
                           <div class="modal-body bg-light p-4">
+                              
+                              <div class="alert alert-info border-0 shadow-sm mb-4 py-2">
+                                  <span><strong>System Estimated Price:</strong> ${{ req.estimated_price if req.estimated_price else 'N/A' }}</span> | 
+                                  <span><strong>Current Active Offer:</strong> ${{ req.price_offer if req.price_offer else 'No offer' }}</span>
+                              </div>
+
                               <div class="row g-3">
                                   <div class="col-6">
                                       <label class="form-label fw-bold">REQ ID</label>
@@ -129,6 +140,7 @@
                                       <select class="form-select" name="edit_status" required>
                                           <option value="Draft" {% if req.status == 'Draft' %}selected{% endif %}>Draft</option>
                                           <option value="Pending" {% if req.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                          <option value="Negotiation" {% if req.status == 'Negotiation' %}selected{% endif %}>Negotiation</option>
                                           <option value="Approved" {% if req.status == 'Approved' %}selected{% endif %}>Approved</option>
                                       </select>
                                   </div>
@@ -283,7 +295,6 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // 1. Generare ID inteligent pentru form-ul de add
     function generateReqId() {
         const chars = 'ABCDEF0123456789';
         let result = 'REQ-';
@@ -301,7 +312,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // 2. Conversia automată Kg/Tons la submit (Add Form)
     const addForm = document.querySelector('#addRequestModal form');
     if (addForm) {
         addForm.addEventListener('submit', function(e) {
@@ -315,7 +325,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // 3. Logica pentru Motorul de Căutare (Live Search REQ-72)
     const searchInput = document.getElementById('tableSearchInput');
     if (searchInput) {
         searchInput.addEventListener('keyup', function() {

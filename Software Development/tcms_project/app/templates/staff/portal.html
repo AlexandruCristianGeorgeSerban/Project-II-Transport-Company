@@ -4,6 +4,19 @@
 {% block page_header %}Staff Portal{% endblock %}
 
 {% block content %}
+
+<style>
+    /* Efectul de pulsare pentru bulina de activitate */
+    .pulse-badge {
+        animation: pulse-animation 2s infinite;
+    }
+    @keyframes pulse-animation {
+        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+</style>
+
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
@@ -15,22 +28,26 @@
 <div class="section-header">Daily Summary</div>
 <div class="card-row mb-4">
     <div class="summary-card shadow-sm border-0" style="border-left: 4px solid #f66d9b;">
-        <span>📌 Pending Job Allocations:</span>
+        <span>📌 Pending Allocations:</span>
         <span class="badge-count bg-pink">{{ data.counts.pending_allocations }}</span>
     </div>
     <div class="summary-card shadow-sm border-0" style="border-left: 4px solid #17a2b8;">
-        <span>🎫 Unread Support Tickets:</span>
+        <span>🎫 Unread Tickets:</span>
         <span class="badge-count bg-teal">{{ data.counts.unread_tickets }}</span>
     </div>
     <div class="summary-card shadow-sm border-0" style="border-left: 4px solid #6c757d;">
         <span>💰 Pending Invoices:</span>
         <span class="badge-count bg-grey">{{ data.counts.pending_invoices }}</span>
     </div>
+    <div class="summary-card shadow-sm border-0" style="border-left: 4px solid #dc3545; cursor:pointer;" onclick="window.location.href='{{ url_for('logs.view_logs') }}'">
+        <span>🛡️ System Activity:</span>
+        <span class="badge-count bg-danger pulse-badge">Check</span>
+    </div>
 </div>
 
 <div class="table-container shadow-sm border-0">
     <div class="section-header text-white" style="margin-bottom: 0; border-radius: 8px 8px 0 0; background-color: #5d758b; padding: 15px;">
-        📋 Client Transport Requests
+        📋 Client Transport Requests & Negotiations
     </div>
     <table class="table table-striped table-hover custom-table mb-0 align-middle">
         <thead class="table-light">
@@ -45,7 +62,7 @@
         </thead>
         <tbody>
             {% if data.requests|length == 0 %}
-                <tr><td colspan="6" class="text-center text-muted py-5">Nu există cereri noi.</td></tr>
+                <tr><td colspan="6" class="text-center text-muted py-5">Nu există cereri sau negocieri noi.</td></tr>
             {% else %}
                 {% for req in data.requests %}
                 <tr>
@@ -78,7 +95,6 @@
     </table>
 </div>
 
-
 {% for req in data.requests %}
     
     {% if req.status == 'Pending' %}
@@ -91,13 +107,19 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body bg-light p-4">
-                  <div class="bg-white p-3 rounded shadow-sm mb-4 border">
+                  <div class="bg-white p-3 rounded shadow-sm mb-3 border">
                       <p class="mb-1"><strong>Client:</strong> {{ req.client }}</p>
                       <p class="mb-1"><strong>Ruta:</strong> {{ req.pickup }} ➡️ {{ req.delivery }}</p>
                       <p class="mb-0"><strong>Marfă:</strong> {{ req.cargo_type }} ({{ req.weight }}kg)</p>
                   </div>
+                  
+                  <div class="alert alert-info py-2 mb-3 border-0 shadow-sm text-center">
+                      <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">System Estimated Price</small>
+                      <span class="h5 fw-bold mb-0">${{ req.estimated_price if req.estimated_price else 'N/A' }}</span>
+                  </div>
+
                   <div class="mb-2">
-                      <label class="form-label fw-bold text-primary">Price Offer (€ / $)</label>
+                      <label class="form-label fw-bold text-primary">Your Price Offer (€ / $)</label>
                       <input type="number" step="0.01" class="form-control form-control-lg border-primary shadow-sm" name="price_offer" placeholder="Ex: 450.50" required>
                   </div>
               </div>
@@ -121,6 +143,19 @@
               </div>
               <div class="modal-body bg-light p-4">
                   
+                  <div class="alert alert-info border-0 shadow-sm mb-4">
+                      <div class="row text-center">
+                          <div class="col-6 border-end">
+                              <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">System Estimate</small>
+                              <span class="h5 fw-bold">${{ req.estimated_price if req.estimated_price else 'N/A' }}</span>
+                          </div>
+                          <div class="col-6">
+                              <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Current Active Offer</small>
+                              <span class="h5 fw-bold text-primary">${{ req.price_offer if req.price_offer else 'None' }}</span>
+                          </div>
+                      </div>
+                  </div>
+
                   <div class="mb-4">
                       <h6 class="fw-bold text-secondary border-bottom pb-2">Client Negotiation History</h6>
                       <div class="chat-container bg-white p-3 border rounded shadow-sm" style="max-height: 250px; overflow-y: auto;">
@@ -129,7 +164,7 @@
                                   {% set is_me = username in msg.sender %}
                                   
                                   <div class="mb-2 {% if is_me %}text-end{% else %}text-start{% endif %}">
-                                      <div class="d-inline-block p-2 rounded {% if is_me %}bg-primary text-white text-start{% else %}bg-light border text-dark{% endif %}" style="max-width: 80%;">
+                                      <div class="d-inline-block p-2 rounded shadow-sm {% if is_me %}bg-primary text-white text-start{% else %}bg-light border text-dark{% endif %}" style="max-width: 80%;">
                                           <small class="fw-bold">
                                               {% if is_me %}You ({{ msg.sender }}){% else %}{{ msg.sender }}{% endif %}
                                           </small><br>
@@ -154,7 +189,7 @@
                       </div>
                       <div class="col-md-6">
                           <label class="form-label fw-bold">New Price Offer ($)</label>
-                          <small class="text-muted d-block mb-1">(Must be < ${{ req.price_offer if req.price_offer else (req.estimated_price if req.estimated_price else 'Previous Offer') }})</small>
+                          <small class="text-danger d-block mb-1 fw-bold">(Must be lower than your last offer)</small>
                           <input type="number" step="0.01" class="form-control" name="new_price" placeholder="Leave empty to just reply...">
                       </div>
                   </div>

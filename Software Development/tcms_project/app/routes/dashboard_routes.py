@@ -2,10 +2,12 @@ import logging
 from flask import Blueprint, render_template, session, redirect, url_for, flash
 from app.controllers.dashboard_controller import DashboardController
 from app.models.notification_model import NotificationModel 
+from app.models.request_model import RequestModel # 🔴 NOU: Aducem modelul de cereri
 
 dashboard_bp = Blueprint('dashboard', __name__)
 dashboard_logic = DashboardController()
 notif_db = NotificationModel() 
+req_model = RequestModel() # 🔴 NOU: Inițializăm modelul
 
 @dashboard_bp.route('/dashboard')
 def main_dashboard() -> str:
@@ -25,7 +27,17 @@ def main_dashboard() -> str:
     elif user_role == 'Staff':
         try:
             view_data = dashboard_logic.load_staff_dashboard_data()
-            notifications = notif_db.get_unread_notifications(user_role)
+            
+            # 🔴 NOU: Atașăm istoricul de negocieri pentru fiecare cursă!
+            if 'recent_requests' in view_data:
+                updated_requests = []
+                for req in view_data['recent_requests']:
+                    req_dict = dict(req) # Convertim rândul din BD în dicționar
+                    req_dict['messages'] = req_model.get_negotiation_messages(req_dict['id'])
+                    updated_requests.append(req_dict)
+                view_data['recent_requests'] = updated_requests
+                
+            notifications = notif_db.get_unread_notifications(username, user_role)
             
             return render_template(
                 'staff/portal.html', 
@@ -37,13 +49,23 @@ def main_dashboard() -> str:
             )
         except Exception as routing_error:
             logging.error(f"Staff routing error: {routing_error}")
-            flash("An error occurred while loading the staff portal.", "danger")
+            flash(f"Dashboard Error (Staff): {routing_error}", "danger")
             return redirect(url_for('auth.login'))
             
-    else: 
+    else: # Pentru Administrator
         try:
             view_data = dashboard_logic.load_dashboard_data()
-            notifications = notif_db.get_unread_notifications(user_role)
+            
+            # 🔴 NOU: Atașăm istoricul de negocieri pentru fiecare cursă!
+            if 'recent_requests' in view_data:
+                updated_requests = []
+                for req in view_data['recent_requests']:
+                    req_dict = dict(req) # Convertim rândul din BD în dicționar
+                    req_dict['messages'] = req_model.get_negotiation_messages(req_dict['id'])
+                    updated_requests.append(req_dict)
+                view_data['recent_requests'] = updated_requests
+                
+            notifications = notif_db.get_unread_notifications(username, user_role)
             
             return render_template(
                 'admin/dashboard.html', 
@@ -55,7 +77,7 @@ def main_dashboard() -> str:
             )
         except Exception as routing_error:
             logging.error(f"Admin routing error: {routing_error}")
-            flash("An error occurred while loading the dashboard.", "danger")
+            flash(f"Dashboard Error (Admin): {routing_error}", "danger")
             return redirect(url_for('auth.login'))
 
 @dashboard_bp.route('/dashboard/schedule')
@@ -67,7 +89,7 @@ def driver_schedule() -> str:
 
     user_role = session.get('role')
     username = session.get('username')
-    notifications = notif_db.get_unread_notifications(user_role)
+    notifications = notif_db.get_unread_notifications(username, user_role)
     
     # Tragem evenimentele direct din model
     calendar_events = dashboard_logic.model.get_driver_schedules()

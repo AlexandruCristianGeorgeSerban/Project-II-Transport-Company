@@ -60,13 +60,20 @@
                         {% else %}
                             {% for n in notifications %}
                             <li>
-                                <a class="dropdown-item py-3 border-bottom smart-notif-link" 
-                                   href="/notifications/read/{{ n.id }}" 
-                                   data-message="{{ n.message }}" 
-                                   style="white-space: normal; cursor: pointer; line-height: 1.4;">
+                                <a class="dropdown-item py-3 border-bottom" 
+                                   href="{{ url_for('notifications.read_notification', notif_id=n.id) }}" 
+                                   style="white-space: normal; cursor: pointer; line-height: 1.4; text-decoration: none;">
                                     
                                     <div class="d-flex align-items-start">
-                                        <div class="me-3 fs-4 notif-icon text-center" style="width: 30px;">📌</div>
+                                        <div class="me-3 fs-4 text-center" style="width: 30px;">
+                                            {% set msg = n.message|lower %}
+                                            {% if 'tichet' in msg or 'suport' in msg or 'răspuns' in msg or 'scris' in msg %}💬
+                                            {% elif 'livrat' in msg or 'succes' in msg or 'acceptat' in msg %}✅
+                                            {% elif 'cerere' in msg or 'alocat' in msg or 'cursă' in msg or 'stop' in msg %}🚚
+                                            {% elif 'factură' in msg or 'plată' in msg %}💳
+                                            {% elif 'eroare' in msg or 'stricat' in msg or 'maintenance' in msg or 'alertă' in msg or 'anulat' in msg %}⚠️
+                                            {% else %}📌{% endif %}
+                                        </div>
                                         <div class="flex-grow-1">
                                             <div class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">
                                                 {{ n.message }}
@@ -113,44 +120,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    document.querySelectorAll('.smart-notif-link').forEach(link => {
-        let msg = (link.getAttribute('data-message') || "").toLowerCase();
-        let iconDiv = link.querySelector('.notif-icon');
-        
-        if (iconDiv) {
-            if (msg.includes("tichet") || msg.includes("suport")) iconDiv.innerHTML = "💬";
-            else if (msg.includes("livrat") || msg.includes("succes") || msg.includes("acceptat")) iconDiv.innerHTML = "✅";
-            else if (msg.includes("cerere") || msg.includes("alocat")) iconDiv.innerHTML = "🚚";
-            else if (msg.includes("factură") || msg.includes("plată")) iconDiv.innerHTML = "💳";
-            else if (msg.includes("eroare") || msg.includes("stricat") || msg.includes("maintenance")) iconDiv.innerHTML = "⚠️";
-            else iconDiv.innerHTML = "📌";
-        }
-
-        link.addEventListener('click', function(e) {
-            let nextUrl = "";
-            let cursaMatch = msg.match(/cursa (REQ-[A-Z0-9]+)/i);
-            
-            if (cursaMatch) {
-                let idCursa = cursaMatch[1].toUpperCase();
-                nextUrl = "/driver/chat/" + idCursa; 
-            } else if (msg.includes("tichet") || msg.includes("suport")) {
-                nextUrl = "{{ url_for('driver.support') }}"; 
-            }
-            
-            if (nextUrl) {
-                e.preventDefault();
-                fetch(this.getAttribute('href')).finally(() => {
-                    window.location.href = nextUrl;
-                });
-            }
-        });
-    });
-});
-</script>
-
 {% block extra_js %}{% endblock %}
 
 </body>

@@ -37,10 +37,26 @@ class RequestController:
             logging.error(f"Error processing request data: {logic_error}")
             return {"summary": {"total": 0, "pending": 0, "approved": 0}, "requests": []}
 
-    def add_new_request(self, r_id: str, client: str, c_type: str, desc: str, weight: float, volume: float, pickup: str, delivery: str, date: str, status: str) -> dict:
+    # 🔴 AICI E MAGIA MATEMATICĂ: Calculează automat prețul la crearea manuală
+    def add_new_request(self, r_id: str, client: str, c_type: str, desc: str, weight: float, volume: float, pickup: str, delivery: str, date: str, status: str, modified_by: str = "System") -> dict:
+        # 1. Inserăm cererea normal în baza de date
         result = self.model.insert_request(r_id, client, c_type, desc, weight, volume, pickup, delivery, date, status)
+        
         if result is True:
-            return {"success": True, "message": f"Request {r_id} created successfully!"}
+            # 2. 🧮 CALCULĂM PREȚUL AUTOMAT (Algoritm)
+            # Formula: 150 (bază) + 2.5 * greutate + 1.5 * volum
+            try:
+                w_val = float(weight) if weight else 0.0
+                v_val = float(volume) if volume else 0.0
+                calculated_price = round(150.0 + (w_val * 2.5) + (v_val * 1.5), 2)
+                
+                # 3. Salvăm prețul automat direct pe cerere!
+                self.model.update_request_status_and_price(r_id, status, calculated_price)
+                
+                return {"success": True, "message": f"Request {r_id} created successfully! (Auto-Price: ${calculated_price})"}
+            except Exception as e:
+                logging.error(f"Eroare la calcularea pretului automat: {e}")
+                return {"success": True, "message": f"Request {r_id} created, dar prețul a eșuat."}
         else:
             return {"success": False, "message": "Error: Request ID might already exist."}
 

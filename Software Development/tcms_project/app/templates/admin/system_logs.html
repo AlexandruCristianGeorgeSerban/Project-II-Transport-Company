@@ -4,6 +4,18 @@
 {% block page_header %}Audit Trail & System Logs{% endblock %}
 
 {% block content %}
+<style>
+    /* Efectul de pulsare pentru bulina NEW */
+    .pulse-badge {
+        animation: pulse-animation 2s infinite;
+    }
+    @keyframes pulse-animation {
+        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+</style>
+
 <div class="row mb-4">
     <div class="col-md-6">
         <p class="text-muted">A complete history of changes made by administrators and staff members.</p>
@@ -34,7 +46,9 @@
             {% else %}
                 {% for log in logs %}
                 <tr class="log-item">
-                    <td class="ps-4 text-muted small"><i class="fa-regular fa-clock me-1"></i> {{ log.timestamp }}</td>
+                    <td class="ps-4 text-muted small log-time" data-time="{{ log.timestamp }}">
+                        <i class="fa-regular fa-clock me-1"></i> {{ log.timestamp }}
+                    </td>
                     <td class="fw-bold text-dark">
                         <i class="fa-solid fa-user-shield me-1 text-primary"></i> {{ log.performed_by }}
                     </td>
@@ -73,10 +87,34 @@
             }
         });
 
-        // Arată mesaj dacă nu s-a găsit nimic
         if (noLogsRow) {
             noLogsRow.style.display = visibleCount === 0 ? '' : 'none';
         }
+    });
+
+    // 🔴 LOGICA PENTRU BULINA DE "NEW"
+    document.addEventListener("DOMContentLoaded", function() {
+        let now = new Date();
+        let logItems = document.querySelectorAll('.log-time');
+        
+        logItems.forEach(function(item) {
+            let logTimeString = item.getAttribute('data-time'); // Ex: 2026-05-10 14:30:00
+            if(logTimeString) {
+                // Înlocuim spațiul cu T pentru compatibilitate cu browser-ul
+                let logDate = new Date(logTimeString.replace(" ", "T"));
+                
+                // Calculăm diferența în minute (cât timp a trecut de la acel log)
+                let diffMinutes = (now - logDate) / (1000 * 60);
+                
+                // Dacă logul e mai "proaspăt" de 15 minute, îi punem bulina roșie
+                if (diffMinutes >= 0 && diffMinutes <= 15) {
+                    let badge = document.createElement("span");
+                    badge.className = "badge bg-danger rounded-pill ms-2 pulse-badge";
+                    badge.innerText = "NEW";
+                    item.appendChild(badge);
+                }
+            }
+        });
     });
 </script>
 {% endblock %}

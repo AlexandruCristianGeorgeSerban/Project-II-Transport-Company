@@ -96,7 +96,14 @@
                                         <br><span class="badge bg-danger mt-1" style="font-size: 0.7rem;">Expired</span>
                                     {% endif %}
                                 </td>
-                                <td class="fw-bold {% if r.is_expired %}text-danger text-decoration-line-through{% else %}text-success{% endif %}">${{ r.price_offer }}</td>
+                                
+                                <td class="fw-bold {% if r.is_expired %}text-danger text-decoration-line-through{% else %}text-success{% endif %}">
+                                    {% if r.price_offer not in [None, 'None', ''] and r.price_offer|float > 0 %}
+                                        ${{ r.price_offer }}
+                                    {% else %}
+                                        <span class="badge bg-secondary text-white" style="font-size: 0.75rem; padding: 5px 8px;">Calculated soon</span>
+                                    {% endif %}
+                                </td>
                                 
                                 <td class="pe-3">
                                     {% if r.status in ['Pending', 'Negotiation'] %}

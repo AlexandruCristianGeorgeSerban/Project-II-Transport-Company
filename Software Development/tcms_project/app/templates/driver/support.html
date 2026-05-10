@@ -151,4 +151,32 @@
         </div>
     </div>
 </div>
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let hash = window.location.hash;
+    
+    // Verificăm dacă avem #ticket-XX în URL
+    if (hash && hash.includes('#ticket-')) {
+        let ticketId = hash.replace('#ticket-', '');
+        
+        // La Driver, panoul care se deschide (Accordion) are id-ul collapse21
+        let collapseId = "#collapse" + ticketId; 
+        let collapseElement = document.querySelector(collapseId);
+
+        if (collapseElement) {
+            // Deschidem acordeonul
+            let bsCollapse = new bootstrap.Collapse(collapseElement, {
+                toggle: true
+            });
+            
+            // Facem scroll smooth până la el, ca să-l vadă șoferul
+            setTimeout(() => {
+                collapseElement.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 300); // O mică întârziere ca să se animeze acordeonul
+        }
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}

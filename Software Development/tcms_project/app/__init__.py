@@ -26,10 +26,12 @@ def create_app() -> Flask:
     
     
     @app.context_processor
+    @app.context_processor
     def inject_notifications():
         from app.models.notification_model import NotificationModel
         if 'username' in session and 'role' in session:
-            
+            # 🔴 ACEASTA ESTE LINIA MAGICĂ:
+            # Trimitem AMBII parametri către model (username și role)
             notifs = NotificationModel().get_unread_notifications(session['username'], session['role'])
             return dict(notifications=notifs, unread_count=len(notifs))
         return dict(notifications=[], unread_count=0)

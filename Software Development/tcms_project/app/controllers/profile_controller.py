@@ -15,10 +15,9 @@ class ProfileController:
             row = cursor.fetchone()
             return dict(row) if row else {}
 
-    def update_profile(self, user_id: int, new_username: str, email: str, first_name: str, last_name: str, phone: str, address: str, profile_pic=None) -> dict:
+    def update_profile(self, user_id: int, new_username: str, email: str, first_name: str, last_name: str, phone_number: str, address: str, profile_pic=None) -> dict:
         try:
             pic_filename = None
-            
             
             if profile_pic and profile_pic.filename != '':
                 safe_name = secure_filename(profile_pic.filename)
@@ -33,29 +32,23 @@ class ProfileController:
             with sqlite3.connect(DB_PATH) as conn:
                 cursor = conn.cursor()
                 
-                
                 cursor.execute("SELECT id FROM users WHERE username = ? AND id != ?", (new_username, user_id))
                 if cursor.fetchone():
                     return {"success": False, "message": "Username already taken."}
 
-                
-                safe_phone = phone if phone else ""
+                safe_phone = phone_number if phone_number else ""
                 safe_address = address if address else ""
                 safe_first = first_name if first_name else ""
                 safe_last = last_name if last_name else ""
                 safe_email = email if email else ""
 
-
-                
                 if pic_filename:
-                   
                     cursor.execute("""
                         UPDATE users 
                         SET username=?, email=?, first_name=?, last_name=?, phone_number=?, address=?, profile_picture=? 
                         WHERE id=?
                     """, (new_username, safe_email, safe_first, safe_last, safe_phone, safe_address, pic_filename, user_id))
                 else:
-                    
                     cursor.execute("""
                         UPDATE users 
                         SET username=?, email=?, first_name=?, last_name=?, phone_number=?, address=? 
