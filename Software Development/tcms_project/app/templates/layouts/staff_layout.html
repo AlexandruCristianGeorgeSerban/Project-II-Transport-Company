@@ -12,37 +12,41 @@
 <body class="bg-light">
 
 <div class="dashboard-wrapper">
-    <!-- SIDEBAR STAFF REPARAT -->
     <div class="sidebar" style="background-color: #ffffff; border-right: 1px solid #0285e9; box-shadow: 2px 0 10px rgba(0,0,0,0.05);">
         <div class="text-center mt-3 mb-4">
             <img src="{{ url_for('static', filename='img/truck.png') }}" alt="Logo" style="width: 100px;">
         </div>
         
         <a href="{{ url_for('dashboard.main_dashboard') }}" class="nav-btn {% if request.endpoint == 'dashboard.main_dashboard' %}active fw-bold{% endif %}">🏠 Dashboard</a>
+        
         <a href="{{ url_for('allocation.allocation_management') }}" class="nav-btn {% if request.endpoint == 'allocation.allocation_management' %}active fw-bold{% endif %}">📍 Allocation</a>
         
-        <!-- BUTONUL REPARAT: Route Optimization -->
+        <a href="{{ url_for('allocation.active_jobs') }}" class="nav-btn {% if request.endpoint == 'allocation.active_jobs' %}active fw-bold{% endif %}">📡 Active Jobs</a>
+        
         <a href="{{ url_for('request_routes.route_optimization') }}" class="nav-btn {% if request.endpoint == 'request_routes.route_optimization' %}active fw-bold{% endif %}">🛣️ Route Optimization</a>
         
         <a href="{{ url_for('driver.driver_management') }}" class="nav-btn {% if request.endpoint == 'driver.driver_management' %}active fw-bold{% endif %}">👤 Drivers</a>
         
-<a href="{{ url_for('dashboard.driver_schedule') }}" class="nav-btn {% if request.endpoint == 'dashboard.driver_schedule' %}active fw-bold{% endif %}">📅 Schedule</a>        <a href="{{ url_for('request_routes.staff_invoices') }}" class="nav-btn {% if request.endpoint == 'request_routes.staff_invoices' %}active fw-bold{% endif %}">💳 Invoices</a>
+        <a href="{{ url_for('dashboard.driver_schedule') }}" class="nav-btn {% if request.endpoint == 'dashboard.driver_schedule' %}active fw-bold{% endif %}">📅 Schedule</a>
+        
+        <a href="{{ url_for('request_routes.staff_invoices') }}" class="nav-btn {% if request.endpoint == 'request_routes.staff_invoices' %}active fw-bold{% endif %}">💳 Invoices</a>
         
         <a href="{{ url_for('report_routes.reports_management') }}" class="nav-btn {% if request.endpoint == 'report_routes.reports_management' %}active fw-bold{% endif %}">📊 Reports</a>
+        
         <a href="{{ url_for('admin_support.view_tickets') }}" class="nav-btn {% if request.endpoint == 'admin_support.view_tickets' %}active fw-bold{% endif %}">💬 Support</a>
+
+        <a href="{{ url_for('logs.view_logs') }}" class="nav-btn {% if request.endpoint == 'logs.view_logs' %}active fw-bold{% endif %}">📜 System Logs</a>
         
         <a href="{{ url_for('auth.logout') }}" class="nav-btn mt-5 text-danger fw-bold">🚪 Log Out</a>
     </div>
 
     <div class="main-content p-4">
-        <!-- NAVBAR -->
         <div class="top-navbar d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
             <div>
                 <h2 class="h4 mb-0 fw-bold">{% block page_header %}Staff Dashboard{% endblock %}</h2>
             </div>
             
             <div class="user-info d-flex align-items-center">
-                <!-- Dropdown Notificări (Design curat) -->
                 <div class="dropdown d-inline-block mt-1 me-1">
                     <span class="dropdown-toggle text-decoration-none" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; position: relative; font-size: 1.4rem;">
                         🔔
@@ -81,7 +85,6 @@
                     </ul>
                 </div>
 
-                <!-- Profil -->
                 <a href="{{ url_for('profile.view_profile') }}" class="text-decoration-none text-dark">
                     <div class="user-profile border-start ps-3 ms-1 d-flex align-items-center">
                         {% if session.get('profile_picture') %}
@@ -109,29 +112,15 @@ document.addEventListener("DOMContentLoaded", function() {
         let msg = (link.getAttribute('data-message') || "").toLowerCase();
         let iconDiv = link.querySelector('.notif-icon');
         
-        // Emoji logic
         if (iconDiv) {
-            if (msg.includes("tichet") || msg.includes("suport")) iconDiv.innerHTML = "💬";
+            if (msg.includes("tichet") || msg.includes("suport") || msg.includes("răspuns")) iconDiv.innerHTML = "💬";
             else if (msg.includes("livrat") || msg.includes("succes") || msg.includes("acceptat")) iconDiv.innerHTML = "✅";
-            else if (msg.includes("cerere") || msg.includes("alocat")) iconDiv.innerHTML = "🚚";
+            else if (msg.includes("cerere") || msg.includes("alocat") || msg.includes("cursă")) iconDiv.innerHTML = "🚚";
             else if (msg.includes("factură") || msg.includes("plată")) iconDiv.innerHTML = "💳";
+            else if (msg.includes("eroare") || msg.includes("stricat") || msg.includes("maintenance") || msg.includes("alertă") || msg.includes("anulat")) iconDiv.innerHTML = "⚠️";
             else iconDiv.innerHTML = "📌";
         }
-
-        link.addEventListener('click', function(e) {
-            let nextUrl = "";
-            if (msg.includes("tichet")) nextUrl = "{{ url_for('admin_support.view_tickets') }}"; 
-            else if (msg.includes("cerere")) nextUrl = "{{ url_for('request_routes.request_management') }}"; 
-            else if (msg.includes("vehicul")) nextUrl = "{{ url_for('fleet.fleet_management') }}";
-            else if (msg.includes("șofer")) nextUrl = "{{ url_for('driver.driver_management') }}";
-            
-            if (nextUrl) {
-                e.preventDefault(); 
-                fetch(this.getAttribute('href')).finally(() => {
-                    window.location.href = nextUrl;
-                });
-            }
-        });
+        // Fără fetch și fără preventDefault!
     });
 });
 </script>

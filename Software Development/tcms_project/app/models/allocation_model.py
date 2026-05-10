@@ -1,7 +1,6 @@
 import sqlite3
 import logging
 from typing import Dict, List, Any
-from app.models.notification_model import NotificationModel
 
 DB_PATH: str = "instance/database.sqlite"
 
@@ -9,11 +8,9 @@ class AllocationModel:
     """Handles database operations for resource allocation."""
 
     def __init__(self) -> None:
-        """Ensures the transport_requests table exists so we don't get errors."""
         self._ensure_requests_table()
 
     def _ensure_requests_table(self) -> None:
-        """Creates the requests table if it's missing (with all required columns)."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
@@ -34,7 +31,6 @@ class AllocationModel:
                         estimated_price REAL
                     )
                 """)
-                
                 try:
                     db_cursor.execute("ALTER TABLE transport_requests ADD COLUMN allocated_by TEXT DEFAULT 'System'")
                 except sqlite3.OperationalError:
@@ -50,8 +46,7 @@ class AllocationModel:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
                 db_cursor.execute("SELECT id, client, pickup, delivery FROM transport_requests WHERE status IN ('Pending', 'Accepted')")
-                rows = db_cursor.fetchall()
-                for row in rows:
+                for row in db_cursor.fetchall():
                     requests.append(dict(row))
                 return requests
         except sqlite3.Error as db_error:
@@ -65,8 +60,7 @@ class AllocationModel:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
                 db_cursor.execute("SELECT id, plate_number, type, capacity FROM vehicles WHERE status = 'Available'")
-                rows = db_cursor.fetchall()
-                for row in rows:
+                for row in db_cursor.fetchall():
                     vehicles.append(dict(row))
                 return vehicles
         except sqlite3.Error as db_error:
@@ -80,36 +74,30 @@ class AllocationModel:
                 connection.row_factory = sqlite3.Row
                 db_cursor = connection.cursor()
                 db_cursor.execute("SELECT id, name, licenses FROM drivers WHERE availability = 'Available'")
-                rows = db_cursor.fetchall()
-                for row in rows:
+                for row in db_cursor.fetchall():
                     drivers.append(dict(row))
                 return drivers
         except sqlite3.Error as db_error:
             logging.error(f"Error fetching available drivers: {db_error}")
             return drivers
 
-    # --- NOU: PENTRU REQ-46 (Extragerea datelor pentru validare) ---
     def get_allocation_constraints(self, req_id: str, veh_id: str, drv_id: str) -> dict:
-        """Fetches weight, capacity, and licenses to validate constraints before allocation."""
         data = {"weight": 0.0, "capacity": 0.0, "vehicle_type": "", "driver_licenses": ""}
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
-                # Extragem greutatea cererii (Cargo Weight)
                 cursor.execute("SELECT weight FROM transport_requests WHERE id = ?", (req_id,))
                 req = cursor.fetchone()
                 if req: data["weight"] = float(req["weight"])
                 
-                # Extragem capacitatea si tipul masinii (Vehicle Capacity)
                 cursor.execute("SELECT capacity, type FROM vehicles WHERE id = ?", (veh_id,))
                 veh = cursor.fetchone()
                 if veh: 
                     data["capacity"] = float(veh["capacity"])
                     data["vehicle_type"] = veh["type"]
                     
-                # Extragem permisele soferului
                 cursor.execute("SELECT licenses FROM drivers WHERE id = ?", (drv_id,))
                 drv = cursor.fetchone()
                 if drv: data["driver_licenses"] = drv["licenses"]
@@ -117,10 +105,8 @@ class AllocationModel:
         except (sqlite3.Error, ValueError) as e:
             logging.error(f"Constraint fetch error: {e}")
         return data
-    # ---------------------------------------------------------------
 
     def allocate_resources(self, request_id: str, vehicle_id: str, driver_id: str, staff_username: str = "Unknown") -> bool:
-        """Updates the status of the request, vehicle, and driver to reflect allocation."""
         try:
             with sqlite3.connect(DB_PATH) as connection:
                 db_cursor = connection.cursor()
@@ -135,18 +121,12 @@ class AllocationModel:
                 db_cursor.execute("UPDATE drivers SET availability = 'In Transit' WHERE id = ?", (driver_id,))
                 
                 connection.commit()
-                
-                NotificationModel().add_notification(
-                    "All", 
-                    f"🚚 Alocare finalizată! Cererea {request_id} a plecat la drum. Mașina {vehicle_id} și Șoferul {driver_id} sunt 'In Transit'."
-                )
                 return True
         except sqlite3.Error as db_error:
             logging.error(f"Allocation error: {db_error}")
             return False
 
     def get_active_jobs(self) -> list:
-        """Aduce informații detaliate (JOIN) pentru dispeceratul Staff-ului."""
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
@@ -166,7 +146,7 @@ class AllocationModel:
             logging.error(f"Error fetching active jobs: {e}")
             return []
 
-    def mark_job_delivered(self, req_id: str) -> bool:
+    def cancel_job(self, req_id: str) -> bool:
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 cursor = conn.cursor()
@@ -175,18 +155,13 @@ class AllocationModel:
                 
                 if row:
                     veh_id, drv_id = row
-                    cursor.execute("UPDATE transport_requests SET status = 'Delivered' WHERE id = ?", (req_id,))
+                    cursor.execute("UPDATE transport_requests SET status = 'Cancelled' WHERE id = ?", (req_id,))
                     if veh_id:
                         cursor.execute("UPDATE vehicles SET status = 'Available' WHERE id = ?", (veh_id,))
                     if drv_id:
                         cursor.execute("UPDATE drivers SET availability = 'Available' WHERE id = ?", (drv_id,))
-                        
                 conn.commit()
-                NotificationModel().add_notification(
-                    "All", 
-                    f"🏁 Cursa {req_id} a fost LIVRATĂ cu succes! Mașina și Șoferul sunt din nou disponibili."
-                )
                 return True
         except sqlite3.Error as e:
-            logging.error(f"Error marking job delivered: {e}")
+            logging.error(f"Error cancelling job: {e}")
             return False

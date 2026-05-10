@@ -108,4 +108,32 @@
         </div>
     </div>
 </div>
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let hash = window.location.hash;
+    
+    if (hash && hash.includes('#ticket-')) {
+        let ticketId = hash.replace('#ticket-', '');
+        let modalId = "#chatModal" + ticketId; 
+        let modalElement = document.querySelector(modalId);
+
+        if (modalElement) {
+            let bootstrapModal = new bootstrap.Modal(modalElement);
+            bootstrapModal.show();
+            
+            // 🛠️ CURĂȚARE CÂND ÎNCHIZI FEREAstra
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(b => b.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+                history.pushState("", document.title, window.location.pathname + window.location.search);
+            });
+        }
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}

@@ -60,13 +60,20 @@
                         {% else %}
                             {% for n in notifications %}
                             <li>
-                                <a class="dropdown-item py-3 border-bottom smart-notif-link" 
-                                   href="/notifications/read/{{ n.id }}" 
-                                   data-message="{{ n.message }}" 
-                                   style="white-space: normal; cursor: pointer; line-height: 1.4;">
+                                <a class="dropdown-item py-3 border-bottom" 
+                                   href="{{ url_for('notifications.read_notification', notif_id=n.id) }}" 
+                                   style="white-space: normal; cursor: pointer; line-height: 1.4; text-decoration: none;">
                                     
                                     <div class="d-flex align-items-start">
-                                        <div class="me-3 fs-4 notif-icon text-center" style="width: 30px;">📌</div>
+                                        <div class="me-3 fs-4 text-center" style="width: 30px;">
+                                            {% set msg = n.message|lower %}
+                                            {% if 'tichet' in msg or 'suport' in msg or 'răspuns' in msg or 'scris' in msg %}💬
+                                            {% elif 'livrat' in msg or 'succes' in msg or 'acceptat' in msg %}✅
+                                            {% elif 'cerere' in msg or 'alocat' in msg or 'cursă' in msg or 'stop' in msg %}🚚
+                                            {% elif 'factură' in msg or 'plată' in msg %}💳
+                                            {% elif 'eroare' in msg or 'stricat' in msg or 'maintenance' in msg or 'alertă' in msg or 'anulat' in msg %}⚠️
+                                            {% else %}📌{% endif %}
+                                        </div>
                                         <div class="flex-grow-1">
                                             <div class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">
                                                 {{ n.message }}
@@ -113,56 +120,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    document.querySelectorAll('.smart-notif-link').forEach(link => {
-        let msg = (link.getAttribute('data-message') || "");
-        let lowerMsg = msg.toLowerCase(); // Transformam tot in litere mici pt verificare
-        let iconDiv = link.querySelector('.notif-icon');
-        
-        if (iconDiv) {
-            if (lowerMsg.includes("tichet") || lowerMsg.includes("suport")) iconDiv.innerHTML = "💬";
-            else if (lowerMsg.includes("livrat") || lowerMsg.includes("succes") || lowerMsg.includes("acceptat")) iconDiv.innerHTML = "✅";
-            else if (lowerMsg.includes("cerere") || lowerMsg.includes("alocat") || lowerMsg.includes("cursa")) iconDiv.innerHTML = "🚚";
-            else if (lowerMsg.includes("factură") || lowerMsg.includes("plată")) iconDiv.innerHTML = "💳";
-            else if (lowerMsg.includes("eroare") || lowerMsg.includes("stricat") || lowerMsg.includes("maintenance")) iconDiv.innerHTML = "⚠️";
-            else iconDiv.innerHTML = "📌";
-        }
-
-        link.addEventListener('click', function(e) {
-            let nextUrl = "";
-            
-            // Extragem DOAR partea de REQ (ex: REQ-CE7AF0), indiferent de litere mari/mici
-            let reqMatch = msg.match(/(REQ-[A-Z0-9]+)/i);
-            
-            if (lowerMsg.includes("tichet") || lowerMsg.includes("suport")) {
-               nextUrl = "{{ url_for('customer.support') }}"; 
-            } else if (lowerMsg.includes("factură") || lowerMsg.includes("plată")) {
-               nextUrl = "{{ url_for('customer.invoices') }}"; 
-            } else if (reqMatch && (lowerMsg.includes("cursa") || lowerMsg.includes("scris") || lowerMsg.includes("șofer"))) {
-               // Fortam litere MARI la link
-               nextUrl = "/customer/chat/" + reqMatch[1].toUpperCase(); 
-            } else if (lowerMsg.includes("cerere") || lowerMsg.includes("transport")) {
-               nextUrl = "{{ url_for('customer.portal') }}";
-            }
-            
-            if (nextUrl) {
-                e.preventDefault();
-                fetch(this.getAttribute('href')).finally(() => {
-                    window.location.href = nextUrl;
-                });
-            } else {
-                e.preventDefault();
-                fetch(this.getAttribute('href')).finally(() => {
-                    window.location.reload();
-                });
-            }
-        });
-    });
-});
-</script>
-
 {% block extra_js %}{% endblock %}
 
 </body>

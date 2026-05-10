@@ -1,7 +1,6 @@
 import logging
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request, jsonify
 from app.controllers.allocation_controller import AllocationController, check_license_compatibility
-from app.models.notification_model import NotificationModel
 from app.models.driver_model import DriverModel
 from app.models.fleet_model import FleetModel
 import sqlite3
@@ -11,7 +10,6 @@ allocation_logic = AllocationController()
 
 @allocation_bp.route('/allocation', methods=['GET'])
 def allocation_management() -> str:
-    """Renders the Allocation Module page."""
     if 'user_id' not in session:
         flash("Please log in.", "danger")
         return redirect(url_for('auth.login'))
@@ -73,11 +71,10 @@ def confirm_allocation() -> str:
         flash(f"Error Legal: Șoferul {driver_data['name']} (Licențe: {driver_data['licenses']}) NU are voie să conducă {vehicle_data['type']}!", "danger")
         return redirect(url_for('allocation.allocation_management'))
 
+    # Tot greul îl duce Controllerul acum (inclusiv notificările super-securizate)
     response = allocation_logic.process_allocation(req_id, veh_id, drv_id, staff_username)
     
     if response.get("success") is True:
-        notif_db = NotificationModel()
-        notif_db.add_notification('All', f"Job-ul {req_id} a fost alocat pe mașina {veh_id}.")
         flash(response.get("message"), "success")
     else:
         flash(response.get("message"), "danger")
@@ -89,9 +86,6 @@ def active_jobs() -> str:
     if 'user_id' not in session: return redirect(url_for('auth.login'))
     role = session.get('role')
     
-    # 🔴 SOLUȚIA PENTRU CONFLICT:
-    # Dacă e șofer, îl aruncăm direct în portalul lui! 
-    # Nu are ce căuta pe tabelul de Staff.
     if role == 'Driver':
         return redirect(url_for('driver.portal'))
         
@@ -102,17 +96,21 @@ def active_jobs() -> str:
     view_data = allocation_logic.load_active_jobs()
     return render_template('staff/active_jobs.html', data=view_data, role=role)
 
-@allocation_bp.route('/active_jobs/deliver/<req_id>', methods=['POST'])
-def deliver_job(req_id: str):
+@allocation_bp.route('/active_jobs/cancel/<req_id>', methods=['POST'])
+def cancel_job(req_id: str):
     if 'user_id' not in session: return redirect(url_for('auth.login'))
     role = session.get('role')
-    if role not in ['Administrator', 'Staff', 'Driver']:
+    if role not in ['Administrator', 'Staff']:
         flash("Unauthorized action.", "danger")
         return redirect(url_for('auth.login'))
         
-    response = allocation_logic.complete_active_job(req_id)
-    if response.get("success") is True: flash(response.get("message"), "success")
-    else: flash(response.get("message"), "danger")
+    staff_username = session.get('username', 'System')
+    response = allocation_logic.cancel_active_job(req_id, staff_username)
+    
+    if response.get("success") is True: 
+        flash(response.get("message"), "success")
+    else: 
+        flash(response.get("message"), "danger")
         
     return redirect(url_for('allocation.active_jobs'))
 

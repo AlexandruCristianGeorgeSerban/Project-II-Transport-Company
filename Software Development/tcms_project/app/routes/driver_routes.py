@@ -67,11 +67,30 @@ def get_header_data():
         unread_count = 0
     return notifications, unread_count
 
+def get_driver_jobs(user_id, username, status_type='active'):
+    jobs = []
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            if status_type == 'active':
+                query = "SELECT * FROM transport_requests WHERE (driver_id = ? OR driver_id = ?) AND status != 'Delivered'"
+            else:
+                query = "SELECT * FROM transport_requests WHERE (driver_id = ? OR driver_id = ?) AND status = 'Delivered'"
+            
+            cursor.execute(query, (str(user_id), str(username)))
+            jobs = [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        logging.error(f"Database error in driver_routes: {e}")
+    return jobs
+
 # ========================================================
 # DRIVER PORTAL & HISTORY ROUTES
 # ========================================================
 
 @driver_bp.route('/driver_portal')
+@driver_bp.route('/driver/portal')
 def portal():
     if 'user_id' not in session or session.get('role') != 'Driver':
         flash("Access denied. Drivers only.", "danger")
@@ -79,10 +98,7 @@ def portal():
         
     username = session.get('username')
     notifications, unread_count = get_header_data()
-    
-    # MAGIC: Controller-ul se ocupa de toata logica anti-fail!
     data = driver_portal_logic.load_dashboard_data(username)
-    
     return render_template('driver/portal.html', data=data, notifications=notifications, unread_count=unread_count)
 
 @driver_bp.route('/driver/history')
@@ -92,15 +108,15 @@ def history():
         
     username = session.get('username')
     notifications, unread_count = get_header_data()
-    
-    # Aduce absolut toate cursele care sunt "Delivered" pentru soferul tau
     jobs = driver_portal_logic.load_history_data(username)
     return render_template('driver/history.html', jobs=jobs, notifications=notifications, unread_count=unread_count)
 
 @driver_bp.route('/driver_portal/update_status/<job_id>/<new_status>', methods=['POST'])
+@driver_bp.route('/driver/update_status/<job_id>/<new_status>', methods=['POST'])
 def update_job_status(job_id, new_status):
     if 'user_id' not in session or session.get('role') != 'Driver': return redirect(url_for('auth.login'))
-    response = driver_portal_logic.update_job_status(job_id, new_status)
+    driver_name = session.get('username', 'Driver')
+    response = driver_portal_logic.update_job_status(job_id, new_status, driver_username=driver_name)
     flash(response['message'], "success" if response['success'] else "danger")
     return redirect(url_for('driver.portal'))
 
@@ -109,22 +125,20 @@ def update_vehicle_status():
     if 'user_id' not in session or session.get('role') != 'Driver': return redirect(url_for('auth.login'))
     vehicle_id = request.form.get('vehicle_id')
     new_status = request.form.get('status')
-    driver_name = session.get('username')
+    driver_name = session.get('username', 'Driver')
     if not vehicle_id:
         flash("Eroare: Vehicul negăsit.", "danger")
         return redirect(url_for('driver.portal'))
-    try:
-        with sqlite3.connect(DB_PATH) as connection:
-            connection.execute("UPDATE vehicles SET status = ? WHERE id = ?", (new_status, vehicle_id))
-            connection.commit()
-            
-        alert_icon = "🟢" if new_status == 'Active' else "⚠️"
-        admin_msg = f"{alert_icon} Șoferul {driver_name} a schimbat statusul vehiculului în: {new_status}."
-        notif_db.add_notification('Administrator', admin_msg)
-        notif_db.add_notification('Staff', admin_msg)
+    
+    resp = driver_portal_logic.set_vehicle_status(vehicle_id, new_status, driver_username=driver_name)
+    if resp.get("success"):
+        alert_icon = "🟢" if new_status == 'Available' else "⚠️"
+        admin_msg = f"{alert_icon} Șoferul {driver_name} a schimbat statusul vehiculului ({vehicle_id}) în: {new_status}."
+        notif_db.add_notification('Administrator', admin_msg, target_url="/fleet")
+        notif_db.add_notification('Staff', admin_msg, target_url="/fleet")
         flash(f"Statusul mașinii a fost actualizat la: {new_status}.", "success")
-    except Exception as e:
-        flash(f"Eroare la actualizarea statusului: {e}", "danger")
+    else:
+        flash("Eroare la actualizarea statusului.", "danger")
     return redirect(url_for('driver.portal'))
 
 # ========================================================
@@ -135,7 +149,8 @@ def update_vehicle_status():
 def support():
     if 'user_id' not in session or session.get('role') != 'Driver': return redirect(url_for('auth.login'))
     notifications, unread_count = get_header_data()
-    user_tickets = support_db.get_user_tickets(session.get('username'))
+    username = session.get('username')
+    user_tickets = support_db.get_user_tickets(username)
     return render_template('driver/support.html', tickets=user_tickets, notifications=notifications, unread_count=unread_count)
 
 @driver_bp.route('/driver/support/create', methods=['POST'])
@@ -148,9 +163,9 @@ def create_support_ticket():
     message = request.form.get('message')
     if subject and message:
         if support_db.create_ticket(user_id, username, subject, message, role):
-             notif_db.add_notification('Administrator', f"🎧 Șoferul {username} a deschis un tichet.")
-             notif_db.add_notification('Staff', f"🎧 Șoferul {username} a deschis un tichet.")
-             flash("Your support ticket has been submitted.", "success")
+            notif_db.add_notification('Administrator', f"🎧 Șoferul {username} a deschis un tichet.", target_url="/admin/support")
+            notif_db.add_notification('Staff', f"🎧 Șoferul {username} a deschis un tichet.", target_url="/admin/support")
+            flash("Your support ticket has been submitted.", "success")
         else: flash("Error submitting ticket.", "danger")
     return redirect(url_for('driver.support'))
 
@@ -162,27 +177,40 @@ def add_ticket_reply(ticket_id):
     role = str(session.get('role')).strip() 
     if message:
         if support_db.add_reply(ticket_id=ticket_id, sender=username, message=message, sender_role=role):
-            notif_db.add_notification('Administrator', f"💬 Șoferul {username} a răspuns la tichetul #{ticket_id}")
-            notif_db.add_notification('Staff', f"💬 Șoferul {username} a răspuns la tichetul #{ticket_id}")
+            admin_target = url_for('admin_support.view_tickets') + f"#ticket-{ticket_id}"
+            notif_db.add_notification('Administrator', f"💬 Șoferul {username} a răspuns la tichetul #{ticket_id}", target_url=admin_target)
+            notif_db.add_notification('Staff', f"💬 Șoferul {username} a răspuns la tichetul #{ticket_id}", target_url=admin_target)
             flash("Reply sent successfully.", "success")
         else: flash("Error sending reply.", "danger")
     return redirect(url_for('driver.support'))
 
 @driver_bp.route('/driver/chat/<job_id>', methods=['GET', 'POST'])
 def job_chat(job_id):
-    if 'user_id' not in session or session.get('role') != 'Driver': return redirect(url_for('auth.login'))
+    job_id = str(job_id).upper()
+    
+    if 'user_id' not in session or session.get('role') != 'Driver': 
+        flash("Access denied. Private Driver chat.", "danger")
+        return redirect(url_for('dashboard.main_dashboard'))
+        
     username = session.get('username')
+    role = 'Driver'
+    
     if request.method == 'POST':
         message = request.form.get('message')
         if message:
-            support_db.add_job_message(job_id, session['user_id'], 'Driver', message)
+            support_db.add_job_message(job_id, session['user_id'], role, message)
             try:
-                with sqlite3.connect(DB_PATH) as conn:
+                with sqlite3.connect("instance/database.sqlite") as conn:
                     conn.row_factory = sqlite3.Row
                     req = conn.execute("SELECT client FROM transport_requests WHERE id = ?", (job_id,)).fetchone()
-                    if req and req['client']: notif_db.add_notification(str(req['client']).strip(), f"💬 Șoferul {username} ți-a trimis un mesaj la cursa {job_id}")
+                    if req and req['client']: 
+                        target_client = str(req['client']).strip()
+                        if target_client != username:
+                            target_url = f"/customer/chat/{job_id}"
+                            notif_db.add_notification(target_client, f"💬 Șoferul {username} ți-a scris la cursa {job_id}", target_url=target_url)
             except Exception as e: logging.error(f"Eroare notificare chat sofer: {e}")
         return redirect(url_for('driver.job_chat', job_id=job_id))
+        
     notifications, unread_count = get_header_data()
     messages = support_db.get_job_messages(job_id)
     return render_template('driver/job_chat.html', job_id=job_id, messages=messages, notifications=notifications, unread_count=unread_count, username=username)
@@ -190,7 +218,6 @@ def job_chat(job_id):
 # ========================================================
 # ADMIN: DRIVERS MANAGEMENT ROUTES
 # ========================================================
-
 @driver_bp.route('/drivers', methods=['GET'])
 def driver_management() -> str:
     if 'user_id' not in session: return redirect(url_for('auth.login'))
@@ -200,42 +227,79 @@ def driver_management() -> str:
 
 @driver_bp.route('/drivers/add', methods=['POST'])
 def add_driver() -> str:
-    d_id = request.form.get('driver_id')
-    first_name = request.form.get('first_name')
-    last_name = request.form.get('last_name')
-    status = request.form.get('status')
-    exp = request.form.get('experience')
-    dob = request.form.get('dob')
-    address = request.form.get('address')
-    avail = request.form.get('availability')
-    username = request.form.get('username')
-    password = request.form.get('password')
-    licenses_str = ", ".join(request.form.getlist('licenses'))
+    form_data = request.form.to_dict()
+    logging.warning(f"[ADD DRIVER] Formul a trimis următoarele date: {form_data}")
+    
+    d_id = form_data.get('driver_id', '')
+    
+    # 🔴 PLASA DE SIGURANȚĂ: Căutăm TOATE variantele posibile de nume din HTML
+    f_name = form_data.get('first_name', '').strip()
+    l_name = form_data.get('last_name', '').strip()
+    single_name = form_data.get('name', '').strip() or form_data.get('driver_name', '').strip() or form_data.get('full_name', '').strip()
+    
+    if f_name or l_name:
+        name = f"{f_name} {l_name}".strip()
+    elif single_name:
+        name = single_name
+    else:
+        name = "Nume Lipsă (Verifică HTML!)"
+        
+    status = form_data.get('status', 'Active')
+    exp = form_data.get('experience', '1 Year')
+    dob = form_data.get('dob', '2000-01-01')
+    address = form_data.get('address', 'Unknown')
+    avail = form_data.get('availability', 'Available')
+    username = form_data.get('username')
+    password = form_data.get('password')
+    
+    licenses_list = request.form.getlist('licenses')
+    licenses_str = ", ".join(licenses_list)
     modified_by = session.get('username', 'System')
-    resp = driver_logic.add_new_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, address, avail, username, password, modified_by)
+    
+    resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, address, avail, username, password, modified_by=modified_by)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 
 @driver_bp.route('/drivers/edit', methods=['POST'])
 def edit_driver() -> str:
-    d_id = request.form.get('edit_driver_id')
-    first_name = request.form.get('edit_first_name')
-    last_name = request.form.get('edit_last_name')
-    status = request.form.get('edit_status')
-    exp = request.form.get('edit_experience')
-    dob = request.form.get('edit_dob')
-    address = request.form.get('edit_address')
-    avail = request.form.get('edit_availability')
-    licenses_str = ", ".join(request.form.getlist('edit_licenses'))
+    form_data = request.form.to_dict()
+    logging.warning(f"[EDIT DRIVER] Formul a trimis următoarele date: {form_data}")
+    
+    d_id = form_data.get('edit_driver_id', '') or form_data.get('driver_id', '')
+    
+    # 🔴 PLASA DE SIGURANȚĂ PENTRU EDIT
+    f_name = form_data.get('edit_first_name', '').strip() or form_data.get('first_name', '').strip()
+    l_name = form_data.get('edit_last_name', '').strip() or form_data.get('last_name', '').strip()
+    single_name = form_data.get('edit_name', '').strip() or form_data.get('name', '').strip() or form_data.get('driver_name', '').strip()
+    
+    if f_name or l_name:
+        name = f"{f_name} {l_name}".strip()
+    elif single_name:
+        name = single_name
+    else:
+        name = "Nume Lipsă (Verifică HTML!)"
+
+    status = form_data.get('edit_status') or form_data.get('status')
+    exp = form_data.get('edit_experience') or form_data.get('experience')
+    dob = form_data.get('edit_dob') or form_data.get('dob')
+    address = form_data.get('edit_address') or form_data.get('address')
+    avail = form_data.get('edit_availability') or form_data.get('availability')
+    
+    licenses_list = request.form.getlist('edit_licenses')
+    if not licenses_list:
+        licenses_list = request.form.getlist('licenses')
+    licenses_str = ", ".join(licenses_list)
+    
     modified_by = session.get('username', 'System')
-    resp = driver_logic.modify_driver(d_id, first_name, last_name, status, licenses_str, exp, dob, address, avail, modified_by)
+    
+    resp = driver_logic.modify_driver(d_id, name, status, licenses_str, exp, dob, address, avail, modified_by=modified_by)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 
 @driver_bp.route('/drivers/delete/<driver_id>', methods=['POST'])
 def delete_driver(driver_id: str) -> str:
     modified_by = session.get('username', 'System')
-    resp = driver_logic.remove_driver(driver_id, modified_by)
+    resp = driver_logic.remove_driver(driver_id, modified_by=modified_by)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 
@@ -294,3 +358,69 @@ def export_drivers(file_type: str):
         return response
 
     return redirect(url_for('driver.driver_management'))
+@driver_bp.route('/purge_all_drivers')
+def purge_all_drivers():
+    """Ruta pentru stergerea ABSOLUT TUTUROR conturilor de șofer din tabelul de users."""
+    try:
+        import sqlite3
+        with sqlite3.connect("instance/database.sqlite") as conn:
+            cursor = conn.cursor()
+            
+            # Ștergem absolut orice cont care are rolul de 'Driver'
+            cursor.execute("DELETE FROM users WHERE role = 'Driver'")
+            deleted_count = cursor.rowcount
+            
+            conn.commit()
+            return f"<h1>🧹 CURĂȚENIE TOTALĂ (Thanos Snap) 💥</h1><p>Am evaporat <b>{deleted_count}</b> conturi fantomă de șoferi din sistem!</p><p>Niciun cont vechi (nici ship, nici driver) nu mai funcționează.</p> <a href='/login'>Du-te la login și verifică.</a>"
+    except Exception as e:
+        return f"Eroare la curățenie: {e}"
+@driver_bp.route('/inspect_db')
+def inspect_db():
+    """Ruta care ne arata exact ce conturi mai exista in baza noastra de date."""
+    try:
+        import sqlite3
+        with sqlite3.connect("instance/database.sqlite") as conn:
+            conn.row_factory = sqlite3.Row
+            users = conn.execute("SELECT id, username, role FROM users").fetchall()
+            
+            html = "<h1>🕵️‍♂️ Lista tuturor conturilor din 'database.sqlite':</h1><table border='1' cellpadding='10'><tr><th>ID</th><th>Username</th><th>Rol</th></tr>"
+            for u in users:
+                html += f"<tr><td>{u['id']}</td><td>{u['username']}</td><td>{u['role']}</td></tr>"
+            html += "</table>"
+            return html
+    except Exception as e:
+        return f"Eroare: {e}"    
+@driver_bp.route('/total_clean_up')
+def total_clean_up():
+    """Șterge manual toate conturile fantomă găsite în inspect_db."""
+    ghosts = [
+        'ship', 'driver', '77', '123', 'testare', 
+        '234', 'd2', 'd3', 'd5', 'd6', '24', 
+        'shippy', 'popa', '12'
+    ]
+    try:
+        import sqlite3
+        with sqlite3.connect("instance/database.sqlite") as conn:
+            cursor = conn.cursor()
+            
+            # 1. Ștergem utilizatorii după username
+            placeholders = ', '.join(['?'] * len(ghosts))
+            cursor.execute(f"DELETE FROM users WHERE username IN ({placeholders})", ghosts)
+            users_deleted = cursor.rowcount
+            
+            # 2. Ștergem tot din tabelul drivers ca să resetăm și logistica
+            cursor.execute("DELETE FROM drivers")
+            drivers_deleted = cursor.rowcount
+            
+            conn.commit()
+            
+            return f"""
+            <h1>🧹 Operațiunea 'Mătura' Finalizată!</h1>
+            <p>Utilizatori (Users) rasi: <b>{users_deleted}</b></p>
+            <p>Fișe logistice (Drivers) șterse: <b>{drivers_deleted}</b></p>
+            <hr>
+            <p><b>Au rămas doar:</b> Administrator (11), Staff (66) și Clienții (22, adonis).</p>
+            <a href='/inspect_db'>Verifică din nou lista aici</a>
+            """
+    except Exception as e:
+        return f"Eroare la curățenie: {e}"    

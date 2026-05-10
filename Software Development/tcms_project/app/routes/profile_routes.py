@@ -20,14 +20,14 @@ def update_profile():
     profile_pic = request.files.get('profile_picture')
         
     result = profile_logic.update_profile(
-        session['user_id'],
-        request.form.get('username'),
-        request.form.get('email'),
-        request.form.get('first_name'),
-        request.form.get('last_name'),
-        request.form.get('phone'),
-        request.form.get('address'),
-        profile_pic
+        user_id=session['user_id'],
+        new_username=request.form.get('username'),
+        email=request.form.get('email'),
+        first_name=request.form.get('first_name'),
+        last_name=request.form.get('last_name'),
+        phone_number=request.form.get('phone_number'), # 🔴 AICI luam phone_number din form!
+        address=request.form.get('address'),
+        profile_pic=profile_pic
     )
     
     if result['success']:

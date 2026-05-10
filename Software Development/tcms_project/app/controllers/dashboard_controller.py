@@ -2,6 +2,7 @@ import logging
 import sqlite3
 from typing import Dict, Any
 from app.models.dashboard_model import DashboardModel
+from app.models.request_model import RequestModel # 🔴 IMPORT NOU: Ca să avem acces la toate cursele
 
 DB_PATH = "instance/database.sqlite"
 
@@ -11,6 +12,7 @@ class DashboardController:
     def __init__(self) -> None:
         """Initializes the dashboard model."""
         self.model = DashboardModel()
+        self.req_model = RequestModel() # 🔴 Inițializăm modelul general de cereri
 
     def _attach_negotiation_messages(self, requests_list: list) -> list:
         """Helper method care extrage istoricul de chat pentru cererile in negociere."""
@@ -57,7 +59,12 @@ class DashboardController:
         try:
             dashboard_data["counts"] = self.model.get_summary_counts()
             
-            recent_reqs = self.model.get_recent_requests()
+            # 🔴 FIX PENTRU NEGOCIERILE CARE DISPĂREAU
+            # Tragem absolut toate cererile și le filtrăm manual să arate doar ce necesită atenție
+            all_reqs = self.req_model.get_all_requests()
+            active_reqs = [r for r in all_reqs if r['status'] in ['Pending', 'Negotiation']]
+            recent_reqs = active_reqs[:10] # Arătăm pe Dashboard doar primele 10 cele mai noi
+            
             dashboard_data["recent_requests"] = self._attach_negotiation_messages(recent_reqs)
             
             return dashboard_data
@@ -73,7 +80,11 @@ class DashboardController:
         try:
             staff_data["counts"] = self.model.get_staff_summary_counts()
             
-            recent_reqs = self.model.get_recent_requests()
+            # 🔴 FIX PENTRU NEGOCIERILE CARE DISPĂREAU (Partea de Staff)
+            all_reqs = self.req_model.get_all_requests()
+            active_reqs = [r for r in all_reqs if r['status'] in ['Pending', 'Negotiation']]
+            recent_reqs = active_reqs[:10]
+            
             staff_data["requests"] = self._attach_negotiation_messages(recent_reqs)
             
             staff_data["schedule"] = self.model.get_todays_schedule()

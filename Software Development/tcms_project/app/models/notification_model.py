@@ -19,17 +19,25 @@ class NotificationModel:
                     )
                 """)
                 conn.commit()
+                
+                # 🔴 REPARAȚIE SIGURĂ: Verificăm dacă există coloana, iar dacă nu, o punem.
+                cursor = conn.execute("PRAGMA table_info(notifications)")
+                columns = [info[1] for row in cursor.fetchall() for info in [row]]
+                if 'target_url' not in columns:
+                    conn.execute("ALTER TABLE notifications ADD COLUMN target_url TEXT DEFAULT ''")
+                    conn.commit()
         except sqlite3.Error as e:
             logging.error(f"Error creating notifications table: {e}")
 
-    def add_notification(self, target_role: str, message: str) -> bool:
+    # 🔴 AM ADAUGAT target_url CA PARAMETRU OPTIONAL
+    def add_notification(self, target_role: str, message: str, target_url: str = "") -> bool:
         """Adaugă o alertă cu ora sincronizată perfect."""
+        self.create_table() # Ne asigurăm că baza de date este actualizată
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.execute(
-                    # Am adăugat explicit timestamp-ul local
-                    "INSERT INTO notifications (target_role, message, timestamp) VALUES (?, ?, datetime('now', 'localtime'))",
-                    (str(target_role).strip(), message)
+                    "INSERT INTO notifications (target_role, message, target_url, timestamp) VALUES (?, ?, ?, datetime('now', 'localtime'))",
+                    (str(target_role).strip(), message, target_url)
                 )
                 conn.commit()
                 return True
@@ -58,4 +66,20 @@ class NotificationModel:
                 conn.execute("UPDATE notifications SET is_read = 1 WHERE id = ?", (notification_id,))
                 conn.commit()
         except sqlite3.Error as e:
-            logging.error(f"Error marking notification as read: {e}")
+            logging.error(f"Error marking notification as read: {e}") 
+            
+   # 🔴 NOU: FUNCTIE CA SA EXTRAGEM LINKUL CAND CINEVA DA CLICK
+    def get_notification_url(self, notification_id: int) -> str:
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                row = conn.execute("SELECT target_url FROM notifications WHERE id = ?", (notification_id,)).fetchone()
+                
+                # REPARAȚIA E AICI: Transformăm rândul într-un dicționar pur ca să extragem fără probleme
+                if row:
+                    row_dict = dict(row)
+                    if 'target_url' in row_dict and row_dict['target_url']:
+                        return row_dict['target_url']
+        except sqlite3.Error as e:
+            logging.error(f"Eroare extragere link notificare: {e}")
+        return ""

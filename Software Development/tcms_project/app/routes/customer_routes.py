@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, session, redirect, url_for, flash,
 from app.controllers.customer_controller import CustomerController
 from app.models.support_model import SupportModel
 from app.models.notification_model import NotificationModel
+from app.models.driver_portal_model import DriverPortalModel
 
 customer_bp = Blueprint('customer', __name__)
 cust_logic = CustomerController()
@@ -15,13 +16,17 @@ support_db.create_table()
 notif_db.create_table() 
 
 def get_header_data():
+    from app.models.notification_model import NotificationModel
+    notif_db = NotificationModel()
+    
+    username = str(session.get('username', '')).strip()
+    role = str(session.get('role', 'Customer')).strip()
+    
     try:
-        username = str(session.get('username', '')).strip()
-        role = str(session.get('role', 'Customer')).strip()
-        all_notifs = notif_db.get_unread_notifications(username, role)
-        return all_notifs, len(all_notifs)
+        notifications = notif_db.get_unread_notifications(username, role)
+        return notifications, len(notifications)
     except Exception as e:
-        logging.error(f"Error fetching notifications for customer: {e}")
+        logging.error(f"Error fetching customer notifications: {e}")
         return [], 0
 
 @customer_bp.route('/portal', methods=['GET'])
@@ -31,7 +36,6 @@ def portal() -> str:
         
     username = session.get('username', 'Customer')
     portal_data = cust_logic.get_portal_data(username)
-    
     
     from app.models.request_model import RequestModel
     req_model = RequestModel()
@@ -44,8 +48,7 @@ def portal() -> str:
 
 @customer_bp.route('/portal/submit', methods=['POST'])
 def submit_request() -> str:
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+    if 'user_id' not in session: return redirect(url_for('auth.login'))
         
     username = session.get('username', 'Customer')
     r_id = "REQ-" + str(uuid.uuid4().hex)[:6].upper()
@@ -69,7 +72,7 @@ def submit_request() -> str:
         r_id, username, c_type, desc, final_weight, volume, pickup, delivery, date, status, v_type, estimated_price
     )
     if success:
-        notif_db.add_notification('Staff', f"Nouă cerere de transport ({r_id}) primită de la {username}!")
+        notif_db.add_notification('Staff', f"Nouă cerere de transport ({r_id}) primită de la {username}!", target_url=f"/allocation#req-{r_id}")
         flash(f"🎉 Request submitted! Estimated initial price: ${estimated_price}", "success")
     else:
         flash("Error submitting request. Please try again.", "danger")
@@ -79,7 +82,6 @@ def submit_request() -> str:
 def handle_response(req_id: str, action: str) -> str:
     username = session.get('username')
     
-    
     if action == 'negotiate':
         msg = request.form.get('negotiate_message', 'Doresc o renegociere a prețului.')
         
@@ -88,15 +90,11 @@ def handle_response(req_id: str, action: str) -> str:
         req_model.update_request_status(req_id, "Negotiation")
         req_model.add_negotiation_message(req_id, f"Client ({username})", msg)
         
-        notif_db.add_notification('Staff', f"💬 Clientul {username} vrea să negocieze cursa {req_id}!")
+        notif_db.add_notification('Staff', f"💬 Clientul {username} vrea să negocieze cursa {req_id}!", target_url=f"/allocation#req-{req_id}")
         flash("Mesajul tău de negociere a fost trimis cu succes către echipa de logistică!", "success")
     else:
-        # AICI E PT ACCEPT / REJECT
         result = cust_logic.process_customer_response(req_id, action, username)
-        if result.get("success"):
-            flash(result.get("message"), "success")
-        else:
-            flash(result.get("message"), "danger")
+        flash(result.get("message"), "success" if result.get("success") else "danger")
             
     return redirect(url_for('customer.portal'))
 
@@ -115,8 +113,8 @@ def submit_support() -> str:
     message = request.form.get('support_message')
     if message:
         if support_db.insert_ticket(username, message):
-            notif_db.add_notification('Administrator', f"🎧 Tichet nou de la {username}")
-            notif_db.add_notification('Staff', f"🎧 Tichet nou de la {username}")
+            notif_db.add_notification('Administrator', f"🎧 Tichet nou de la {username}", target_url="/admin/support")
+            notif_db.add_notification('Staff', f"🎧 Tichet nou de la {username}", target_url="/admin/support")
             flash("Message sent successfully!", "success")
         else:
             flash("Error sending message.", "danger")
@@ -129,8 +127,9 @@ def reply_support(ticket_id: int):
     username = session.get('username')
     if reply_message and username:
         if support_db.add_reply(ticket_id, username, reply_message):
-            notif_db.add_notification('Administrator', f"💬 Clientul {username} a răspuns la tichetul #{ticket_id}")
-            notif_db.add_notification('Staff', f"💬 Clientul {username} a răspuns la tichetul #{ticket_id}")
+            admin_target = url_for('admin_support.view_tickets') + f"#ticket-{ticket_id}"
+            notif_db.add_notification('Administrator', f"💬 Clientul {username} a răspuns la tichetul #{ticket_id}", target_url=admin_target)
+            notif_db.add_notification('Staff', f"💬 Clientul {username} a răspuns la tichetul #{ticket_id}", target_url=admin_target)
             flash("Mesajul tău a fost trimis!", "success")
     return redirect(url_for('customer.support'))
 
@@ -145,7 +144,8 @@ def invoices():
 @customer_bp.route('/portal/invoices/pay/<invoice_id>', methods=['POST'])
 def pay_invoice(invoice_id: str):
     if 'user_id' not in session or session.get('role') != 'Customer': return redirect(url_for('auth.login'))
-    resp = cust_logic.process_invoice_payment(invoice_id)
+    username = session.get('username', 'Customer')
+    resp = cust_logic.process_invoice_payment(invoice_id, username) 
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('customer.invoices'))
 
@@ -161,14 +161,12 @@ def get_live_location(req_id: str):
             return jsonify({"success": False, "message": "No GPS data yet."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
 @customer_bp.route('/customer/chat/<job_id>', methods=['GET', 'POST'])
 def job_chat(job_id):
-    # MAGIA AICI: Indiferent cum vine link-ul, forțăm ID-ul să aibă LITERE MARI!
     job_id = str(job_id).upper()
-    
     if 'user_id' not in session or session.get('role') != 'Customer':
         return redirect(url_for('auth.login'))
+        
     username = session.get('username')
 
     if request.method == 'POST':
@@ -178,15 +176,27 @@ def job_chat(job_id):
             try:
                 with sqlite3.connect("instance/database.sqlite") as conn:
                     conn.row_factory = sqlite3.Row
-                    req = conn.execute("SELECT driver_id, vehicle_id FROM transport_requests WHERE id = ?", (job_id,)).fetchone()
-                    if req:
-                        d_id, v_id = str(req['driver_id'] or '').strip(), str(req['vehicle_id'] or '').strip()
-                        tinte = set()
-                        if d_id and d_id.lower() != 'none': tinte.update([d_id, d_id.lower()])
-                        if v_id and v_id.lower() != 'none': tinte.update([v_id, v_id.lower(), v_id.split('-')[0], v_id.split('-')[0].lower()])
-                        for tinta in tinte: notif_db.add_notification(tinta, f"💬 Clientul {username} ți-a scris la cursa {job_id}")
+                    req = conn.execute("SELECT driver_id FROM transport_requests WHERE id = ?", (job_id,)).fetchone()
+                    
+                    if req and req['driver_id']:
+                        d_id = str(req['driver_id']).strip()
+                        from app.models.driver_portal_model import DriverPortalModel
+                        dp_model = DriverPortalModel()
+                        
+                        all_drivers = conn.execute("SELECT username FROM users WHERE role = 'Driver'").fetchall()
+                        
+                        for u in all_drivers:
+                            u_name = str(u['username']).strip()
+                            if str(dp_model.get_real_driver_id(u_name)) == d_id:
+                                if u_name != username:
+                                    notif_db.add_notification(
+                                        u_name, 
+                                        f"💬 Clientul {username} ți-a scris la cursa {job_id}", 
+                                        target_url=f"/driver/chat/{job_id}"
+                                    )
             except Exception as e:
-                logging.error(f"Eroare notificare chat client: {e}")
+                logging.error(f"Eroare notificare chat: {e}")
+                
         return redirect(url_for('customer.job_chat', job_id=job_id))
 
     messages = support_db.get_job_messages(job_id)

@@ -6,7 +6,7 @@
 {% block extra_css %}
 <style>
     .dispatch-card { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .stat-box { background: #f8f9fa; border-radius: 10px; padding: 15px; border-left: 5px solid #216a94; }
+    .stat-box { background: #f8f9fa; border-radius: 10px; padding: 15px; border-left: 5px solid #dc3545; }
     .custom-rounded { border-radius: 12px !important; }
     .plate-badge { background-color: #ffc107; color: black; border: 1px solid #e0a800; font-family: monospace; font-size: 0.9rem; letter-spacing: 1px; padding: 5px 10px;}
 </style>
@@ -28,14 +28,14 @@
                 <h6 class="text-muted mb-1">Vehicles on Route</h6>
                 <h3 class="fw-bold text-dark mb-0">{{ data.jobs|length }}</h3>
             </div>
-            <i class="fa-solid fa-truck-fast fs-1 text-primary opacity-50"></i>
+            <i class="fa-solid fa-truck-fast fs-1 text-danger opacity-50"></i>
         </div>
     </div>
     <div class="col-md-8">
-        <div class="alert alert-info border-0 shadow-sm custom-rounded d-flex align-items-center mb-0 h-100">
-            <i class="fa-solid fa-circle-info fs-3 me-3"></i>
+        <div class="alert alert-danger border-0 shadow-sm custom-rounded d-flex align-items-center mb-0 h-100">
+            <i class="fa-solid fa-triangle-exclamation fs-3 me-3"></i>
             <div>
-                <strong>Operational Note:</strong> This center allows staff to monitor live operations. The <em>Force Close</em> action should only be used if the driver is unable to mark the delivery via their own portal.
+                <strong>Emergency Control:</strong> The cancellation action below will abort the transport entirely. The driver and vehicle will be freed immediately, and NO INVOICE will be generated. Use only in critical situations!
             </div>
         </div>
     </div>
@@ -54,7 +54,7 @@
                         <th>Client & Route</th>
                         <th>Driver Info</th>
                         <th>Assigned Vehicle</th>
-                        <th class="text-center pe-4">Administrative Action</th>
+                        <th class="text-center pe-4">Critical Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -86,9 +86,9 @@
                             </td>
                             <td class="text-center pe-4">
                                 <div class="d-flex justify-content-center gap-2">
-                                    <form method="POST" action="{{ url_for('allocation.deliver_job', req_id=job.id) }}" style="margin: 0;">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger px-3 shadow-sm custom-rounded" onclick="return confirm('⚠️ WARNING: You are forcing this job to close as an Administrator. Invoice will be generated automatically. Are you sure?');">
-                                            <i class="fa-solid fa-power-off me-1"></i> Force Close
+                                    <form method="POST" action="{{ url_for('allocation.cancel_job', req_id=job.id) }}" style="margin: 0;">
+                                        <button type="submit" class="btn btn-sm btn-danger px-3 shadow-sm custom-rounded" onclick="return confirm('🚨 ATENȚIE: Anulezi complet această comandă! Nu se va emite nicio factură, iar mașina și șoferul vor fi eliberați. Ești absolut sigur?');">
+                                            <i class="fa-solid fa-ban me-1"></i> Cancel Order
                                         </button>
                                     </form>
                                 </div>

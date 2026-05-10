@@ -24,23 +24,24 @@ def respond_to_ticket(ticket_id: int) -> str:
     
     response_text = request.form.get('admin_reply')
     if response_text:
-        
         if support_db.add_reply(ticket_id=ticket_id, sender=role, message=response_text, sender_role=role):
-            
-           
-            
             try:
                 with sqlite3.connect("instance/database.sqlite") as conn:
                     conn.row_factory = sqlite3.Row
-                    ticket = conn.execute("SELECT client FROM support_tickets WHERE id = ?", (ticket_id,)).fetchone()
+                    ticket = conn.execute("SELECT client, client_role FROM support_tickets WHERE id = ?", (ticket_id,)).fetchone()
                     
                     if ticket and ticket['client']:
                         destinatar = str(ticket['client']).strip()
+                        
+                        t_role = str(ticket['client_role']).strip() if 'client_role' in ticket.keys() else 'Customer'
+                        t_url = f"/driver/support#ticket-{ticket_id}" if t_role == 'Driver' else f"/portal/support#ticket-{ticket_id}"
+                        
+                        # 🔴 TRIMITE NOTIFICARE DOAR CLIENTULUI (Sau șoferului). Fără Staff! Fără Ecou!
                         mesaj_notificare = f"💬 Echipa de suport a răspuns la tichetul tău #{ticket_id}."
-                        notif_db.add_notification(destinatar, mesaj_notificare)
+                        notif_db.add_notification(destinatar, mesaj_notificare, target_url=t_url)
+                        
             except Exception as e:
                 logging.error(f"Eroare notificare admin support: {e}")
-            
             
             flash(f"Mesaj trimis cu succes în conversația #{ticket_id}!", "success")
         else:

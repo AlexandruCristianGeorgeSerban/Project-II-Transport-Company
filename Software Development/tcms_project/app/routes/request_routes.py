@@ -3,9 +3,11 @@ import sqlite3
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from app.controllers.request_controller import RequestController
 from app.models.user_model import UserModel
+from app.models.notification_model import NotificationModel
 
 request_bp = Blueprint('request_routes', __name__)
 req_logic = RequestController()
+notif_db = NotificationModel()
 
 @request_bp.route('/requests', methods=['GET'])
 def request_management() -> str:
@@ -59,8 +61,7 @@ def edit_request() -> str:
 
 @request_bp.route('/requests/delete/<req_id>', methods=['POST'])
 def delete_request(req_id: str) -> str:
-    modified_by = session.get('username', 'System')
-    resp = req_logic.remove_request(req_id, modified_by)
+    resp = req_logic.remove_request(req_id)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('request_routes.request_management'))
 
@@ -70,6 +71,22 @@ def send_offer(req_id: str) -> str:
         return redirect(url_for('dashboard.main_dashboard'))
     price = request.form.get('price_offer')
     resp = req_logic.send_price_offer(req_id, price)
+    
+    # 🔴 NOTIFICĂM CLIENTUL CĂ A PRIMIT O OFERTĂ
+    if resp.get("success"):
+        try:
+            with sqlite3.connect("instance/database.sqlite") as conn:
+                conn.row_factory = sqlite3.Row
+                req = conn.execute("SELECT client FROM transport_requests WHERE id = ?", (req_id,)).fetchone()
+                if req and req['client']:
+                    notif_db.add_notification(
+                        req['client'], 
+                        f"💰 Ai primit o nouă ofertă de preț (${price}) pentru cursa {req_id}!", 
+                        target_url="/portal"
+                    )
+        except Exception as e:
+            logging.error(f"Eroare notificare oferta: {e}")
+            
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('dashboard.main_dashboard'))
 
@@ -86,14 +103,28 @@ def staff_negotiate(req_id: str):
     username = session.get('username', 'Unknown')
     
     resp = req_logic.handle_negotiation_offer(req_id, username, msg, price, role)
-    flash(resp.get("message"), "success" if resp.get("success") else "danger")
     
+    # 🔴 NOTIFICĂM CLIENTUL CĂ STAFF-UL I-A RĂSPUNS LA NEGOCIERE
+    if resp.get("success"):
+        try:
+            with sqlite3.connect("instance/database.sqlite") as conn:
+                conn.row_factory = sqlite3.Row
+                req = conn.execute("SELECT client FROM transport_requests WHERE id = ?", (req_id,)).fetchone()
+                if req and req['client']:
+                    notif_db.add_notification(
+                        req['client'], 
+                        f"🤝 Staff-ul a răspuns la negocierea pentru cursa {req_id}. Preț propus: ${price}", 
+                        target_url="/portal"
+                    )
+        except Exception as e:
+            logging.error(f"Eroare notificare negociere: {e}")
+
+    flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(request.referrer or url_for('dashboard.main_dashboard'))
 
 # --- ROUTE OPTIMIZATION (HARTA FLOTEI) ---
 @request_bp.route('/staff/optimization')
 def route_optimization():
-    """Afișează harta de optimizare a rutelor și locația vehiculelor în tranzit."""
     if 'user_id' not in session or session.get('role') not in ['Administrator', 'Staff']:
         flash("Acces interzis.", "danger")
         return redirect(url_for('auth.login'))
@@ -104,13 +135,11 @@ def route_optimization():
 # --- INVOICE MANAGEMENT PENTRU STAFF ---
 @request_bp.route('/staff/invoices')
 def staff_invoices():
-    """Afișează toate facturile emise de sistem către clienți."""
     if 'user_id' not in session or session.get('role') not in ['Administrator', 'Staff']:
         flash("Acces interzis.", "danger")
         return redirect(url_for('auth.login'))
         
     role = session.get('role')
-    
     from app.models.invoice_model import DB_PATH
     
     invoices = []
@@ -126,7 +155,6 @@ def staff_invoices():
             for row in rows:
                 inv = dict(row)
                 invoices.append(inv)
-                
                 summary["total_amount"] += inv["amount"]
                 if inv["status"] == "Paid":
                     summary["paid_amount"] += inv["amount"]
@@ -140,16 +168,13 @@ def staff_invoices():
 
 @request_bp.route('/staff/invoices/remind/<invoice_id>', methods=['POST'])
 def send_invoice_reminder(invoice_id: str):
-    """Trimite o notificare (Reminder) clientului pentru a-și plăti factura."""
     if 'user_id' not in session or session.get('role') not in ['Administrator', 'Staff']:
         return redirect(url_for('auth.login'))
         
     client_name = request.form.get('client_name', 'Client')
     amount = request.form.get('amount', '0')
     
-    from app.models.notification_model import NotificationModel
-    notif_db = NotificationModel()
-    notif_db.add_notification(client_name, f"⚠️ Memento Plată: Factura {invoice_id} în valoare de ${amount} este scadentă. Te rugăm să achiți contravaloarea.")
+    notif_db.add_notification(client_name, f"⚠️ Memento Plată: Factura {invoice_id} în valoare de ${amount} este scadentă. Te rugăm să achiți contravaloarea.", target_url="/portal/invoices")
     
     flash(f"Un memento de plată a fost trimis către {client_name}.", "success")
     return redirect(url_for('request_routes.staff_invoices'))
