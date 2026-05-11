@@ -25,7 +25,6 @@ def app():
         "TESTING": True,
     })
 
-    # Creăm tabelele în baza de date fantomă
     with app.app_context():
         user_model.UserModel().create_table()
         driver_model.DriverModel().create_table()
