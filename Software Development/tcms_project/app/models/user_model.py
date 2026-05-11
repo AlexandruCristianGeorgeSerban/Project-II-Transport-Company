@@ -1,8 +1,7 @@
 import sqlite3
 import logging
-from typing import Dict, Any, Optional
-from werkzeug.security import generate_password_hash, check_password_hash
 from typing import Dict, Any, Optional, List
+from werkzeug.security import generate_password_hash, check_password_hash
 
 DB_PATH: str = "instance/database.sqlite"
 
@@ -29,7 +28,6 @@ class UserModel:
                         profile_picture TEXT
                     )
                 """)
-                
                 
                 try:
                     db_cursor.execute("ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0")
@@ -115,3 +113,25 @@ class UserModel:
         except sqlite3.Error as db_error:
             logging.error(f"Error retrieving all users: {db_error}")
             return users_list
+
+    def update_user_profile(self, user_id: str, first_name: str, last_name: str, email: str, phone_number: str, dob: str, address: str) -> bool:
+        """Updates user profile information, ensuring email is properly saved."""
+        try:
+            with sqlite3.connect(DB_PATH) as connection:
+                db_cursor = connection.cursor()
+                db_cursor.execute(
+                    """
+                    UPDATE users 
+                    SET first_name = ?, last_name = ?, email = ?, phone_number = ?, date_of_birth = ?, address = ?
+                    WHERE id = ?
+                    """,
+                    (first_name, last_name, email, phone_number, dob, address, user_id)
+                )
+                connection.commit()
+                return db_cursor.rowcount > 0 
+        except sqlite3.IntegrityError:
+            logging.error(f"Update failed: Email '{email}' is likely already in use by another account.")
+            return False
+        except sqlite3.Error as e:
+            logging.error(f"Database error during profile update: {e}")
+            return False

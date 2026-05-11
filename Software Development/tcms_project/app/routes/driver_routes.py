@@ -232,7 +232,6 @@ def add_driver() -> str:
     
     d_id = form_data.get('driver_id', '')
     
-    # 🔴 PLASA DE SIGURANȚĂ: Căutăm TOATE variantele posibile de nume din HTML
     f_name = form_data.get('first_name', '').strip()
     l_name = form_data.get('last_name', '').strip()
     single_name = form_data.get('name', '').strip() or form_data.get('driver_name', '').strip() or form_data.get('full_name', '').strip()
@@ -252,11 +251,16 @@ def add_driver() -> str:
     username = form_data.get('username')
     password = form_data.get('password')
     
+    # 📧 PRELUĂM EMAIL-UL AICI
+    email = form_data.get('email', None)
+    if email == "":
+         email = None
+    
     licenses_list = request.form.getlist('licenses')
     licenses_str = ", ".join(licenses_list)
     modified_by = session.get('username', 'System')
     
-    resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, address, avail, username, password, modified_by=modified_by)
+    resp = driver_logic.add_new_driver(d_id, name, status, licenses_str, exp, dob, address, avail, email, username, password, modified_by=modified_by)
     flash(resp.get("message"), "success" if resp.get("success") else "danger")
     return redirect(url_for('driver.driver_management'))
 
@@ -267,7 +271,6 @@ def edit_driver() -> str:
     
     d_id = form_data.get('edit_driver_id', '') or form_data.get('driver_id', '')
     
-    # 🔴 PLASA DE SIGURANȚĂ PENTRU EDIT
     f_name = form_data.get('edit_first_name', '').strip() or form_data.get('first_name', '').strip()
     l_name = form_data.get('edit_last_name', '').strip() or form_data.get('last_name', '').strip()
     single_name = form_data.get('edit_name', '').strip() or form_data.get('name', '').strip() or form_data.get('driver_name', '').strip()
@@ -358,6 +361,7 @@ def export_drivers(file_type: str):
         return response
 
     return redirect(url_for('driver.driver_management'))
+
 @driver_bp.route('/purge_all_drivers')
 def purge_all_drivers():
     """Ruta pentru stergerea ABSOLUT TUTUROR conturilor de șofer din tabelul de users."""
@@ -365,15 +369,13 @@ def purge_all_drivers():
         import sqlite3
         with sqlite3.connect("instance/database.sqlite") as conn:
             cursor = conn.cursor()
-            
-            # Ștergem absolut orice cont care are rolul de 'Driver'
             cursor.execute("DELETE FROM users WHERE role = 'Driver'")
             deleted_count = cursor.rowcount
-            
             conn.commit()
             return f"<h1>🧹 CURĂȚENIE TOTALĂ (Thanos Snap) 💥</h1><p>Am evaporat <b>{deleted_count}</b> conturi fantomă de șoferi din sistem!</p><p>Niciun cont vechi (nici ship, nici driver) nu mai funcționează.</p> <a href='/login'>Du-te la login și verifică.</a>"
     except Exception as e:
         return f"Eroare la curățenie: {e}"
+
 @driver_bp.route('/inspect_db')
 def inspect_db():
     """Ruta care ne arata exact ce conturi mai exista in baza noastra de date."""
@@ -390,6 +392,7 @@ def inspect_db():
             return html
     except Exception as e:
         return f"Eroare: {e}"    
+
 @driver_bp.route('/total_clean_up')
 def total_clean_up():
     """Șterge manual toate conturile fantomă găsite în inspect_db."""
@@ -403,12 +406,10 @@ def total_clean_up():
         with sqlite3.connect("instance/database.sqlite") as conn:
             cursor = conn.cursor()
             
-            # 1. Ștergem utilizatorii după username
             placeholders = ', '.join(['?'] * len(ghosts))
             cursor.execute(f"DELETE FROM users WHERE username IN ({placeholders})", ghosts)
             users_deleted = cursor.rowcount
             
-            # 2. Ștergem tot din tabelul drivers ca să resetăm și logistica
             cursor.execute("DELETE FROM drivers")
             drivers_deleted = cursor.rowcount
             
@@ -423,4 +424,4 @@ def total_clean_up():
             <a href='/inspect_db'>Verifică din nou lista aici</a>
             """
     except Exception as e:
-        return f"Eroare la curățenie: {e}"    
+        return f"Eroare la curățenie: {e}"
