@@ -407,7 +407,8 @@ def total_clean_up():
             cursor = conn.cursor()
             
             placeholders = ', '.join(['?'] * len(ghosts))
-            cursor.execute(f"DELETE FROM users WHERE username IN ({placeholders})", ghosts)
+            query = "DELETE FROM users WHERE username IN (" + placeholders + ")"
+            cursor.execute(query, ghosts)
             users_deleted = cursor.rowcount
             
             cursor.execute("DELETE FROM drivers")
